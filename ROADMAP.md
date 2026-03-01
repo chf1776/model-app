@@ -6,36 +6,39 @@ Phases are ordered so each one produces something testable and useful on its own
 
 ## Phase 1: Foundation
 
-**Goal**: A working app shell with kit collection management. No building yet — just the infrastructure everything else depends on.
+**Goal**: A working app shell with kit collection management and project creation. No building yet — just the infrastructure everything else depends on.
 
 ### Database
 - Full schema established upfront (all tables, even those used in later phases). One migration file. Later phases only add commands and UI, not schema changes.
 - Core tables: `projects`, `tracks`, `steps`, `step_relations`, `step_tags`
 - Collection tables: `kits`, `accessories`, `paints`, `project_accessories`, `kit_files`
-- Media tables: `instruction_sources`, `instruction_pages`, `progress_photos`, `milestone_photos`, `reference_images`, `annotations`, `masks`
+- Media tables: `instruction_sources`, `instruction_pages`, `progress_photos`, `milestone_photos`, `gallery_photos`, `reference_images`, `annotations`, `masks`
 - Build tables: `build_log_entries`, `tags`, `drying_timers`, `export_history`
 - Paint tables: `palette_entries`, `palette_components`, `step_paint_refs`
 - Settings: `app_settings`, `project_ui_state`
 
 ### App scaffold
-- Electron project with React 19 + TypeScript + electron-vite
-- Three-zone navigation bar (Collection / Build / Overview), always visible
+- Tauri v2 project with React 19 + TypeScript + Vite
+- Three-zone navigation bar (Collection / Build / Overview), always visible, plus gear icon for Settings and "+ New Project" button
 - Active project state: last-resumed project ID stored in `app_settings`; Build and Overview show empty state when none active
-- Basic routing: `/collection`, `/build`, `/overview`
+- Basic routing: `/collection`, `/build`, `/overview`, `/settings`
 
 ### Collection zone
-- Sections: Building, On the Shelf, Wishlist, Completed, Accessories, Paints — each collapsible
+- **Entity switcher**: three tabs (Kits | Accessories | Paints) at the top of Collection
+- **Kits tab**: sections for Building, On the Shelf, Wishlist, Completed — each with kit cards showing status badges
+- **Accessories tab**: aftermarket items with parent kit links, type badges, owned/wishlist status
+- **Paints tab**: global paint shelf with group by (Color Family | Brand | Project), search, list/grid views, detail panel, catalog lookup with brand filter tabs, manual paint entry fallback
+- **Wishlist system**: consistent owned/wishlist badges across all three entity types. Price, currency, buy URL on all wishlisted items. "Mark as acquired" transitions. Batch operations for multi-select acquire.
 - Add kit: manual entry form (name, manufacturer, scale, kit number, box art) + Scalemates search import
 - Edit and delete kit
-- Wishlist: retailer URL, price, notes; "Mark as acquired" moves item to On the Shelf
-- Start Build: creates project record, links kit, opens Build zone in Setup mode
-- Completed builds: "View" opens Overview; "Resume" sets active project and opens Build
-- Global `+` button: quick-add sheet (kit / accessory / paint)
-- Accessories section: add PE set, resin, decal set, 3D print; optional parent kit link
-- Paints section: paint shelf (brand, name, reference code, type, owned/wishlist status, notes)
+
+### Project creation
+- **First-run empty state**: welcome card with "Create First Project" CTA and Getting Started tips
+- **Create Project dialog**: required fields (project name, kit from shelf or new, scale), optional fields (category, Scalemates URL, product code). Kit from shelf: searchable list with thumbnails. New kit: name + manufacturer + scale.
+- On creation: shelf kit auto-moves to "Building" status (configurable in Settings). Post-creation landing with suggested next steps.
 
 ### Deliverable
-You can manage your entire kit collection — add kits from Scalemates, maintain a wishlist, and create a project. The app has a persistent shell to build everything else on.
+You can manage your entire kit collection with a proper entity switcher, maintain wishlists with pricing across kits/accessories/paints, and create projects. The app has a persistent shell to build everything else on.
 
 ---
 
@@ -43,7 +46,7 @@ You can manage your entire kit collection — add kits from Scalemates, maintain
 
 **Goal**: Import your instruction manual, define tracks, and crop every step. The project is ready to build.
 
-### PDF handling (Rust)
+### PDF handling (Rust backend)
 - Upload one or more instruction PDFs per project; each becomes a named source
 - Rasterize PDF pages to PNG at configured DPI; stored in `instructions/<pdf-id>/page-NNN.png`
 - Page browser: navigate pages, switch between sources
@@ -155,7 +158,7 @@ The complete building experience. Annotations, references, timers, sub-steps, pa
 
 ## Phase 5: Overview Zone
 
-**Goal**: See the entire build at a glance — structure, photos, history.
+**Goal**: See the entire build at a glance — structure, photos, history, materials, and project management.
 
 ### Assembly Map
 - Horizontal track lines with step nodes: `●` complete, `○` pending, `◆` join event
@@ -166,33 +169,43 @@ The complete building experience. Annotations, references, timers, sub-steps, pa
 - Horizontal scroll; fit-to-screen and zoom controls; overall completion count + percentage
 
 ### Four-card layout
-- 2×2 grid below Assembly Map
+- 2×2 grid below Assembly Map: **Gallery**, **Build Log**, **Materials**, **Project Info**
 - Expand any card to fill the area; others collapse to thin labeled bars; Escape returns to mosaic
 - Assembly Map always visible
 
 ### Gallery card
-- Summary: recent photo grid with milestone section markers
-- Expanded: full photo timeline, click for full-screen, right-click → "Set as hero photo"
-- Before/after comparison: "Compare" on any step with both a crop and a progress photo; synchronized zoom/pan
+- **Masonry layout** (expanded): three-column variable-height grid with caption/date overlays
+- Photos are a superset: all Build Log photos (tagged "Log") + gallery-only uploads for showcase/reference
+- Lightbox: click any photo for full-size with arrow nav, caption, source/milestone badges
+- Filters: All | Gallery-only | From Log | Milestones
+- Compact: single row of 50px thumbnails with "+N" overflow
 
 ### Build Log card
-- Summary: chronological entries with icons and dates
-- Expanded: step completions, milestone events, timer completions, photo additions, build complete
-- Composer for manual entries with optional photos; inline edit/delete
-- Export shortcut button (same flow as Export + Settings)
+- **Day-grouped journal** (expanded): entries grouped by day with collapsible date headers
+- Four entry types with distinct timeline dots:
+  - Step completed (auto): track-colored circle with step number in white
+  - Note (manual): accent dot, editable text card
+  - Photo (manual): accent dot, thumbnail with caption
+  - Milestone (auto/manual): track-colored square with flag icon, step count if track completion
+- Composer at top: Note / Photo / Milestone tabs with type-specific input
+- Filters: All | Steps | Notes | Photos | Milestones
+- Compact: day headers and timeline at smaller scale, no composer
 
-### Materials & Paints card (Phase 5 subset)
-- Accessories: linked aftermarket items, per-item step completion fraction, link/unlink
-- Kit Info: manufacturer, scale, kit number, box art, markings scheme
-- Paint Palette section present but fully populated in Phase 6
+### Materials card
+- BOM with filters: All | Owned | Needed
+- Urgency grouping (All and Needed): Building items (accent border), On Shelf items (tertiary), Unlinked items
+- In-card acquire interactions: wishlist pills and owned checks clickable
+- Shopping list export (Needed filter only): split button with "Copy list" primary + CSV/Markdown dropdown
+- Paint palette section: per-build colours, formulas, step references (fully populated in Phase 6)
 
-### Export + Settings card (Phase 5 subset)
-- Project settings: name, start date, project notes
-- Mark as complete → build completion flow (confirm, select hero photo, optional export)
-- File health check: detect missing/moved files, offer re-link or remove orphan
+### Project Info card
+- Editable project metadata: name, kit, scale, category, Scalemates URL, product code, notes/build goals
+- Project actions: Mark Complete (with hero photo selection), Pause Build, Resume Build
+- Danger zone: Archive Project (reversible), Delete Project (confirmation with name typed)
+- Compact: kit name, scale badge, category badge, status badge
 
 ### Deliverable
-Full project visibility. See the build structure, browse all photos, and read the complete build history.
+Full project visibility. See the build structure, browse all photos, read the complete build history, manage materials, and control the project lifecycle.
 
 ---
 
@@ -207,7 +220,7 @@ Full project visibility. See the build structure, browse all photos, and read th
   - Component paints with percentage or ratio
   - Mixing notes (freeform)
 - Add colours from global shelf or create new inline
-- Managed from Overview → Materials & Paints
+- Managed from Overview → Materials
 
 ### Step paint references
 - Tag any step with palette entries (in step editor or info bar during Building mode)
@@ -230,32 +243,45 @@ Complete paint tracking — global shelf, per-build formulas, step-level referen
 - **PDF**: Letter / A4, clean photo grid with captions
 - **ZIP**: all photos + narrative Markdown file
 - No wizard; smart defaults (hero photo as cover, all photos, tracks in display order)
-- Export history in Export + Settings with "Show in Finder"; same-day exports get `-2`, `-3` suffix
+- Export history with "Show in Finder"; same-day exports get `-2`, `-3` suffix
 
 ### Advanced step relations
 - "Blocked by" / "Blocks access to" soft warnings in Building mode
 - Pre-paint + access-seal detection: warn when sealing step would trap an unpainted pre-paint step
 - "Replaces step": replaced step gets strikethrough, excluded from count, auto-completes
 
-### Search
-- `/` from anywhere: full-text search across kits, project names, step titles, step notes
-
 ### Keyboard shortcuts — complete
 - All shortcuts wired; `?` overlay shows full table
 
 ### First-use onboarding
+- Welcome card on first run with Getting Started tips
 - Tooltips on first visit to each zone
-- Contextual empty states with actionable guidance (e.g. "Upload a PDF to get started")
+- Contextual empty states with actionable guidance
 
-### App Settings — complete
-- Tag library (create, rename, delete)
-- Default drying times per adhesive type
-- File storage location
-- PDF rasterization DPI
-- Appearance (light / dark / system)
+### Settings page — complete
+- Dedicated full-width page accessible via gear icon in nav bar
+- **Appearance**: Theme (Light / Dark / System)
+- **Building Defaults**: default scale, auto-status change toggle, drying times (plastic cement 30min, CA 5min, epoxy 60min, white/PVA 45min), PDF DPI (72/150/300, default 150), PDF crop behavior
+- **Paint & Catalog**: default brand, visible catalog brands (multi-checkbox), auto-add paints from project toggle
+- **Currency & Pricing**: default currency (USD/EUR/GBP/JPY/CAD/AUD + freeform ISO 4217), acquire behavior (keep vs clear price)
+- **Data & Storage**: project storage location (path + change), auto-save interval (30s/1min/2min/5min), backup ("Back up now" + timestamp), restore ("Import backup" with confirmation)
+- **Keyboard Shortcuts**: expandable reference section, two-column table grouped by zone
+- All settings auto-save with toast confirmation. Per-section "Reset to defaults" links. "Reset all" at bottom with confirmation.
 
 ### Deliverable
 A fully polished, complete app. Finish a build, export a shareable document, every edge case handled.
+
+---
+
+## Deferred to v2
+
+| Feature | Notes |
+| --- | --- |
+| Global search | Command palette (Cmd+K) pattern. Each zone has scoped nav for v1. |
+| Multi-kit projects / dioramas | One project = one kit in v1. |
+| Custom color family definitions | Settings placeholder exists; full management UI deferred. |
+| Notification preferences | No notification system in v1 desktop app beyond OS timer alerts. |
+| Keyboard shortcut remapping | Display-only reference table in v1. |
 
 ---
 
@@ -263,10 +289,10 @@ A fully polished, complete app. Finish a build, export a shareable document, eve
 
 | Phase | Name | Unlocks |
 | --- | --- | --- |
-| 1 | Foundation | Collection management, project creation |
+| 1 | Foundation | Entity switcher, wishlist system, paint shelf, project creation |
 | 2 | Setup Mode | PDF import, crop tool, track/step organization |
 | **3** | **Building — Core** | **Working build loop (critical path)** |
 | 4 | Building — Enrichment | Annotations, references, timers, page mode |
-| 5 | Overview Zone | Assembly map, gallery, build log |
-| 6 | Paint Tracking | Global shelf, formulas, step references |
-| 7 | Export + Polish | Shareable documents, relations, search, shortcuts |
+| 5 | Overview Zone | Assembly map, gallery, build log, materials, project info |
+| 6 | Paint Tracking | Global shelf integration, formulas, step references |
+| 7 | Export + Polish | Shareable documents, relations, settings page, onboarding |

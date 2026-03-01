@@ -14,9 +14,9 @@ This app is purpose-built for the hobby. It manages your kit collection, guides 
 
 The experience is organized into three zones:
 
-- **Collection** — All your kits, paints, and accessories in one place: wishlisted, owned, in-progress, and completed
+- **Collection** — All your kits, paints, and accessories in one place via an entity switcher: wishlisted, owned, in-progress, and completed
 - **Build** — The active workspace where you work through steps with the instruction image front and center
-- **Overview** — A single-screen project dashboard showing assembly structure, photos, parts, and build history
+- **Overview** — A single-screen project dashboard: assembly map, photo gallery, build log, materials, and project info
 
 **Active project**: Build and Overview always refer to the currently active project — whichever one you most recently resumed or started. The nav buttons (Build, Overview) take you directly to that project's zones. If no project is active, those zones display an empty state prompting you to select one from Collection. Clicking Resume on any active build in Collection sets that project as active and opens it in the Build zone. A project name dropdown in the Build zone toolbar lets you switch between in-progress projects without leaving Build.
 
@@ -26,40 +26,38 @@ The experience is organized into three zones:
 
 ### Zone 1: Collection
 
-The home screen. A unified surface for your entire kit collection and all your projects. No separate "dashboard" and "stash" — everything lives on one shelf.
+The home screen. A unified surface for your entire kit collection and all your projects. No separate "dashboard" and "stash."
 
-**Layout**: A single vertically-scrolling page. Each section (Building, On the Shelf, Wishlist, etc.) has a header and expands inline. A global `+` button (top right or floating) opens a quick-add sheet where you choose what to add: kit, accessory, or paint. Scalemates search and manual entry are both accessible from this sheet.
+**Layout**: An entity switcher with three tabs at the top: **Kits** | **Accessories** | **Paints**. Each tab shows its own filtered view with status sections. The nav bar includes a `+ New Project` button (always visible) and a gear icon for app settings.
 
-**Sections**:
+**Kits tab** — Shows all kits grouped into status sections:
 
-- **Building** — Active projects displayed with their latest progress photo as the cover image, a progress bar, and kit metadata (manufacturer, scale, kit number)
-  - "Resume" button restores the Build zone to the exact state you left it: same step, same zoom level and pan position, same mode
-- **On the Shelf** — Owned kits not yet started
-  - "Start Build" creates a project, links the kit, imports any attached instruction PDFs as source pages (rasterizing them into the project's instructions directory), prompts for a markings scheme, and opens the Build zone in Setup mode. If no PDFs are attached to the kit, the project opens in Setup mode with an empty state and an "Upload instructions" prompt.
-- **Wishlist** — Kits you want to acquire
-  - Retailer URL links, pricing (manually recorded), notes
-  - "Mark as acquired" button on each item — moves it to On the Shelf immediately
-- **Completed** — Finished builds displayed with a user-selected hero photo
-  - "View" opens the Overview for that build. "Resume" also works — completed builds are fully accessible in the Build zone. You can still navigate steps, add photos, edit notes, and re-open them in Build.
-  - A build is marked complete manually by the user (via the Export + Settings card in Overview). On completion: a dialog prompts to confirm, select a hero photo (from the gallery or upload a new one), and optionally export the build log. A "Build complete" entry is added to the build log. The project moves to the Completed section.
-- **Accessories** — Aftermarket items: PE sets, resin kits, decal sets, 3D-printed sets, etc.
-  - Parent kit is optional — accessories designed for a specific kit are grouped under it; generic or multi-use accessories (e.g. generic stowage sets) are listed without a parent
-  - Can be linked to any project
-  - Paints are **not** in this section — see Paints below
-- **Paints** — Global paint shelf. Not grouped under any kit; managed independently across all builds
-  - Each entry: brand, colour name, manufacturer reference code (e.g. `XF-69`, `70.896`), paint type (acrylic / enamel / lacquer / oil)
-  - Owned / wishlist status
-  - Notes (e.g. "getting low", "discontinued — use XF-4 as substitute")
-  - The paint shelf feeds the per-build paint palette in every project (see Paint Tracking)
+- **Building** — Active projects with latest progress photo as cover, progress bar, kit metadata (manufacturer, scale, kit number). "Resume" button restores Build zone to exact state.
+- **On the Shelf** — Owned kits not yet started. "Start Build" creates a project and links the kit.
+- **Wishlist** — Kits to acquire with price, currency, buy URL, and notes. "Mark as acquired" moves to On the Shelf.
+- **Completed** — Finished builds with hero photo. "View" opens Overview; "Resume" reopens in Build.
+
+Each kit card shows an owned/wishlist status badge. Wishlisted items display price and buy link when set. All status transitions are available inline.
+
+**Accessories tab** — Aftermarket items: PE sets, resin kits, decal sets, 3D-printed sets. Each has owned/wishlist status, optional parent kit link, optional price/currency/buy URL. Generic accessories (not kit-specific) listed without a parent. Can be linked to any project.
+
+**Paints tab** — Global paint shelf. See "Paint Shelf" section below for full detail.
+
+**Wishlist & Owned System** — All three entity types (kits, accessories, paints) support wishlist/owned status with a consistent badge system:
+
+- **Wishlist pill**: "Wishlist" label, warning-tinted, with optional price display and buy link icon
+- **Owned badge**: subtle check icon, tertiary tinted
+- Each wishlisted entity can store price, currency (ISO 4217, default from settings), and buy URL
+- "Mark as acquired" transitions wishlist → owned; price data optionally preserved for purchase history (configurable in settings)
+- Batch operations: multi-select with "Mark owned" bulk action on wishlist filtered views
 
 **Capabilities**:
 
-- Full-text search across all kits and projects
-- Filters by type (base kit, PE set, resin/3D print, decal set, paint, accessory), status (on shelf / building / completed / wishlist), scale, manufacturer
-- Scalemates integration — paste a URL or search to import kit metadata (name, manufacturer, scale, kit number, box art) automatically
+- Filters by status (on shelf / building / completed / wishlist), scale, manufacturer
+- Scalemates integration for kit import (name, manufacturer, scale, kit number, box art)
 - Manual kit entry for items not on Scalemates
-- Instruction PDF and image attachment per kit — these auto-import as source pages when starting a build
-- Kit-to-project linking — see which project a kit is being used in, and which kits are associated with a project
+- Instruction PDF and image attachment per kit — auto-import as source pages when starting a build
+- Kit-to-project linking — see which project a kit is being used in
 
 ---
 
@@ -234,7 +232,7 @@ The `📷` button in the zone toolbar is always visible in Track mode. In Page m
 
 ### Zone 3: Overview
 
-A single-screen project dashboard that shows the state of the entire build at a glance. No tabs. The summary is designed to fit on one screen for typical builds; the Assembly Map scrolls horizontally for builds with many steps, and the card area scrolls vertically if needed. Everything important is visible simultaneously without navigating between pages.
+A single-screen project dashboard that shows the state of the entire build at a glance. The Assembly Map spans the full width across the top. Below it, four cards in a 2×2 grid: **Gallery**, **Build Log**, **Materials**, and **Project Info**. Everything important is visible simultaneously without navigating between pages.
 
 **Layout**: The Assembly Map spans the full width across the top. Below it, four cards in a 2x2 grid.
 
@@ -253,13 +251,13 @@ A single-screen project dashboard that shows the state of the entire build at a 
 │                                                              │
 │  ┌─ Gallery ──────────────┐  ┌─ Build Log ─────────────────┐ │
 │  │                        │  │                             │ │
-│  │  (photo grid with      │  │  (chronological entries     │ │
-│  │   milestone markers)   │  │   with icons and dates)     │ │
+│  │  (masonry photo grid   │  │  (day-grouped journal       │ │
+│  │   with source badges)  │  │   with entry type dots)     │ │
 │  │                        │  │                             │ │
 │  │         [Expand ↗]    │  │              [Expand ↗]     │ │
 │  ├────────────────────────┤  ├─────────────────────────────┤ │
-│  │ Materials & Paints     │  │ Export /                    │ │
-│  │                        │  │ Settings                    │ │
+│  │ Materials              │  │ Project Info                │ │
+│  │                        │  │                             │ │
 │  │         [Expand ↗]    │  │              [Expand ↗]     │ │
 │  └────────────────────────┘  └─────────────────────────────┘ │
 │                                                              │
@@ -295,84 +293,76 @@ A flow diagram showing every track as a horizontal line of step nodes. This is t
 
 Below the Assembly Map, four cards show summary views of key project information:
 
-- **Gallery** — Recent progress photos in a grid, organized with milestone markers as section dividers
-- **Build Log** — Chronological activity: step completions, milestone events, drying timer completions, manual journal entries, photo additions
-- **Materials & Paints** — Aftermarket accessories linked to the build with per-item step completion status; the project's paint palette with colour formulas; kit metadata (manufacturer, scale, kit number, chosen markings scheme)
-- **Export + Settings** — Hero photo, export buttons (HTML / PDF / ZIP), project settings (name, start date, notes), mark-as-complete action, file health check
+- **Gallery** — Masonry photo grid. Superset of Build Log photos plus gallery-only uploads for showcase/reference shots.
+- **Build Log** — Day-grouped journal with auto-logged step completions, manual notes, photos, and milestone markers.
+- **Materials** — BOM (bill of materials) with owned/needed filters, urgency grouping, and shopping list export.
+- **Project Info** — Editable project metadata (name, kit, scale, category, Scalemates URL, product code, notes), lifecycle actions (Mark Complete, Pause, Archive, Delete).
 
-**Expand/collapse interaction**: Clicking "Expand" on any card smoothly expands it to fill the full area below the Assembly Map. The other three cards collapse to a thin labeled bar at the bottom. Click any collapsed card or press Escape to return to the four-card mosaic. The Assembly Map always stays visible at the top. This allows deep dives into any section (full gallery view, full build log, full materials management) without tabs or page navigation.
+**Expand/collapse interaction**: Clicking the expand icon on any card expands it to fill the full area below the Assembly Map. The other three cards collapse to a thin labeled bar at the bottom. Click any collapsed card or press Escape to return to the four-card mosaic. The Assembly Map always stays visible at the top.
 
 #### Gallery (expanded)
 
 When the Gallery card is expanded:
 
-- Full photo timeline organized chronologically
-- Milestone markers as section headers ("Hull Assembly complete", "Paint session", etc.)
-- Photos displayed at a comfortable viewing size with step name, track, and date
-- Click any photo to view full-screen with zoom/pan
-- Right-click (or long-press) any photo to "Set as hero photo" — immediately updates the project cover
-- Before/after comparison: for any step that has both a cropped instruction image and a progress photo, a "Compare" button appears on the photo. Tapping it shows the instruction image and progress photo side-by-side with synchronized zoom/pan.
+- **Masonry layout**: three-column variable-height grid. Photos distributed by shortest-column-first algorithm for visual balance. Caption and date overlaid at bottom of each tile.
+- **Photo sources**: Gallery is a superset of all project photos. Build Log photos appear automatically (tagged with a "Log" badge). Gallery-only photos added via "Add Photo" button for showcase/reference shots not tied to log entries.
+- **Filters**: All | Gallery-only | From Log | Milestones. Pill toggles in the header.
+- **Badges**: "Log" pill (top-left) on Build Log photos. Flag icon (top-right) on milestone photos.
+- **Lightbox**: Click any photo for full-size viewer with arrow navigation, caption, date, source badge, and milestone badge. Close with X or Escape.
+- **Compact view** (in 2×2 grid): single row of uniform 50px thumbnails with "+N" overflow tile.
 
 #### Build Log (expanded)
 
 When the Build Log card is expanded:
 
-- Full chronological log with entry types:
-  - Manual entries (user-written notes with optional photos)
-  - Auto-entries:
-    - Step completions — step title, track name, timestamp
-    - Milestone events — track name (track complete), timestamp
-    - Drying timer completions — label, linked step name if applicable, elapsed time
-    - Photo additions — step name, timestamp (one entry per photo added)
-    - Build complete event
-- Composer at the top for adding manual entries
-- Inline editing and deletion for manual entries
-- Export shortcut button — triggers the same export flow as the Export + Settings card; a convenience for when you're already reviewing the log
+- **Day-grouped timeline**: entries grouped by day with collapsible date headers. Today + 2 previous days expanded by default; older days collapsed. Collapsed headers show summary badges (step count, milestones, notes, photos).
+- **Four entry types** with distinct timeline dots:
+  - **Step completed** (auto-logged): 14px circle filled with track color, step number in white inside. Shows step label, track name in track color, time, "auto" tag.
+  - **Note** (manual): 10px accent-colored dot. Text in a sidebar-tinted card. Editable after creation.
+  - **Photo** (manual): 10px accent-colored dot. Image thumbnail with optional caption.
+  - **Milestone** (auto on track completion, or manual): 14px rounded square with flag icon in track color. Track-colored tinted card with title and step count. Track completion milestones auto-generate; users can also create manual milestones.
+- **Composer** at the top: three tabs (Note / Photo / Milestone) with type-specific input. Note: textarea. Photo: drop zone with caption input. Milestone: title input with optional "Track completion" checkbox and track selector.
+- **Filters**: All | Steps | Notes | Photos | Milestones. Pill toggles.
+- **Compact view** (in 2×2 grid): day headers and timeline visible at smaller scale, no composer, no filters.
 
-#### Export + Settings (expanded)
+#### Project Info (expanded)
 
-When the Export + Settings card is expanded:
+When the Project Info card is expanded:
 
-**Export**:
+**Editable metadata** — all fields from project creation, editable in place:
 
-- Hero photo — select from gallery or upload a new one (used as cover image in exports)
-- Export buttons: HTML / PDF / ZIP. Each exports immediately with smart defaults.
-- Export history: list of previous exports with date, format, and a "Show in Finder" button
+- Project name, kit (with "Change" link to kit selector), scale, category (Ship, Aircraft, Armor, Vehicle, Figure, Sci-Fi, Other), Scalemates URL (with box art fetch), product code, and a notes/build goals textarea.
 
-**Project Settings**:
+**Project actions** (below metadata, separated by a border):
 
-- Project name (defaults to kit name; can be renamed)
-- Start date (auto-set when build started; editable)
-- Project notes — freeform notes at the project level (separate from step notes and build log entries)
-- "Mark as complete" action — initiates the build completion flow
+- "Mark Complete" — changes status to Complete, moves kit to Completed section. Confirmation dialog prompts for hero photo selection.
+- "Pause Build" — changes status to Paused. Kit stays in Collection with Paused indicator. "Resume Build" replaces this when paused.
 
-**File Health**:
+**Danger zone** (at bottom, separated by warning border):
 
-- Checks that all files referenced in the database exist on disk
-- Detects photos or instruction images moved or deleted outside the app
-- Offers to re-link missing files or remove orphaned records
+- "Archive Project" — removes from active view, retains data. Reversible.
+- "Delete Project" — permanent deletion. Requires typing project name to confirm.
 
-#### Materials & Paints (expanded)
+**Compact view** (in 2×2 grid): kit name + manufacturer, scale badge, category badge, status badge.
 
-When the Materials & Paints card is expanded, two sections are shown:
+#### Materials (expanded)
 
-**Accessories**:
+When the Materials card is expanded:
 
-- Every aftermarket item linked to the build (PE sets, resin parts, 3D prints, decal sets)
-- For each item: name, source, and how many steps using it are complete vs. total
-- Link or unlink accessories from the project here
+**Header**: title + filter pills (All | Owned | Needed) + expand/collapse toggle.
 
-**Paint Palette**:
+**BOM (Bill of Materials)**: Lists all accessories and paints linked to the project.
 
-- The full palette for this build — colours used, their formulas, which steps reference each colour
-- Add colours from the global paint shelf or create new entries inline
-- See Paint Tracking section for full detail
+- **Urgency grouping** (in All and Needed filters): items grouped by urgency level. "Building" items (linked to an active project that needs them) get an accent dot and solid accent border. "On Shelf" items get a tertiary dot. "Unlinked" items get a plain header.
+- **Compact state**: 2×2 grid format, condensed rows with type icon and name. Footer shows total count + "N needed" link.
+- **Expanded state**: full-width rows with type badges, brand, kit reference bar. In-card acquire interactions (wishlist pills and owned checks clickable directly).
 
-**Kit Info**:
+**Shopping list export** (Needed filter only): Split button in the expanded footer.
 
-- Manufacturer, scale, kit number, box art
-- Chosen markings scheme (text + optional reference image)
-- Linked kits and accessories from Collection
+- Primary: "Copy list" — formatted text to clipboard, grouped by urgency, includes name/type/price/URL.
+- Dropdown: Export CSV (columns: name, type, brand, linked_kit, kit_status, price, currency, buy_url) | Export Markdown (same structure with formatting, designed for Obsidian or similar).
+
+**Paint palette section**: colours used in this build, formulas, which steps reference each colour. Add from global shelf or create inline.
 
 ---
 
@@ -382,13 +372,25 @@ Paint tracking operates at two levels: a global paint shelf in Collection, and a
 
 ### Global Paint Shelf
 
-Lives in Collection as a standalone section. Contains every paint you own or want to acquire, independent of any specific kit or project. Each entry:
+Lives in the Paints tab of the Collection zone's entity switcher. Contains every paint you own or want to acquire, independent of any specific kit or project.
 
-- Brand (Tamiya, Vallejo, AK Interactive, Mr. Color, etc.)
-- Colour name and manufacturer reference code
-- Paint type (acrylic / enamel / lacquer / oil)
-- Owned / wishlist status
-- Notes
+**Toolbar**: Group by pills (Color Family | Brand | Project), search input, view toggle (list/grid), Add Paint button.
+
+**List view**: Collapsible groups by selected grouping. Group headers show chevron, label, count, and mini swatch preview when collapsed. Paint rows: 18×18px swatch + name + code (monospace) + brand + type + kit links + price/link + owned/wishlist badge.
+
+**Grid view**: Same groups, 64px-wide swatch cards (36px color block + name + code below). Wishlisted items get a warning dot in top-right. Selected state: accent border + accent-tinted background.
+
+**Detail panel**: 200px right sidebar showing big swatch (60px), name, brand/code/type, status (owned/wishlist), "Used In" section listing linked projects, color hex, notes field, action buttons.
+
+**Data model per paint**: color (hex), name, code, brand, type (Acrylic/Enamel/Lacquer), owned (boolean), price, currency, buy_url, kits (array of IDs), color_family (auto-assigned via HSL analysis, user-overridable), notes.
+
+**Color families**: Reds & Oranges, Greys, Blues, Browns & Tans, Metallics, Greens, Whites & Creams, Blacks. Auto-assigned from the paint's hex value via HSL analysis. User can override per paint.
+
+**Add paint flow**:
+
+- Primary: **Catalog lookup**. Search by code/name/brand, brand filter tabs (All | Tamiya | Vallejo | Mr. Color etc.), results list with plus icon to add as owned. Auto-fills name, swatch, type, brand.
+- Fallback: **Manual entry** form (name, brand, code, type dropdown, color picker). "Can't find it? Add manually" link.
+- **Auto-add**: When a paint is assigned to a build step and isn't on the shelf, it's auto-added as owned. Toast notification. Controlled by Settings toggle (default: on).
 
 ### Per-Build Paint Palette
 
@@ -397,11 +399,11 @@ Each project has its own palette of colours used in that build. A palette entry 
 - **Direct paint** — a paint from the global shelf, used straight from the bottle
 - **Formula** — a named custom colour with a recipe:
   - Colour name (e.g. "Winter Dunkelgelb")
-  - Purpose / stage — freeform text (e.g. "base coat", "highlight", "enamel wash", "chipping layer")
+  - Purpose / stage (e.g. "base coat", "highlight", "enamel wash", "chipping layer")
   - Components: one or more paints from the global shelf, each with a percentage or ratio
-  - Mixing notes (freeform — e.g. "slightly warmer than last build, could reduce XF-57 next time")
+  - Mixing notes (freeform)
 
-Palette entries are managed from the Materials & Paints card in Overview, and referenced from the step editor when tagging which colours were used in a step.
+Palette entries are managed from the Materials card in Overview, and referenced from the step editor when tagging which colours were used in a step.
 
 ### Per-Step Paint References
 
@@ -458,7 +460,7 @@ The build log is an exportable, shareable document that captures the story of th
 - **PDF** — Formatted for print (Letter / A4). Photos arranged in a clean grid with captions. Suitable for personal records.
 - **ZIP** — All photos plus a narrative Markdown file. For archival or manual formatting.
 
-**Export behaviour**: No pre-export editing wizard. The export uses smart defaults: all progress and milestone photos, step notes as captions, tracks in display order. The project's hero photo is used as the cover — set and managed in Overview's Export + Settings card, not at export time.
+**Export behaviour**: No pre-export editing wizard. The export uses smart defaults: all progress and milestone photos, step notes as captions, tracks in display order. The project's hero photo is used as the cover — set in the Gallery card (right-click → "Set as hero photo"), not at export time.
 
 ---
 
@@ -489,6 +491,9 @@ App Data Directory/
 │       │   │
 │       │   ├── milestones/            # Track completion photos
 │       │   │   └── <track-name>_<YYYYMMDD_HHMMSS>.jpg
+│       │   │
+│       │   ├── gallery/               # Gallery-only photos (not from Build Log)
+│       │   │   └── <YYYYMMDD_HHMMSS>.jpg
 │       │   │
 │       │   ├── references/            # Reference images attached to steps
 │       │   │   └── <ref-id>.jpg
@@ -562,6 +567,7 @@ App Data Directory/
 ### Discoverability
 
 - Track join points surfaced visually on the Assembly Map (dashed "?" for unset joins)
+- First-use welcome card with Getting Started tips (not a wizard)
 - First-use tooltips on navigation elements explaining what each zone and mode does
 - Keyboard shortcut help overlay accessible via `?` from anywhere
 - Contextual empty states with guidance (e.g. "Upload a PDF to get started" in an empty project)
@@ -580,17 +586,47 @@ App Data Directory/
 | `Space` or `Enter` | Build (Building mode) | Complete current step |
 | `T` | Build (Building mode) | Start drying timer for current step |
 | `P` | Build zone | Quick photo capture |
-| `/` | Anywhere | Search |
+| `/` | Collection | Focus search within current entity tab |
 | `?` | Anywhere | Show keyboard shortcut help |
+| `Cmd+,` | Anywhere | Open Settings |
+| `Cmd+N` | Anywhere | New project |
 
 ---
 
 ## App Settings
 
-A settings area (accessible from the app menu or a gear icon) manages global configuration that doesn't belong to any specific project or zone:
+A dedicated full-width settings page accessible via a gear icon in the nav bar. Single scrollable page with section headers and inline controls. All settings auto-save on change (no Save button).
 
-- **Tag library** — create, rename, and delete the predefined tags available for steps across all projects (e.g. "pre-paint", "dry-fit", "drying", "fragile", "reference needed")
-- **Default drying times** — override the default drying times for each adhesive type
-- **File storage location** — view or change the app data directory
-- **PDF rasterization quality** — DPI setting for converting instruction PDFs to images
-- **Appearance** — light / dark / system theme
+**Appearance**: Theme (Light / Dark / System).
+
+**Build Defaults**: Default scale (pill selector with common scales + freeform), auto-status change toggle (move shelf kit to Building on project link), default drying times for four adhesive types (plastic cement, CA glue, epoxy, white/PVA glue).
+
+**Paint & Catalog**: Default brand (pre-selects tab in catalog lookup), visible catalog brands (multi-checkbox), auto-add paints from project toggle.
+
+**Wishlist & Pricing**: Default currency (dropdown with ISO 4217 codes), acquire behavior (preserve or clear price data on acquire).
+
+**PDF & Instructions**: Import DPI (72 / 150 / 300), auto-crop whitespace toggle.
+
+**Data & Storage**: Project storage location (path + folder picker, can point to cloud-synced folders), auto-save interval (30s / 1min / 2min / 5min), backup export (ZIP of all data), backup restore/import.
+
+**Keyboard Shortcuts**: Reference table at the bottom, grouped by zone. Display-only in v1 (not remappable).
+
+---
+
+## Project Creation
+
+**First-run empty state**: Centered welcome card with app icon, title, subtitle, and "Create First Project" button. Getting Started tips below. Nav bar "+New Project" always visible.
+
+**Create Project dialog**: 420px centered dialog with required and optional fields.
+
+Required: Project name (text input), Kit selection (tabbed: "From Shelf" with searchable list / "Add New Kit" with name + manufacturer + scale), Scale (auto-fills from shelf kit, or pill selector for new kit).
+
+Optional (collapsible): Category (pill selector: Ship, Aircraft, Armor, Vehicle, Figure, Sci-Fi, Other), Scalemates URL (fetches box art thumbnail), Product Code.
+
+On creation: shelf kit auto-moves to "Building" status (configurable). Post-creation landing shows confirmation card with suggested next steps (upload instructions, add accessories, add paints).
+
+---
+
+## Design Decisions
+
+**Search deferred**: Global search is deferred to v2. Each zone already has scoped navigation (Collection entity switcher, paint shelf search, Build zone track/step nav). The app's expected v1 data volume (5-15 projects, 50-100 paints) doesn't warrant a global search. If needed later, a command palette (Cmd+K) pattern is recommended.

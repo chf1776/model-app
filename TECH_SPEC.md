@@ -6,18 +6,18 @@
 
 | Layer | Choice | Notes |
 | --- | --- | --- |
-| Platform | Electron (latest) | Main + renderer process split |
-| Build tool | electron-vite | Handles main / preload / renderer in one config |
-| Language | TypeScript throughout | Shared types between main and renderer |
-| UI framework | React 19 | Renderer process |
+| Platform | Tauri v2 | Rust backend + webview frontend |
+| Build tool | Vite | Standard Vite with @tauri-apps/cli |
+| Language | TypeScript (frontend) + Rust (backend) | Shared types via tauri::command |
+| UI framework | React 19 | Webview process |
 | Styling | Tailwind CSS v4 | |
 | Component library | shadcn/ui | Radix primitives, copy-paste into `src/components/ui/` |
-| State | Zustand | Renderer process only; slices per domain |
-| Routing | React Router v7 | Three top-level routes |
+| State | Zustand | Frontend only; slices per domain |
+| Routing | React Router v7 | Three top-level routes + settings |
 | Canvas | Konva + react-konva | Instruction image viewer and annotation layer |
-| PDF rendering | pdfjs-dist | Runs in renderer process (requires browser Canvas API) |
-| Database | better-sqlite3 | SQLite, synchronous, main process only |
-| Package manager | npm | |
+| PDF rendering | Rust-side (pdf-rs or pdfium) | Rasterization in backend, results sent to frontend |
+| Database | SQLite via rusqlite | Backend process only |
+| Package manager | npm (frontend) + cargo (backend) | |
 
 ---
 
@@ -25,28 +25,34 @@
 
 ```
 model-app/
-├── electron/
-│   ├── main.ts               # Main process entry point
-│   ├── preload.ts            # Context bridge — exposes typed API to renderer
-│   ├── ipc/                  # IPC handlers grouped by domain
-│   │   ├── collection.ts     # kits, accessories, paints
-│   │   ├── projects.ts       # project CRUD, active project
-│   │   ├── build.ts          # tracks, steps, step completion
-│   │   ├── media.ts          # photos, reference images, PDF import
-│   │   ├── log.ts            # build log entries
-│   │   └── settings.ts       # app settings, tag library
-│   ├── db/
-│   │   ├── index.ts          # DB connection, migration runner
-│   │   ├── schema.sql        # Full schema (applied once on first run)
-│   │   └── queries/          # Typed query functions per domain
-│   │       ├── kits.ts
-│   │       ├── projects.ts
-│   │       ├── steps.ts
-│   │       └── ...
-│   └── services/
-│       ├── files.ts          # File management, path helpers, thumbnails
-│       ├── scalemates.ts     # Scalemates HTTP scraping
-│       └── export.ts         # Build log export (HTML / PDF / ZIP)
+├── src-tauri/
+│   ├── src/
+│   │   ├── main.rs               # Tauri entry point
+│   │   ├── lib.rs                # Command registration
+│   │   ├── commands/             # Tauri commands grouped by domain
+│   │   │   ├── collection.rs     # kits, accessories, paints
+│   │   │   ├── projects.rs       # project CRUD, active project
+│   │   │   ├── build.rs          # tracks, steps, step completion
+│   │   │   ├── media.rs          # photos, reference images, PDF import
+│   │   │   ├── log.rs            # build log entries
+│   │   │   └── settings.rs       # app settings
+│   │   ├── db/
+│   │   │   ├── mod.rs            # DB connection, migration runner
+│   │   │   ├── schema.sql        # Full schema (applied once on first run)
+│   │   │   └── queries/          # Typed query functions per domain
+│   │   │       ├── kits.rs
+│   │   │       ├── projects.rs
+│   │   │       ├── steps.rs
+│   │   │       └── ...
+│   │   └── services/
+│   │       ├── files.rs          # File management, path helpers, thumbnails
+│   │       ├── scalemates.rs     # Scalemates HTTP scraping
+│   │       ├── pdf.rs            # PDF rasterization (pdfium or pdf-rs)
+│   │       └── export.rs         # Build log export (HTML / PDF / ZIP)
+│   ├── Cargo.toml
+│   ├── tauri.conf.json
+│   └── capabilities/
+│       └── default.json          # Tauri v2 permission capabilities
 │
 ├── src/
 │   ├── main.tsx              # React entry
@@ -54,29 +60,43 @@ model-app/
 │   ├── routes/
 │   │   ├── collection.tsx
 │   │   ├── build.tsx
-│   │   └── overview.tsx
+│   │   ├── overview.tsx
+│   │   └── settings.tsx
 │   ├── components/
 │   │   ├── ui/               # shadcn/ui components (auto-generated)
 │   │   ├── collection/       # Collection zone components
+│   │   │   ├── EntitySwitcher/
+│   │   │   ├── KitsTab/
+│   │   │   ├── AccessoriesTab/
+│   │   │   └── PaintsTab/
 │   │   ├── build/            # Build zone components
 │   │   │   ├── SetupMode/
 │   │   │   └── BuildingMode/
-│   │   └── overview/         # Overview zone components
+│   │   ├── overview/         # Overview zone components
+│   │   │   ├── AssemblyMap/
+│   │   │   ├── GalleryCard/
+│   │   │   ├── BuildLogCard/
+│   │   │   ├── MaterialsCard/
+│   │   │   └── ProjectInfoCard/
+│   │   └── shared/           # Cross-zone components
+│   │       ├── WishlistBadge/
+│   │       ├── CreateProjectDialog/
+│   │       └── Lightbox/
 │   ├── store/
 │   │   ├── index.ts          # Combined Zustand store
 │   │   ├── collection-slice.ts
 │   │   ├── build-slice.ts
+│   │   ├── overview-slice.ts
 │   │   └── ui-slice.ts
 │   ├── api/
-│   │   └── index.ts          # Typed wrappers around window.api IPC calls
+│   │   └── index.ts          # Typed wrappers around Tauri invoke calls
 │   └── lib/
-│       ├── pdf.ts            # PDF rasterization via pdfjs-dist (renderer)
 │       └── utils.ts          # cn() and other shadcn utilities
 │
 ├── shared/
-│   └── types.ts              # Types shared between main and renderer
+│   └── types.ts              # Types shared between frontend components
 │
-├── electron-vite.config.ts
+├── vite.config.ts
 ├── tsconfig.json
 └── package.json
 ```
@@ -85,38 +105,37 @@ model-app/
 
 ## IPC Pattern
 
-All database access and file operations happen in the main process. The renderer communicates through a typed context bridge.
+All database access and file operations happen in the Rust backend. The frontend communicates through Tauri's `invoke` command system.
 
-**preload.ts** exposes a typed `window.api` object:
+**Backend** registers Tauri commands:
 
-```typescript
-// electron/preload.ts
-import { contextBridge, ipcRenderer } from 'electron'
+```rust
+// src-tauri/src/commands/collection.rs
+#[tauri::command]
+pub fn list_kits(state: State<'_, DbState>) -> Result<Vec<Kit>, String> {
+    state.db.list_kits().map_err(|e| e.to_string())
+}
 
-contextBridge.exposeInMainWorld('api', {
-  // Collection
-  listKits: () => ipcRenderer.invoke('kits:list'),
-  createKit: (input: CreateKitInput) => ipcRenderer.invoke('kits:create', input),
-  // ... one entry per IPC channel
-})
+#[tauri::command]
+pub fn create_kit(state: State<'_, DbState>, input: CreateKitInput) -> Result<Kit, String> {
+    state.db.create_kit(input).map_err(|e| e.to_string())
+}
 ```
 
-**renderer** calls through `window.api`:
+**Frontend** calls through typed wrappers:
 
 ```typescript
 // src/api/index.ts
-export const api = window.api as AppApi  // typed via shared/types.ts
+import { invoke } from '@tauri-apps/api/core'
+
+export const api = {
+  listKits: () => invoke<Kit[]>('list_kits'),
+  createKit: (input: CreateKitInput) => invoke<Kit>('create_kit', { input }),
+  // ... one entry per command
+}
 ```
 
-**main** registers handlers:
-
-```typescript
-// electron/ipc/collection.ts
-ipcMain.handle('kits:list', () => db.listKits())
-ipcMain.handle('kits:create', (_e, input) => db.createKit(input))
-```
-
-**Data flow**: IPC call → main handler → better-sqlite3 query → return result → renderer updates Zustand store directly. No re-fetching after mutations.
+**Data flow**: `invoke` call → Tauri command → rusqlite query → return result → frontend updates Zustand store directly. No re-fetching after mutations.
 
 ---
 
@@ -159,6 +178,7 @@ CREATE TABLE IF NOT EXISTS kits (
   scalemates_url   TEXT,
   retailer_url     TEXT,
   price            REAL,
+  currency         TEXT DEFAULT 'USD',  -- ISO 4217
   notes            TEXT,
   created_at       INTEGER NOT NULL,
   updated_at       INTEGER NOT NULL
@@ -174,6 +194,9 @@ CREATE TABLE IF NOT EXISTS accessories (
   parent_kit_id  TEXT REFERENCES kits(id) ON DELETE SET NULL,
   status         TEXT NOT NULL DEFAULT 'shelf'
                  CHECK(status IN ('wishlist','shelf')),
+  price          REAL,
+  currency       TEXT DEFAULT 'USD',  -- ISO 4217
+  buy_url        TEXT,
   notes          TEXT,
   created_at     INTEGER NOT NULL,
   updated_at     INTEGER NOT NULL
@@ -186,8 +209,13 @@ CREATE TABLE IF NOT EXISTS paints (
   reference_code TEXT,
   paint_type     TEXT NOT NULL
                  CHECK(paint_type IN ('acrylic','enamel','lacquer','oil')),
+  color          TEXT,              -- hex value, e.g. '#4E7282'
+  color_family   TEXT,              -- auto-assigned via HSL, user-overridable
   status         TEXT NOT NULL DEFAULT 'owned'
                  CHECK(status IN ('owned','wishlist')),
+  price          REAL,
+  currency       TEXT DEFAULT 'USD',  -- ISO 4217
+  buy_url        TEXT,
   notes          TEXT,
   created_at     INTEGER NOT NULL,
   updated_at     INTEGER NOT NULL
@@ -200,7 +228,11 @@ CREATE TABLE IF NOT EXISTS projects (
   name                        TEXT NOT NULL,
   kit_id                      TEXT REFERENCES kits(id) ON DELETE SET NULL,
   status                      TEXT NOT NULL DEFAULT 'active'
-                              CHECK(status IN ('active','completed')),
+                              CHECK(status IN ('active','paused','completed','archived')),
+  category                    TEXT
+                              CHECK(category IN ('ship','aircraft','armor','vehicle','figure','sci_fi','other')),
+  scalemates_url              TEXT,
+  product_code                TEXT,
   markings_scheme             TEXT,
   markings_scheme_image_path  TEXT,
   hero_photo_path             TEXT,
@@ -394,6 +426,19 @@ CREATE TABLE IF NOT EXISTS milestone_photos (
   created_at  INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS gallery_photos (
+  id              TEXT PRIMARY KEY,
+  project_id      TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  file_path       TEXT NOT NULL,       -- relative to project dir
+  caption         TEXT,
+  source          TEXT NOT NULL DEFAULT 'gallery'
+                  CHECK(source IN ('gallery','log')),
+  log_entry_id    TEXT REFERENCES build_log_entries(id) ON DELETE SET NULL,
+  is_milestone    INTEGER NOT NULL DEFAULT 0,
+  track_id        TEXT REFERENCES tracks(id) ON DELETE SET NULL,
+  created_at      INTEGER NOT NULL
+);
+
 -- ── Build log ─────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS build_log_entries (
@@ -401,12 +446,16 @@ CREATE TABLE IF NOT EXISTS build_log_entries (
   project_id   TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   entry_type   TEXT NOT NULL
                CHECK(entry_type IN
-                 ('manual','step_complete','milestone',
-                  'timer_complete','photo_added','build_complete')),
-  body         TEXT,            -- manual entry text
-  photo_path   TEXT,            -- manual entry photo
+                 ('step_complete','note','photo','milestone',
+                  'timer_complete','build_complete')),
+  body         TEXT,            -- note text or milestone title
+  photo_path   TEXT,            -- photo entry image path
+  caption      TEXT,            -- photo caption
   step_id      TEXT REFERENCES steps(id) ON DELETE SET NULL,
   track_id     TEXT REFERENCES tracks(id) ON DELETE SET NULL,
+  step_number  INTEGER,         -- step number for display in timeline dot
+  is_track_completion INTEGER NOT NULL DEFAULT 0,  -- milestone: was this a track completion?
+  track_step_count   INTEGER,   -- milestone: how many steps in completed track
   timer_label  TEXT,
   elapsed_min  INTEGER,
   created_at   INTEGER NOT NULL
@@ -454,34 +503,33 @@ CREATE INDEX IF NOT EXISTS idx_steps_track    ON steps(track_id, display_order);
 CREATE INDEX IF NOT EXISTS idx_steps_parent   ON steps(parent_step_id);
 CREATE INDEX IF NOT EXISTS idx_pages_source   ON instruction_pages(source_id, page_index);
 CREATE INDEX IF NOT EXISTS idx_photos_step    ON progress_photos(step_id);
+CREATE INDEX IF NOT EXISTS idx_gallery_project ON gallery_photos(project_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_log_project    ON build_log_entries(project_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_palette_proj   ON palette_entries(project_id);
 CREATE INDEX IF NOT EXISTS idx_tracks_project ON tracks(project_id, display_order);
 CREATE INDEX IF NOT EXISTS idx_kit_files      ON kit_files(kit_id);
 CREATE INDEX IF NOT EXISTS idx_export_project ON export_history(project_id, created_at);
 
--- ── Full-text search (Phase 7) ────────────────────────────────────────────────
+-- ── Full-text search (deferred to v2) ─────────────────────────────────────────
 
--- Contentless FTS5 table; populated/updated on kit, project, and step writes.
--- Sync strategy: on every INSERT/UPDATE/DELETE to kits, projects, or steps,
--- the corresponding IPC handler must DELETE the old FTS row (by entity_type + entity_id)
--- and INSERT a new one with the current title/body text. This is application-level,
--- not trigger-based, because contentless FTS5 tables do not support triggers.
--- Searched via: SELECT entity_type, entity_id FROM fts_index WHERE fts_index MATCH ?
-CREATE VIRTUAL TABLE IF NOT EXISTS fts_index USING fts5(
-  entity_type UNINDEXED,   -- 'kit' | 'project' | 'step'
-  entity_id   UNINDEXED,
-  title,
-  body,
-  tokenize = 'porter ascii'
-);
+-- Global search is deferred. Each zone has scoped navigation (entity switcher,
+-- paint shelf search, build zone track/step nav). When implemented, a command
+-- palette (Cmd+K) pattern with FTS5 is recommended.
+--
+-- CREATE VIRTUAL TABLE IF NOT EXISTS fts_index USING fts5(
+--   entity_type UNINDEXED,   -- 'kit' | 'project' | 'step'
+--   entity_id   UNINDEXED,
+--   title,
+--   body,
+--   tokenize = 'porter ascii'
+-- );
 ```
 
 ---
 
 ## State Management
 
-Zustand store with three slices. All slices combined in `store/index.ts`.
+Zustand store with four slices. All slices combined in `store/index.ts`.
 
 ```typescript
 // store/collection-slice.ts
@@ -489,10 +537,15 @@ interface CollectionSlice {
   kits: Kit[]
   accessories: Accessory[]
   paints: Paint[]
+  activeEntityTab: 'kits' | 'accessories' | 'paints'
+  paintGroupBy: 'color_family' | 'brand' | 'project'
+  paintViewMode: 'list' | 'grid'
+  selectedPaintId: string | null
   loadCollection: () => Promise<void>
   addKit: (kit: Kit) => void
   updateKit: (kit: Kit) => void
   removeKit: (id: string) => void
+  markAcquired: (entityType: string, id: string) => void
   // ...
 }
 
@@ -507,6 +560,17 @@ interface BuildSlice {
   // ...
 }
 
+// store/overview-slice.ts
+interface OverviewSlice {
+  expandedCard: 'gallery' | 'buildLog' | 'materials' | 'projectInfo' | null
+  galleryFilter: 'all' | 'gallery' | 'log' | 'milestones'
+  buildLogFilter: 'all' | 'step' | 'note' | 'photo' | 'milestone'
+  materialsFilter: 'all' | 'owned' | 'needed'
+  lightboxPhotoId: string | null
+  setExpandedCard: (card: string | null) => void
+  // ...
+}
+
 // store/ui-slice.ts
 interface UiSlice {
   buildMode: 'setup' | 'building'
@@ -516,16 +580,17 @@ interface UiSlice {
   activeSourceId: string | null   // selected PDF source in page mode
   imageZoom: number
   imagePan: { x: number; y: number }
+  theme: 'light' | 'dark' | 'system'
   // ...
 }
 ```
 
-**Mutation pattern**: call IPC → on success, update store directly. Never re-fetch the full list after a single item changes.
+**Mutation pattern**: call Tauri command → on success, update store directly. Never re-fetch the full list after a single item changes.
 
 ```typescript
 async function createKit(input: CreateKitInput) {
-  const kit = await api.createKit(input)   // IPC → main → SQLite → return
-  useStore.getState().addKit(kit)          // update renderer store
+  const kit = await api.createKit(input)   // invoke → Rust → SQLite → return
+  useStore.getState().addKit(kit)          // update frontend store
 }
 ```
 
@@ -536,7 +601,7 @@ async function createKit(input: CreateKitInput) {
 All paths stored in the database are **relative to the project data directory**. Resolved to absolute paths only when reading/writing files.
 
 ```
-userData/                            ← app.getPath('userData')
+userData/                            ← platform app data dir (configurable in settings)
 └── model-builder/
     ├── db.sqlite
     └── projects/
@@ -548,6 +613,7 @@ userData/                            ← app.getPath('userData')
             ├── photos/
             │   ├── progress/<step-id>_<timestamp>.jpg
             │   ├── milestones/<track-name>_<timestamp>.jpg
+            │   ├── gallery/<timestamp>.jpg
             │   ├── references/<ref-id>.jpg
             │   └── hero/cover.jpg
             ├── annotations/          ← rendered exports only
@@ -560,6 +626,8 @@ userData/                            ← app.getPath('userData')
 
 ## Key Dependencies
 
+**Frontend (package.json)**:
+
 ```json
 {
   "dependencies": {
@@ -569,8 +637,7 @@ userData/                            ← app.getPath('userData')
     "zustand": "^5.0.0",
     "konva": "^10.0.0",
     "react-konva": "^19.0.0",
-    "pdfjs-dist": "^4.0.0",
-    "better-sqlite3": "^11.0.0",
+    "@tauri-apps/api": "^2.0.0",
     "use-image": "^1.1.0",
     "tailwindcss": "^4.0.0",
     "clsx": "^2.0.0",
@@ -578,23 +645,26 @@ userData/                            ← app.getPath('userData')
     "date-fns": "^4.0.0"
   },
   "devDependencies": {
-    "electron": "^33.0.0",
-    "electron-vite": "^3.0.0",
-    "electron-builder": "^25.0.0",
-    "@electron/rebuild": "^3.0.0",
+    "@tauri-apps/cli": "^2.0.0",
     "typescript": "^5.0.0",
-    "@types/better-sqlite3": "latest",
-    "@types/react": "^19.0.0"
-  },
-  "scripts": {
-    "postinstall": "electron-rebuild -f -w better-sqlite3"
+    "@types/react": "^19.0.0",
+    "vite": "^6.0.0"
   }
 }
 ```
 
-> **Note**: `uuid` is not needed — use `crypto.randomUUID()` which is available natively in both Node.js 16+ and modern browsers. `electron` is a devDependency because it's a build-time tool; the packaged app bundles it. `@electron/rebuild` is required to recompile `better-sqlite3` (a native addon) against the Electron version after each `npm install`.
->
-> **Tailwind v4**: Configuration is CSS-first — no `tailwind.config.ts`. Use `@import "tailwindcss"` and `@theme { ... }` in your root CSS file to customise tokens. Plugin/content config goes in the same CSS file via `@source` directives.
+**Backend (Cargo.toml)** — key crates:
+
+```toml
+[dependencies]
+tauri = { version = "2", features = ["all"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
+```
+
+> **Note**: `uuid` is used in Rust for ID generation. Frontend uses `crypto.randomUUID()` where needed. Tailwind v4 uses CSS-first configuration via `@import "tailwindcss"` and `@theme { ... }` in the root CSS file.
 
 ---
 
@@ -628,29 +698,21 @@ Coordinates are normalized (0–1 relative to the step image dimensions) so they
 
 ### Instruction images (PDF rasterization)
 
-- **Where**: renderer process, `src/lib/pdf.ts`, using `pdfjs-dist`
-- **Flow**: user selects PDF → renderer reads file → pdfjs renders each page to an offscreen canvas → canvas exported as PNG → PNG `ArrayBuffer` sent via IPC to main → main writes `instructions/<source-id>/page-NNN.png`
+- **Where**: Rust backend, `src-tauri/src/services/pdf.rs`
+- **Flow**: user selects PDF → frontend sends path via invoke → Rust reads file → renders each page to PNG via pdfium or pdf-rs → writes `instructions/<source-id>/page-NNN.png` → returns page metadata to frontend
 - **Format**: PNG — lossless, universal tool support, no quality decisions
-- **DPI**: 300 (default, user-configurable in App Settings). At 300 DPI, an A4 page = 2480×3508 px — sharp when zoomed
+- **DPI**: 150 (default, user-configurable in Settings: 72 / 150 / 300). At 300 DPI, an A4 page = 2480×3508 px — sharp when zoomed
 - **Step crops**: stored as normalized coordinates (0–1); full-resolution crop rendered on first display from the stored page PNG
 
 ### Build photos and reference images
 
-- **Formats accepted**: JPEG, PNG, WebP (Chromium supports all natively), HEIC (iPhone)
-- **HEIC handling**: convert to JPEG on import using the macOS `sips` system command — no extra dependencies
-
-  ```bash
-  sips -s format jpeg input.heic --out output.jpg
-  ```
-
-  Called from main process via Node.js `child_process.execFile`. HEIC import is macOS-only; on other platforms, the file picker filters HEIC out.
-
-- **Storage format**: JPEG for all stored photos (progress, milestone, reference, hero) — smaller files, sufficient quality for model photography
-- **Thumbnails**: JPEG, generated in main process by drawing the source image to an offscreen canvas at reduced size via `nativeImage`
+- **Formats accepted**: JPEG, PNG, WebP, HEIC (iPhone)
+- **HEIC handling**: convert to JPEG on import using platform-specific tools. macOS: `sips` system command. Other platforms: filter HEIC out of file picker.
+- **Storage format**: JPEG for all stored photos (progress, milestone, gallery, reference, hero)
+- **Thumbnails**: JPEG, generated in Rust backend at reduced size
 
 ### Build log PDF export
 
-- **Method**: Electron's built-in `webContents.printToPDF()` — no extra dependencies
-- **Flow**: main process creates a hidden `BrowserWindow`, loads the HTML build log template with project data injected, calls `printToPDF({ pageSize: 'A4', printBackground: true })`, writes the resulting buffer to `exports/<YYYYMMDD>[-N]/build-log.pdf`, then closes the window
-- **HTML export**: the same rendered HTML is saved directly as a self-contained file with images base64-embedded
-- **ZIP export**: all photos copied into an `images/` directory alongside a narrative Markdown file; bundled using Node.js `archiver` package
+- **Method**: Rust backend generates HTML from template, converts to PDF using a Rust HTML-to-PDF library (e.g. headless-chrome or weasyprint via subprocess)
+- **HTML export**: same rendered HTML saved directly as a self-contained file with images base64-embedded
+- **ZIP export**: all photos copied into an `images/` directory alongside a narrative Markdown file; bundled using Rust's `zip` crate
