@@ -4,12 +4,12 @@ Phases are ordered so each one produces something testable and useful on its own
 
 ---
 
-## Phase 1: Foundation
+## Phase 1A: Foundation
 
-**Goal**: A working app shell with kit collection management and project creation. No building yet — just the infrastructure everything else depends on.
+**Goal**: A working app shell with basic kit management and project creation. Get to the Build zone as fast as possible.
 
 ### Database
-- Full schema established upfront (all tables, even those used in later phases). One migration file. Later phases only add commands and UI, not schema changes.
+- Full schema established via refinery migration system (initial migration creates all tables). Later phases add new migrations only if schema changes are needed.
 - Core tables: `projects`, `tracks`, `steps`, `step_relations`, `step_tags`
 - Collection tables: `kits`, `accessories`, `paints`, `project_accessories`, `kit_files`
 - Media tables: `instruction_sources`, `instruction_pages`, `progress_photos`, `milestone_photos`, `gallery_photos`, `reference_images`, `annotations`, `masks`
@@ -23,22 +23,49 @@ Phases are ordered so each one produces something testable and useful on its own
 - Active project state: last-resumed project ID stored in `app_settings`; Build and Overview show empty state when none active
 - Basic routing: `/collection`, `/build`, `/overview`, `/settings`
 
-### Collection zone
-- **Entity switcher**: three tabs (Kits | Accessories | Paints) at the top of Collection
+### Collection zone (Kits only)
+- **Entity switcher**: three tabs (Kits | Accessories | Paints) at the top of Collection. Accessories and Paints tabs show placeholder empty states in this phase.
 - **Kits tab**: sections for Building, On the Shelf, Wishlist, Completed — each with kit cards showing status badges
-- **Accessories tab**: aftermarket items with parent kit links, type badges, owned/wishlist status
-- **Paints tab**: global paint shelf with group by (Color Family | Brand | Project), search, list/grid views, detail panel, catalogue lookup (bundled data from Arcturus5404/miniature-paints repo, search box + brand filter dropdown), manual paint entry fallback
-- **Wishlist system**: consistent owned/wishlist badges across all three entity types. Price, currency, buy URL on all wishlisted items. "Mark as acquired" transitions. Batch operations for multi-select acquire.
-- Add kit: manual entry form (name, manufacturer, scale, kit number, box art) + Scalemates paste-URL import (fetches name, manufacturer, scale, product code, category, box art; partial imports flagged with inline warnings; re-sync on demand for existing kits)
+- Add kit: manual entry form (name, manufacturer, scale, kit number, box art)
 - Edit and delete kit
+- Basic status transitions (shelf → building, building → completed)
 
 ### Project creation
 - **First-run empty state**: welcome card with "Create First Project" CTA and Getting Started tips
-- **Create Project dialog**: required fields (project name, kit from shelf or new via Add Kit dialog with Scalemates import, scale), optional fields (category, Scalemates URL, product code). Kit from shelf: searchable list with thumbnails. New kit uses the shared Add Kit dialog.
+- **Create Project dialog**: required fields (project name, kit from shelf or new via manual entry, scale), optional fields (category, product code). No Scalemates import yet.
 - On creation: shelf kit auto-moves to "Building" status (configurable in Settings). Post-creation landing with suggested next steps.
 
 ### Deliverable
-You can manage your entire kit collection with a proper entity switcher, maintain wishlists with pricing across kits/accessories/paints, and create projects. The app has a persistent shell to build everything else on.
+You can add kits, create projects, and navigate between zones. The app has a persistent shell to build everything else on.
+
+---
+
+## Phase 1B: Collection Completeness
+
+**Goal**: Full collection management with all three entity types, wishlist system, paint shelf, and Scalemates integration.
+
+### Scalemates integration
+- Paste-URL import in Add Kit dialog (fetches name, manufacturer, scale, product code, category, box art)
+- Partial imports flagged with inline warnings
+- Re-sync on demand for existing kits
+
+### Accessories tab
+- Aftermarket items with parent kit links, type badges, owned/wishlist status
+- Price, currency, buy URL on wishlisted items
+
+### Paints tab
+- Global paint shelf with group by (Color Family | Brand | Project), search, list/grid views, detail panel
+- Catalogue lookup (bundled data from Arcturus5404/miniature-paints repo, search box + brand filter dropdown)
+- Manual paint entry fallback
+
+### Wishlist system
+- Consistent owned/wishlist badges across all three entity types
+- Price, currency, buy URL on all wishlisted items
+- "Mark as acquired" transitions
+- Batch operations for multi-select acquire
+
+### Deliverable
+Full collection management. All three entity types, wishlists with pricing, paint shelf with catalogue lookup, and Scalemates import.
 
 ---
 
@@ -113,6 +140,30 @@ The app is useful for a real build. Work through steps, mark them complete, capt
 
 ---
 
+## Phase 3.5: Basic Overview
+
+**Goal**: See build progress at a glance. A read-only overview that makes the core build loop more compelling.
+
+### Assembly Map (read-only)
+- Horizontal track lines with step nodes: `●` complete, `○` pending, `◆` join event
+- Nodes colored by track; join point arrows visible
+- Hover: step title tooltip; click: jump to step in Build zone
+- Overall completion count + percentage
+- No dependency arrows toggle, no zoom controls yet (those come in Phase 5)
+
+### Simplified card grid
+- 2×2 grid below Assembly Map: **Gallery**, **Build Log**, **Materials**, **Project Info**
+- All cards in compact view only (no expand/collapse yet)
+- Gallery: recent photo thumbnails
+- Build Log: recent entries with timeline dots (auto-logged step completions only, no composer)
+- Materials: accessory and paint counts, needed count
+- Project Info: kit name, scale, status badge
+
+### Deliverable
+You can see the build structure, track progress visually, and get a quick summary of photos and materials. The Assembly Map gives real feedback during builds.
+
+---
+
 ## Phase 4: Building Mode — Enrichment
 
 **Goal**: The full building experience — annotations, references, timers, and all workflow tools.
@@ -156,21 +207,17 @@ The complete building experience. Annotations, references, timers, sub-steps, pa
 
 ---
 
-## Phase 5: Overview Zone
+## Phase 5: Overview Zone — Full
 
-**Goal**: See the entire build at a glance — structure, photos, history, materials, and project management.
+**Goal**: The complete Overview experience — expand/collapse cards, full gallery, build log composer, materials management, and project lifecycle actions. Builds on the basic read-only Overview from Phase 3.5.
 
-### Assembly Map
-- Horizontal track lines with step nodes: `●` complete, `○` pending, `◆` join event
-- Sub-track arrows joining receiving tracks at `◆`; standalone tracks end cleanly; unset joins show dashed `?`
-- Replaced steps shown with strikethrough; excluded from completion count
-- Nodes colored by track; dependency arrows togglable
-- Hover: step title + instruction thumbnail; click: jump to step in Build zone
+### Assembly Map (enhanced)
+- Adds to Phase 3.5: replaced steps shown with strikethrough; dependency arrows togglable
 - Horizontal scroll; fit-to-screen and zoom controls; overall completion count + percentage
+- Sub-step indicators on nodes
 
-### Four-card layout
-- 2×2 grid below Assembly Map: **Gallery**, **Build Log**, **Materials**, **Project Info**
-- Expand any card to fill the area; others collapse to thin labeled bars; Escape returns to mosaic
+### Four-card layout (full)
+- Adds to Phase 3.5 compact views: expand/collapse interaction (any card expands to fill area, others collapse to thin bars, Escape returns to mosaic)
 - Assembly Map always visible
 
 ### Gallery card
@@ -240,10 +287,11 @@ Complete paint tracking — global shelf, per-build formulas, step-level referen
 **Goal**: A complete, shareable build document, plus all the finishing details.
 
 ### Build log export
-- **HTML**: self-contained single-page with all images embedded; suitable for browser or self-hosted site
-- **PDF**: Letter / A4, clean photo grid with captions
+- Full export dialog with three-panel layout: section list, section editor, PDF preview (see EXPORT_FEATURE.md for complete specification)
+- **PDF**: Typst-rendered, A4, cover page + track sections + gallery + appendix. Full customization: section toggles, photo curation, narrative editing, gallery layout options.
+- **HTML**: self-contained single-page with all images base64-embedded; suitable for browser or self-hosted site
 - **ZIP**: all photos + narrative Markdown file
-- No wizard; smart defaults (hero photo as cover, all photos, tracks in display order)
+- **Quick Export**: one-click export with smart defaults (hero photo as cover, all photos, tracks in display order)
 - Export history with "Show in Finder"; same-day exports get `-2`, `-3` suffix
 
 ### Advanced step relations
@@ -290,10 +338,12 @@ A fully polished, complete app. Finish a build, export a shareable document, eve
 
 | Phase | Name | Unlocks |
 | --- | --- | --- |
-| 1 | Foundation | Entity switcher, wishlist system, paint shelf, project creation |
+| 1A | Foundation | App shell, basic kit management, project creation |
+| 1B | Collection Completeness | Paint shelf, accessories, Scalemates, wishlist system |
 | 2 | Setup Mode | PDF import, crop tool, track/step organization |
 | **3** | **Building — Core** | **Working build loop (critical path)** |
+| 3.5 | Basic Overview | Read-only assembly map, compact summary cards |
 | 4 | Building — Enrichment | Annotations, references, timers, page mode |
-| 5 | Overview Zone | Assembly map, gallery, build log, materials, project info |
+| 5 | Overview — Full | Expand/collapse cards, gallery, build log composer, materials management |
 | 6 | Paint Tracking | Global shelf integration, formulas, step references |
 | 7 | Export + Polish | Shareable documents, relations, settings page, onboarding |

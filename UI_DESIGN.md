@@ -4,13 +4,14 @@ This document captures UI design decisions for the app. It is being built collab
 
 ## Context
 
-The app is a desktop Electron app for scale model builders (see PROJECT_PROPOSAL.md for the full UX spec and TECH_SPEC.md for the stack). It has three zones: Collection (kit/paint/accessory management), Build (instruction image workspace with setup and building modes), and Overview (project dashboard with assembly map, gallery, build log, and materials). The tech stack is React 19, shadcn/ui, Tailwind CSS v4, and Konva for the canvas layer.
+The app is a desktop Tauri v2 app for scale model builders (see PROJECT_PROPOSAL.md for the full UX spec and TECH_SPEC.md for the stack). It has three zones: Collection (kit/paint/accessory management), Build (instruction image workspace with setup and building modes), and Overview (project dashboard with assembly map, gallery, build log, and materials). The tech stack is React 19, shadcn/ui, Tailwind CSS v4, and Konva for the canvas layer.
 
 The UI design process started by establishing fundamentals (mood, palette, typography) and needs to continue into component-level decisions, layout specifics, and zone-by-zone design.
 
 ### Companion Documents
 
 - `WISHLIST_FEATURE.md` — Wishlist/owned badge system, acquire interactions, price & buy link display, batch operations, prominence escalation, Materials card BOM, shopping list export. Cross-cuts sections 27, 28, 30, 32, 34, 35.
+- `EXPORT_FEATURE.md` — Build log export dialog, PDF page design (Typst), HTML/ZIP formats, photo curation, section customization. Implements the export referenced in Project Info card (section 41).
 ### Interactive Mockups
 
 - `paint-shelf.jsx` — Paint shelf with catalogue lookup, grouping, and detail panel (section 32.6–32.7)
@@ -418,7 +419,6 @@ Roving tabindex pattern (ARIA best practice for composite widgets). Tab moves be
 | `↑ / ↓`             | Move within lists (step list, track list, kit grid) |
 | `Enter`              | Activate / select focused item                   |
 | `Escape`             | Back up one level (close dialog, deselect, exit overlay) |
-| `1 / 2 / 3`         | Switch zones (Collection / Build / Overview)     |
 | `?`                  | Show keyboard shortcut overlay                   |
 
 #### 21.2 ROADMAP Shortcuts (Build Zone)
@@ -429,7 +429,7 @@ Roving tabindex pattern (ARIA best practice for composite widgets). Tab moves be
 | `Space` or `Enter`  | Complete current step                            |
 | `Tab / Shift+Tab`   | Next / previous instruction page                 |
 | `T`                  | Start drying timer from current step             |
-| `/`                  | Open search (global, from anywhere)              |
+| `/`                  | Focus search within current entity tab            |
 
 #### 21.3 Shortcut Overlay
 Triggered by `?`. Modal overlay listing all shortcuts grouped by context (Global, Build, Setup). Dismissed by `Escape` or clicking outside. Uses floating elevation (shadow + border).
@@ -628,7 +628,7 @@ When a kit has linked accessories, a "N parts" badge appears at the card's right
 - Plus icon (10px) + "Link accessory" text
 
 #### 27.3 Overview Zone Cards
-- 2×2 grid (Gallery, Build Log, Materials, Export)
+- 2×2 grid (Gallery, Build Log, Materials, Project Info)
 - Background `#FFFFFF`, radius 6px, border `1px solid #E5E0DA`
 - Padding 10px, cursor pointer
 - Title: 11px/600 + summary text: 10px tertiary
@@ -1036,7 +1036,7 @@ Per section 25.4: zone switcher + project dropdown + completion percentage + pro
 1. **Gallery:** Summary shows recent photo grid (4 thumbnails + "+N" overflow). Expanded shows full photo timeline with milestone section markers.
 2. **Build Log:** Summary shows 2 most recent entries with dot + text + timestamp. Expanded shows full chronological log with composer.
 3. **Materials:** Summary shows accessory count + paint count. Expanded shows accessories (V5 color-edge rows) + kit info + paint palette.
-4. **Export + Settings:** Summary shows start date. Expanded shows project settings, mark-as-complete flow, file health check.
+4. **Project Info:** Summary shows kit name, scale badge, category badge, status badge. Expanded shows editable project metadata, lifecycle actions (Mark Complete, Pause, Archive, Delete).
 
 ### 36. Drying Timer Bubble (Pass 4)
 

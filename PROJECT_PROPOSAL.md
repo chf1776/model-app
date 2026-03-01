@@ -109,6 +109,9 @@ Used when preparing a project: uploading instruction PDFs, cropping step images,
     - "Blocked by" — this step cannot proceed until the listed steps are done. Building mode warns (but allows) if you complete this step with unmet prerequisites.
     - "Blocks access to" — completing this step physically seals off the listed steps' areas. Building mode warns you if any of those steps have the pre-paint flag set and are not yet done.
   - Replaces step — link this step as a replacement for a base kit step (e.g. a PE grille replacing the kit's plastic part). The replaced step is shown with a strikethrough in the Assembly Map, excluded from the completion count, and auto-completed when this step is completed.
+    - **Chained replacements**: A replacement step can itself be replaced (e.g. a resin grille replaces a PE grille which replaced the kit's plastic part). The chain is followed: only the final replacement step is active; all earlier steps in the chain are shown with strikethrough and excluded from the completion count.
+    - **Relation transfer**: When step A is replaced by step B, any "blocked by" or "blocks access to" relations pointing to step A are **not** automatically transferred to step B. The user must set up relations on the replacement step explicitly. Rationale: the replacement step may have different prerequisites or access characteristics than the original.
+    - **Circular replacement**: The UI prevents setting a replacement that would create a cycle (A replaces B which replaces A). Validation occurs on save.
   - Reference image attachments
 
 ---
@@ -442,6 +445,8 @@ A floating timer bubble is available in all zones. It appears when one or more t
 
 ## Build Log Export
 
+> **Full specification**: See EXPORT_FEATURE.md for the complete export dialog UX, PDF page design, photo curation flow, Typst template architecture, and all three format definitions. The summary below describes the original intent.
+
 The build log is an exportable, shareable document that captures the story of the build. It assembles automatically from progress photos, milestone photos, milestone notes, journal entries, and paint palette data accumulated over the course of the project.
 
 **Content structure**:
@@ -458,11 +463,11 @@ The build log is an exportable, shareable document that captures the story of th
 
 **Export formats**:
 
+- **PDF** — Typst-rendered, A4, with full layout control. Cover page with hero photo, track-by-track build story with photo grids, gallery spreads, paint palette with swatches, and optional appendices. The showcase format.
 - **HTML** — Self-contained single-page document with all images embedded. Viewable in any browser. Suitable for hosting on a personal or self-hosted site, or viewing locally.
-- **PDF** — Formatted for print (Letter / A4). Photos arranged in a clean grid with captions. Suitable for personal records.
 - **ZIP** — All photos plus a narrative Markdown file. For archival or manual formatting.
 
-**Export behaviour**: No pre-export editing wizard. The export uses smart defaults: all progress and milestone photos, step notes as captions, tracks in display order. The project's hero photo is used as the cover — set in the Gallery card (right-click → "Set as hero photo"), not at export time.
+**Export behaviour**: Full export dialog with section toggles, photo curation, narrative editing, and live PDF preview. A "Quick Export" button bypasses the dialog and uses smart defaults: all progress and milestone photos, step notes as captions, tracks in display order. The project's hero photo is used as the cover — set in the Gallery card (right-click → "Set as hero photo"). See EXPORT_FEATURE.md for the complete specification.
 
 ---
 

@@ -15,7 +15,7 @@
 | State | Zustand | Frontend only; slices per domain |
 | Routing | React Router v7 | Three top-level routes + settings |
 | Canvas | Konva + react-konva | Instruction image viewer and annotation layer |
-| PDF rendering | Rust-side (pdf-rs or pdfium) | Rasterization in backend, results sent to frontend |
+| PDF rendering | pdfium (via pdfium-render crate) | Rasterization in backend, results sent to frontend. pdfium chosen over pdf-rs for broad real-world PDF compatibility (scanned manuals, Japanese manufacturer formats, password-protected files). |
 | Database | SQLite via rusqlite | Backend process only |
 | Package manager | npm (frontend) + cargo (backend) | |
 
@@ -37,8 +37,9 @@ model-app/
 │   │   │   ├── log.rs            # build log entries
 │   │   │   └── settings.rs       # app settings
 │   │   ├── db/
-│   │   │   ├── mod.rs            # DB connection, migration runner
-│   │   │   ├── schema.sql        # Full schema (applied once on first run)
+│   │   │   ├── mod.rs            # DB connection, migration runner (refinery)
+│   │   │   ├── migrations/       # Refinery migration SQL files
+│   │   │   │   └── V1__initial.sql
 │   │   │   └── queries/          # Typed query functions per domain
 │   │   │       ├── kits.rs
 │   │   │       ├── projects.rs
@@ -47,7 +48,7 @@ model-app/
 │   │   └── services/
 │   │       ├── files.rs          # File management, path helpers, thumbnails
 │   │       ├── scalemates.rs    # Scalemates URL scraping (paste-only, no search)
-│   │       ├── pdf.rs            # PDF rasterization (pdfium or pdf-rs)
+│   │       ├── pdf.rs            # PDF rasterization (pdfium)
 │   │       ├── paint_catalog.rs # Load and search bundled paint catalogue JSON
 │   │       └── export.rs         # Build log export (HTML / PDF / ZIP)
 │   ├── catalogue/               # Bundled paint catalogue data (generated from Arcturus5404 repo)
@@ -147,13 +148,20 @@ export const api = {
 }
 ```
 
-**Data flow**: `invoke` call → Tauri command → rusqlite query → return result → frontend updates Zustand store directly. No re-fetching after mutations.
+**Data flow**: `invoke` call → Tauri command → rusqlite query → return result → frontend updates Zustand store directly. For cross-domain mutations, targeted re-fetching keeps other slices in sync (see §State Management for details).
 
 ---
 
 ## Database Schema
 
-Single migration applied at startup. Schema version tracked in `app_settings`.
+Migrations managed via the `refinery` crate. Each migration is a numbered SQL file in `src-tauri/migrations/`. The initial migration (`V1__initial.sql`) establishes the full schema. Subsequent migrations add columns, tables, or alter constraints as needed. Refinery tracks applied migrations in a `refinery_schema_history` table automatically.
+
+```
+src-tauri/migrations/
+├── V1__initial.sql          # Full initial schema
+├── V2__add_brand_to_accessories.sql   # Example future migration
+└── ...
+```
 
 ```sql
 PRAGMA journal_mode = WAL;
@@ -186,13 +194,14 @@ CREATE TABLE IF NOT EXISTS kits (
   kit_number       TEXT,
   box_art_path     TEXT,           -- relative to data dir
   status           TEXT NOT NULL DEFAULT 'shelf'
-                   CHECK(status IN ('wishlist','shelf','building','completed')),
+                   CHECK(status IN ('wishlist','shelf','building','paused','completed')),
   category         TEXT
                    CHECK(category IN ('ship','aircraft','armor','vehicle','figure','sci_fi','other')),
   scalemates_url   TEXT,
   retailer_url     TEXT,
   price            REAL,
   currency         TEXT DEFAULT 'USD',  -- ISO 4217
+  price_updated_at INTEGER,             -- when price was last set
   notes            TEXT,
   created_at       INTEGER NOT NULL,
   updated_at       INTEGER NOT NULL
@@ -204,6 +213,7 @@ CREATE TABLE IF NOT EXISTS accessories (
   type           TEXT NOT NULL
                  CHECK(type IN ('pe','resin_3d','decal','other')),
   manufacturer   TEXT,
+  brand          TEXT,                -- e.g. 'Flyhawk', 'Eduard', 'Voyager'
   reference_code TEXT,
   parent_kit_id  TEXT REFERENCES kits(id) ON DELETE SET NULL,
   status         TEXT NOT NULL DEFAULT 'shelf'
@@ -211,6 +221,7 @@ CREATE TABLE IF NOT EXISTS accessories (
   price          REAL,
   currency       TEXT DEFAULT 'USD',  -- ISO 4217
   buy_url        TEXT,
+  price_updated_at INTEGER,           -- when price was last set
   notes          TEXT,
   created_at     INTEGER NOT NULL,
   updated_at     INTEGER NOT NULL
@@ -232,6 +243,7 @@ CREATE TABLE IF NOT EXISTS paints (
   price          REAL,
   currency       TEXT DEFAULT 'USD',  -- ISO 4217
   buy_url        TEXT,
+  price_updated_at INTEGER,           -- when price was last set
   notes          TEXT,
   created_at     INTEGER NOT NULL,
   updated_at     INTEGER NOT NULL
@@ -442,19 +454,6 @@ CREATE TABLE IF NOT EXISTS milestone_photos (
   created_at  INTEGER NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS gallery_photos (
-  id              TEXT PRIMARY KEY,
-  project_id      TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-  file_path       TEXT NOT NULL,       -- relative to project dir
-  caption         TEXT,
-  source          TEXT NOT NULL DEFAULT 'gallery'
-                  CHECK(source IN ('gallery','log')),
-  log_entry_id    TEXT REFERENCES build_log_entries(id) ON DELETE SET NULL,
-  is_milestone    INTEGER NOT NULL DEFAULT 0,
-  track_id        TEXT REFERENCES tracks(id) ON DELETE SET NULL,
-  created_at      INTEGER NOT NULL
-);
-
 -- ── Build log ─────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS build_log_entries (
@@ -473,6 +472,21 @@ CREATE TABLE IF NOT EXISTS build_log_entries (
   is_track_completion INTEGER NOT NULL DEFAULT 0,  -- milestone: was this a track completion?
   track_step_count   INTEGER,   -- milestone: how many steps in completed track
   created_at   INTEGER NOT NULL
+);
+
+-- ── Gallery ──────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS gallery_photos (
+  id              TEXT PRIMARY KEY,
+  project_id      TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  file_path       TEXT NOT NULL,       -- relative to project dir
+  caption         TEXT,
+  source          TEXT NOT NULL DEFAULT 'gallery'
+                  CHECK(source IN ('gallery','log')),
+  log_entry_id    TEXT REFERENCES build_log_entries(id) ON DELETE SET NULL,
+  is_milestone    INTEGER NOT NULL DEFAULT 0,
+  track_id        TEXT REFERENCES tracks(id) ON DELETE SET NULL,
+  created_at      INTEGER NOT NULL
 );
 
 -- ── Kit files (pre-project instruction attachments) ──────────────────────
@@ -522,6 +536,39 @@ CREATE INDEX IF NOT EXISTS idx_palette_proj   ON palette_entries(project_id);
 CREATE INDEX IF NOT EXISTS idx_tracks_project ON tracks(project_id, display_order);
 CREATE INDEX IF NOT EXISTS idx_kit_files      ON kit_files(kit_id);
 CREATE INDEX IF NOT EXISTS idx_export_project ON export_history(project_id, created_at);
+
+-- ── updated_at triggers ──────────────────────────────────────────────────────
+
+-- Automatically set updated_at on UPDATE for all tables that have the column.
+-- Uses unixepoch() for consistency with application-layer timestamps.
+
+CREATE TRIGGER IF NOT EXISTS trg_kits_updated_at
+  AFTER UPDATE ON kits FOR EACH ROW
+  BEGIN UPDATE kits SET updated_at = unixepoch() WHERE id = NEW.id; END;
+
+CREATE TRIGGER IF NOT EXISTS trg_accessories_updated_at
+  AFTER UPDATE ON accessories FOR EACH ROW
+  BEGIN UPDATE accessories SET updated_at = unixepoch() WHERE id = NEW.id; END;
+
+CREATE TRIGGER IF NOT EXISTS trg_paints_updated_at
+  AFTER UPDATE ON paints FOR EACH ROW
+  BEGIN UPDATE paints SET updated_at = unixepoch() WHERE id = NEW.id; END;
+
+CREATE TRIGGER IF NOT EXISTS trg_projects_updated_at
+  AFTER UPDATE ON projects FOR EACH ROW
+  BEGIN UPDATE projects SET updated_at = unixepoch() WHERE id = NEW.id; END;
+
+CREATE TRIGGER IF NOT EXISTS trg_tracks_updated_at
+  AFTER UPDATE ON tracks FOR EACH ROW
+  BEGIN UPDATE tracks SET updated_at = unixepoch() WHERE id = NEW.id; END;
+
+CREATE TRIGGER IF NOT EXISTS trg_steps_updated_at
+  AFTER UPDATE ON steps FOR EACH ROW
+  BEGIN UPDATE steps SET updated_at = unixepoch() WHERE id = NEW.id; END;
+
+CREATE TRIGGER IF NOT EXISTS trg_palette_entries_updated_at
+  AFTER UPDATE ON palette_entries FOR EACH ROW
+  BEGIN UPDATE palette_entries SET updated_at = unixepoch() WHERE id = NEW.id; END;
 
 -- ── Full-text search (deferred to v2) ─────────────────────────────────────────
 
@@ -598,12 +645,25 @@ interface UiSlice {
 }
 ```
 
-**Mutation pattern**: call Tauri command → on success, update store directly. Never re-fetch the full list after a single item changes.
+**Mutation pattern**: call Tauri command → on success, update the originating store slice directly. For mutations that cross domain boundaries (e.g. acquiring an accessory affects both collection and overview slices), re-fetch the affected data for the other slices from the backend. This targeted re-fetching is simple and performant at the expected data volumes (5–15 projects, 50–100 paints).
+
+**Cross-slice mutations to handle**:
+- Kit acquire (wishlist → shelf): re-fetch overview materials if the kit is linked to the active project
+- Accessory/paint acquire: re-fetch overview materials
+- Step completion: re-fetch overview build log + assembly map progress
+- Track completion (milestone): re-fetch overview build log + gallery
+- Project status change: re-fetch collection kits list
 
 ```typescript
 async function createKit(input: CreateKitInput) {
   const kit = await api.createKit(input)   // invoke → Rust → SQLite → return
   useStore.getState().addKit(kit)          // update frontend store
+}
+
+async function markAccessoryAcquired(id: string) {
+  const accessory = await api.markAcquired('accessory', id)
+  useStore.getState().updateAccessory(accessory)       // update collection slice
+  useStore.getState().refreshOverviewMaterials()        // re-fetch for overview slice
 }
 ```
 
@@ -679,11 +739,15 @@ userData/                            ← platform app data dir (configurable in 
 [dependencies]
 tauri = { version = "2", features = ["all"] }
 rusqlite = { version = "0.32", features = ["bundled"] }
+refinery = { version = "0.8", features = ["rusqlite"] }  # DB migrations
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 uuid = { version = "1", features = ["v4"] }
 reqwest = { version = "0.12", features = ["json"] }  # Scalemates fetching
 scraper = "0.22"                                       # HTML parsing for Scalemates
+pdfium-render = "0.8"                                  # PDF rasterization (instruction manuals)
+libheif-rs = "1"                                       # HEIC → JPEG conversion (iPhone photos)
+typst = "0.12"                                         # Build log PDF export (template-based typesetting)
 ```
 
 > **Note**: `uuid` is used in Rust for ID generation. Frontend uses `crypto.randomUUID()` where needed. Tailwind v4 uses CSS-first configuration via `@import "tailwindcss"` and `@theme { ... }` in the root CSS file.
@@ -721,7 +785,8 @@ Coordinates are normalized (0–1 relative to the step image dimensions) so they
 ### Instruction images (PDF rasterization)
 
 - **Where**: Rust backend, `src-tauri/src/services/pdf.rs`
-- **Flow**: user selects PDF → frontend sends path via invoke → Rust reads file → renders each page to PNG via pdfium or pdf-rs → writes `instructions/<source-id>/page-NNN.png` → returns page metadata to frontend
+- **Library**: pdfium (via `pdfium-render` crate). Chosen over `pdf-rs` for broad compatibility with real-world instruction PDFs: scanned manuals, Japanese manufacturer formats, vector art, image-only wrappers, and password-protected files.
+- **Flow**: user selects PDF → frontend sends path via invoke → Rust reads file → renders each page to PNG via pdfium → writes `instructions/<source-id>/page-NNN.png` → returns page metadata to frontend
 - **Format**: PNG — lossless, universal tool support, no quality decisions
 - **DPI**: 150 (default, user-configurable in Settings: 72 / 150 / 300). At 300 DPI, an A4 page = 2480×3508 px — sharp when zoomed
 - **Step crops**: stored as normalized coordinates (0–1); full-resolution crop rendered on first display from the stored page PNG
@@ -729,14 +794,17 @@ Coordinates are normalized (0–1 relative to the step image dimensions) so they
 ### Build photos and reference images
 
 - **Formats accepted**: JPEG, PNG, WebP, HEIC (iPhone)
-- **HEIC handling**: convert to JPEG on import using platform-specific tools. macOS: `sips` system command. Other platforms: filter HEIC out of file picker.
+- **HEIC handling**: Convert to JPEG on import via `libheif-rs` in the Rust backend. Works cross-platform (macOS, Windows, Linux) without requiring external tools.
 - **Storage format**: JPEG for all stored photos (progress, milestone, gallery, reference, hero)
 - **Thumbnails**: JPEG, generated in Rust backend at reduced size
 
 ### Build log PDF export
 
-- **Method**: Rust backend generates HTML from template, converts to PDF using a Rust HTML-to-PDF library (e.g. headless-chrome or weasyprint via subprocess)
-- **HTML export**: same rendered HTML saved directly as a self-contained file with images base64-embedded
+> **Full specification**: See EXPORT_FEATURE.md for the complete export dialog UX, PDF page design, section customization, and photo curation flow. This section covers the technical implementation.
+
+- **Method**: Rust backend generates PDF using the `typst` crate. A `.typ` template defines the document layout (cover page, track sections, photo grids, paint palette). The backend populates the template with structured data from the build log, then renders to PDF. Typst is a Rust-native typesetting engine, so no external subprocess or dependency is needed.
+- **Template features**: Proper cover page with hero photo, track-colored section headers, photo grids with consistent sizing and captions, paint palette with color swatches and formulas, running headers/footers with project name and page numbers, intelligent page break handling.
+- **HTML export**: Separate code path. Self-contained single-page HTML with images base64-embedded. Serves a different purpose (web viewing, hosting) from the typeset PDF.
 - **ZIP export**: all photos copied into an `images/` directory alongside a narrative Markdown file; bundled using Rust's `zip` crate
 
 ---
@@ -911,6 +979,8 @@ When a paint is saved (from catalogue or manual entry), `color_family` is comput
 
 Evaluation order: Blacks → Whites → Greys & Neutrals → Browns & Tans → hue-based families. User can override the assigned family. Custom family definitions deferred to v2.
 
+**Note on overlapping ranges**: The hue ranges above overlap intentionally (e.g. 0°–30° for Reds & Oranges and 20°–40° for Browns & Tans). The evaluation order resolves all conflicts: lightness extremes are checked first (Blacks, Whites), then low saturation (Greys), then the saturation+lightness criteria for Browns & Tans, and only then do the hue ranges apply. A paint is never evaluated against hue ranges if it was already matched by an earlier rule.
+
 Note: Metallics cannot be detected from hex alone (it's a finish property, not a hue). If the `finish` column is set to `metallic`, the paint is tagged as metallic separately; color family still reflects the underlying hue.
 
 ### Settings integration
@@ -934,3 +1004,88 @@ Triggered manually via Settings → Data & Storage → "Back up now." Copies `db
 ### Auto-save
 
 All data changes auto-save on mutation (Zustand → Tauri invoke → SQLite write). The "auto-save interval" setting controls how frequently the UI state (zoom, pan, active step) is persisted to `project_ui_state`, not data writes. Data writes are always immediate.
+
+---
+
+## Testing Strategy
+
+Three layers, ordered by priority and effort.
+
+### Rust unit tests (high priority, low effort)
+
+Test query functions in `db/queries/` and service logic in `services/`. These are pure functions operating on a SQLite database; test with an in-memory DB seeded with fixture data.
+
+Coverage targets:
+- All query functions (CRUD operations, status transitions, cross-entity joins)
+- PDF rasterization: test against a small corpus of representative instruction PDFs
+- Scalemates HTML parsing: test against saved page snapshots (avoids network dependency)
+- Color family auto-assignment: test edge cases in HSL classification
+- Export generation: verify Typst template renders with sample data
+
+### Tauri command integration tests (medium priority, medium effort)
+
+Test the IPC boundary: invoke a Tauri command and verify the response. Catches serialization bugs, permission issues, and command registration errors. Use `tauri::test` utilities.
+
+Coverage targets:
+- Each command returns correctly typed data
+- Error cases return meaningful error strings
+- File operations create/read expected paths
+- Cross-domain mutations (e.g. `mark_acquired`) update all affected tables
+
+### E2E tests (lower priority, higher effort)
+
+A small set of Playwright or WebDriver tests covering critical user flows. Not comprehensive UI testing, just smoke tests for flows that cross multiple zones and touch the backend.
+
+Coverage targets:
+- Create project → upload PDF → crop step → complete step → verify build log entry
+- Add kit from Scalemates URL → mark acquired → link to project
+- Full step completion cycle with photo capture
+
+---
+
+## File System Error Recovery
+
+The app stores images, PDFs, and exports on disk with paths referenced in the database. Files can go missing due to manual deletion, cloud sync conflicts, or storage location changes.
+
+### Missing file handling
+
+When the app attempts to load a file referenced in the database:
+- **Step instruction images**: Show a placeholder with warning badge ("Image not found") and a "Re-crop from source" action if the source page PNG still exists.
+- **Source page PNGs**: Show warning on the instruction source in Setup mode. Offer "Re-import PDF" if the original PDF path is still valid.
+- **Progress/milestone/gallery photos**: Show a broken-image placeholder. Photo remains in the database (preserving build log continuity) but displays the placeholder until resolved.
+- **Box art / cover images**: Fall back to the gradient placeholder used for kits without box art.
+- **Mask files**: Treat as "no mask" (show uncleaned step image). Log a warning.
+
+### Storage location changes
+
+When the user changes the project storage location in Settings, the app offers to move existing project folders. If files fail to move (permissions, disk full), the operation is rolled back and an error dialog explains which files couldn't be transferred.
+
+### File health check
+
+A "Check file integrity" utility accessible from Settings → Data & Storage. Scans all database file references and reports:
+- Missing files (with path and entity type)
+- Orphaned files (files on disk not referenced by the database)
+- Size: total storage used, broken down by photos, instructions, exports
+
+Results displayed in a simple report dialog. Missing files offer per-item "Locate" (manual re-link) or batch "Clean up references" (remove DB entries pointing to missing files, with confirmation).
+
+---
+
+## Large Project Considerations
+
+Complex builds (e.g. 1/350 warship with full PE sets) can generate 150–250+ steps across 8–10 tracks. The app should handle this without performance degradation.
+
+### Target scale
+
+- Up to 300 steps per project
+- Up to 12 tracks per project
+- Up to 500 paints on the global shelf
+- Up to 50 progress photos per project
+
+### Components requiring attention at scale
+
+- **Assembly Map**: At 200+ steps with 22px node spacing, the map is ~4400px wide. Horizontal scrolling and fit-to-screen zoom are already specified. Ensure node rendering uses canvas (Konva) rather than DOM elements to avoid layout thrashing.
+- **Step rail (Build zone)**: 200+ steps in a single track would overflow the rail. The collapsed-track pattern (only active track expanded) mitigates this. Within the active track, the step list should use virtualized scrolling if it exceeds ~50 items.
+- **Materials card**: A project with 30+ accessories and 50+ paints needs efficient list rendering. Consider virtualizing the BOM list in expanded view.
+- **Build Log**: Months of daily entries. Day-group collapsing (default: today + 2 days expanded) handles this. Older entries load on scroll.
+- **Overview card grid**: No scaling concern (always 4 cards).
