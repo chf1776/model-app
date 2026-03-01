@@ -1,0 +1,38 @@
+mod commands;
+mod db;
+mod models;
+
+use db::AppDb;
+use tauri::Manager;
+
+pub fn run() {
+    tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_opener::init())
+        .setup(|app| {
+            let app_data = app.path().app_data_dir().expect("Failed to get app data dir");
+            let db = AppDb::new(app_data).expect("Failed to initialize database");
+            app.manage(db);
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            commands::collection::list_kits,
+            commands::collection::create_kit,
+            commands::collection::update_kit,
+            commands::collection::delete_kit,
+            commands::projects::list_projects,
+            commands::projects::get_project,
+            commands::projects::create_project,
+            commands::projects::set_active_project,
+            commands::projects::get_active_project,
+            commands::settings::get_setting,
+            commands::settings::set_setting,
+            commands::media::save_box_art,
+            commands::collection::list_kit_files,
+            commands::collection::attach_kit_file,
+            commands::collection::delete_kit_file,
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}

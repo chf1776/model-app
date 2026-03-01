@@ -28,12 +28,15 @@ Phases are ordered so each one produces something testable and useful on its own
 - **Kits tab**: sections for Building, On the Shelf, Wishlist, Completed — each with kit cards showing status badges
 - Add kit: manual entry form (name, manufacturer, scale, kit number, box art)
 - Edit and delete kit
+- **Kit file attachment**: Edit Kit dialog includes a file section for attaching PDFs and images (stored via `kit_files` table). Users can attach instruction manuals before starting a project.
+- **"Start Project" card action**: shelf kit cards show a direct "Start Project" button that opens the Create Project dialog pre-filled with that kit
 - Basic status transitions (shelf → building, building → completed)
 
 ### Project creation
 - **First-run empty state**: welcome card with "Create First Project" CTA and Getting Started tips
 - **Create Project dialog**: required fields (project name, kit from shelf or new via manual entry, scale), optional fields (category, product code). No Scalemates import yet.
 - On creation: shelf kit auto-moves to "Building" status (configurable in Settings). Post-creation landing with suggested next steps.
+- **Auto-import kit files**: on project creation, any files attached to the kit via `kit_files` are automatically imported as `instruction_sources` for the new project. PDF page counting (pdfium rasterization) is deferred to Phase 2 setup mode; `page_count` is set to 0 at import time.
 
 ### Deliverable
 You can add kits, create projects, and navigate between zones. The app has a persistent shell to build everything else on.
@@ -64,8 +67,13 @@ You can add kits, create projects, and navigate between zones. The app has a per
 - "Mark as acquired" transitions
 - Batch operations for multi-select acquire
 
+### Kit-to-project pipeline
+- Accessories linked to kits via `parent_kit_id` can have their own file attachments (manuals, PE instructions, decal placement guides)
+- On project creation from a kit: auto-link all accessories with matching `parent_kit_id` via `project_accessories`, and auto-import their file attachments as additional `instruction_sources`
+- Kit card accessory tray (UI_DESIGN.md section 27.2) shows linked aftermarket parts; these flow into the project automatically on creation
+
 ### Deliverable
-Full collection management. All three entity types, wishlists with pricing, paint shelf with catalogue lookup, and Scalemates import.
+Full collection management. All three entity types, wishlists with pricing, paint shelf with catalogue lookup, Scalemates import, and kit-to-project pipeline with automatic accessory and manual import.
 
 ---
 

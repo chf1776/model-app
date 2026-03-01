@@ -1,0 +1,99 @@
+use serde::{Deserialize, Serialize};
+
+// ── Kit ──────────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Kit {
+    pub id: String,
+    pub name: String,
+    pub manufacturer: Option<String>,
+    pub scale: Option<String>,
+    pub kit_number: Option<String>,
+    pub box_art_path: Option<String>,
+    pub status: String,
+    pub category: Option<String>,
+    pub scalemates_url: Option<String>,
+    pub retailer_url: Option<String>,
+    pub price: Option<f64>,
+    pub currency: Option<String>,
+    pub notes: Option<String>,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateKitInput {
+    pub name: String,
+    pub manufacturer: Option<String>,
+    pub scale: Option<String>,
+    pub kit_number: Option<String>,
+    pub status: Option<String>,
+    pub category: Option<String>,
+    pub scalemates_url: Option<String>,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateKitInput {
+    pub id: String,
+    pub name: Option<String>,
+    pub manufacturer: Option<String>,
+    pub scale: Option<String>,
+    pub kit_number: Option<String>,
+    pub box_art_path: Option<String>,
+    pub status: Option<String>,
+    pub category: Option<String>,
+    pub scalemates_url: Option<String>,
+    pub retailer_url: Option<String>,
+    pub price: Option<f64>,
+    pub currency: Option<String>,
+    pub notes: Option<String>,
+}
+
+// ── Kit File ─────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KitFile {
+    pub id: String,
+    pub kit_id: String,
+    pub file_path: String,
+    pub file_type: String,
+    pub label: Option<String>,
+    pub display_order: i32,
+    pub created_at: i64,
+}
+
+// ── Project ──────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Project {
+    pub id: String,
+    pub name: String,
+    pub kit_id: Option<String>,
+    pub status: String,
+    pub category: Option<String>,
+    pub scalemates_url: Option<String>,
+    pub product_code: Option<String>,
+    pub start_date: Option<i64>,
+    pub completion_date: Option<i64>,
+    pub notes: Option<String>,
+    pub created_at: i64,
+    pub updated_at: i64,
+    // Joined fields
+    pub kit_name: Option<String>,
+    pub kit_scale: Option<String>,
+    pub kit_box_art_path: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateProjectInput {
+    pub name: String,
+    pub kit_id: Option<String>,
+    // For inline kit creation
+    pub new_kit_name: Option<String>,
+    pub new_kit_manufacturer: Option<String>,
+    pub new_kit_scale: Option<String>,
+    pub category: Option<String>,
+    pub scalemates_url: Option<String>,
+    pub product_code: Option<String>,
+}

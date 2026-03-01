@@ -669,6 +669,32 @@ async function markAccessoryAcquired(id: string) {
 
 ---
 
+## Kit-to-Project Pipeline
+
+The kit-to-project pipeline connects collection data to project data automatically, reducing manual re-entry when starting a build.
+
+### Kit file attachment (Phase 1A)
+Users attach PDFs and images (instruction manuals, reference sheets) to kits via the Edit Kit dialog. Files are copied to the stash directory and recorded in the `kit_files` table. This can happen at any time — when the kit is on the shelf, wishlisted, or even already building.
+
+### Project creation auto-import (Phase 1A)
+When `create_project` is called with a `kit_id`:
+1. Query `kit_files WHERE kit_id = ?` to get all attached files
+2. For each file, create an `instruction_sources` row linked to the new project (file path carried over, `page_count = 0`)
+3. PDF page rasterization is **not** performed at import time — that happens in Phase 2 setup mode when the user enters the build workspace and pdfium processes the pages on demand
+
+### "Start Project" card action (Phase 1A)
+Shelf kit cards expose a direct "Start Project" button. Clicking it opens the Create Project dialog with that kit pre-selected, so the user doesn't need to search for it. The kit's attached files are auto-imported as described above.
+
+### Accessory auto-link (Phase 1B)
+When `create_project` is called with a `kit_id`:
+1. Query `accessories WHERE parent_kit_id = kit_id` to find linked aftermarket parts
+2. Create `project_accessories` entries to link them to the project
+3. Import any file attachments from those accessories as additional `instruction_sources` (e.g., PE instructions, decal placement guides)
+
+This means a well-prepared kit — with manual attached, aftermarket parts linked, and their instructions uploaded — can become a fully-scaffolded project in a single click.
+
+---
+
 ## File Paths
 
 All paths stored in the database are **relative to the project data directory**. Resolved to absolute paths only when reading/writing files.
