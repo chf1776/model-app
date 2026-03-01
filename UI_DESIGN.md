@@ -11,8 +11,6 @@ The UI design process started by establishing fundamentals (mood, palette, typog
 ### Companion Documents
 
 - `WISHLIST_FEATURE.md` — Wishlist/owned badge system, acquire interactions, price & buy link display, batch operations, prominence escalation, Materials card BOM, shopping list export. Cross-cuts sections 27, 28, 30, 32, 34, 35.
-- `WISHLIST_DESIGN_BRIEF.md` — Original design brief that prompted the wishlist audit.
-
 ### Interactive Mockups
 
 - `paint-shelf.jsx` — Paint shelf with catalog lookup, grouping, and detail panel (section 32.6–32.7)
