@@ -13,7 +13,7 @@ The UI design process started by establishing fundamentals (mood, palette, typog
 - `WISHLIST_FEATURE.md` — Wishlist/owned badge system, acquire interactions, price & buy link display, batch operations, prominence escalation, Materials card BOM, shopping list export. Cross-cuts sections 27, 28, 30, 32, 34, 35.
 ### Interactive Mockups
 
-- `paint-shelf.jsx` — Paint shelf with catalog lookup, grouping, and detail panel (section 32.6–32.7)
+- `paint-shelf.jsx` — Paint shelf with catalogue lookup, grouping, and detail panel (section 32.6–32.7)
 - `project-creation.jsx` — First-run empty state, create dialog, post-creation landing (section 38)
 - `build-log.jsx` — Build Log with day groups, composer, filters, compact/expanded (section 39)
 - `build-log-dots.jsx` — Timeline dot reference: track-colored step numbers, milestone squares (section 39.1)
@@ -837,7 +837,7 @@ Paints auto-assigned to a family (Reds & Oranges, Greys, Blues, Browns & Tans, M
 - Auto-fills: name, swatch color, type (acrylic/enamel/lacquer), brand.
 
 **Fallback — Manual entry:**
-- "Not listed? Add manually" link at bottom of catalog results.
+- "Not listed? Add manually" link at bottom of catalogue results.
 - Form: name (text), brand (text/dropdown), code (text), type (dropdown: Acrylic/Enamel/Lacquer), color (color picker or hex input).
 
 **Auto-add from project:**
@@ -1226,14 +1226,15 @@ After project creation, a confirmation card appears:
 
 #### 39.1 Entry Types
 
-Four entry types, each with a distinct timeline dot:
+Five entry types, each with a distinct timeline dot:
 
 | Type | Dot | Size | Visual | Auto/Manual |
 |------|-----|------|--------|-------------|
 | Step completed | Circle with step number (white text) | 14×14px, radius 7px | Filled with track color | Auto-logged on step completion |
-| Note | Circle, hollow | 10×10px, radius 5px | Accent border + 30% accent fill | Manual (user-initiated) |
+| Note | Circle, hollow | 10×10px, radius 5px | Accent border + 30% accent fill | Manual (user-initiated). Timer completions auto-logged as notes. |
 | Photo | Circle, hollow | 10×10px, radius 5px | Accent border + 30% accent fill | Manual (user-initiated) |
 | Milestone | Rounded square with flag icon | 14×14px, radius 3px | Track color border + 25% track color fill, flag in track color | Auto on track completion, or manual |
+| Build complete | Star shape | 14×14px | Accent fill, white star outline | Auto on "Mark Complete" |
 
 Step dots display the step number (7px/700 white) inside the track-colored circle. This creates a scannable color stripe down the timeline that shows which track was active and build sequence at a glance.
 
@@ -1258,6 +1259,11 @@ Notes and photos use the same smaller accent dot (user annotation, not build pro
 - Card contents: title (12px/600 primary). If track completion: track color bar (4×10px) + step count + check icon. No redundant track name label (title already conveys the track identity).
 - Below card: time (8px tertiary).
 - Manual milestones with no track link use accent as default color.
+
+**Build complete entry:**
+- Star dot (accent) + accent-tinted card (10% accent bg, 30% accent border).
+- Card contents: "Build Complete" title (12px/600 primary) + project name (10px secondary) + completion date.
+- Below card: time (8px tertiary) + "auto" tag (7px tertiary italic).
 
 #### 39.3 Day Grouping
 
@@ -1431,8 +1437,8 @@ Single scrollable page with section headers. Each section:
 
 | Setting | Control | Default | Description |
 |---------|---------|---------|-------------|
-| Default brand | Dropdown: Tamiya, Vallejo, Mr. Color, AK Interactive, Ammo, None | None | Pre-selects brand tab in catalog lookup. |
-| Visible catalogs | Multi-checkbox: Tamiya, Vallejo, Mr. Color, AK Interactive, Ammo | All checked | Controls which brands appear in paint catalog lookup. Unchecked brands hidden from search. |
+| Default brand | Dropdown: Tamiya, Vallejo, Mr. Color, AK Interactive, Ammo, None | None | Pre-selects brand tab in catalogue lookup. |
+| Visible catalogues | Multi-checkbox: Tamiya, Vallejo, Mr. Color, AK Interactive, Ammo | All checked | Controls which brands appear in paint catalogue lookup. Unchecked brands hidden from search. |
 | Color family definitions | Link: "Manage families →" | Standard set | Opens sub-view to rename, merge, or split color families. Advanced setting. |
 | Auto-add paints from project | Toggle | On | Automatically adds paints to shelf when assigned to a build step. |
 

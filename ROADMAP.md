@@ -27,14 +27,14 @@ Phases are ordered so each one produces something testable and useful on its own
 - **Entity switcher**: three tabs (Kits | Accessories | Paints) at the top of Collection
 - **Kits tab**: sections for Building, On the Shelf, Wishlist, Completed — each with kit cards showing status badges
 - **Accessories tab**: aftermarket items with parent kit links, type badges, owned/wishlist status
-- **Paints tab**: global paint shelf with group by (Color Family | Brand | Project), search, list/grid views, detail panel, catalog lookup with brand filter tabs, manual paint entry fallback
+- **Paints tab**: global paint shelf with group by (Color Family | Brand | Project), search, list/grid views, detail panel, catalogue lookup (bundled data from Arcturus5404/miniature-paints repo, search box + brand filter dropdown), manual paint entry fallback
 - **Wishlist system**: consistent owned/wishlist badges across all three entity types. Price, currency, buy URL on all wishlisted items. "Mark as acquired" transitions. Batch operations for multi-select acquire.
-- Add kit: manual entry form (name, manufacturer, scale, kit number, box art) + Scalemates search import
+- Add kit: manual entry form (name, manufacturer, scale, kit number, box art) + Scalemates paste-URL import (fetches name, manufacturer, scale, product code, category, box art; partial imports flagged with inline warnings; re-sync on demand for existing kits)
 - Edit and delete kit
 
 ### Project creation
 - **First-run empty state**: welcome card with "Create First Project" CTA and Getting Started tips
-- **Create Project dialog**: required fields (project name, kit from shelf or new, scale), optional fields (category, Scalemates URL, product code). Kit from shelf: searchable list with thumbnails. New kit: name + manufacturer + scale.
+- **Create Project dialog**: required fields (project name, kit from shelf or new via Add Kit dialog with Scalemates import, scale), optional fields (category, Scalemates URL, product code). Kit from shelf: searchable list with thumbnails. New kit uses the shared Add Kit dialog.
 - On creation: shelf kit auto-moves to "Building" status (configurable in Settings). Post-creation landing with suggested next steps.
 
 ### Deliverable
@@ -182,11 +182,12 @@ The complete building experience. Annotations, references, timers, sub-steps, pa
 
 ### Build Log card
 - **Day-grouped journal** (expanded): entries grouped by day with collapsible date headers
-- Four entry types with distinct timeline dots:
+- Five entry types with distinct timeline dots:
   - Step completed (auto): track-colored circle with step number in white
-  - Note (manual): accent dot, editable text card
+  - Note (manual): accent dot, editable text card. Timer completions auto-logged as notes.
   - Photo (manual): accent dot, thumbnail with caption
   - Milestone (auto/manual): track-colored square with flag icon, step count if track completion
+  - Build complete (auto): accent star, logged when project marked complete
 - Composer at top: Note / Photo / Milestone tabs with type-specific input
 - Filters: All | Steps | Notes | Photos | Milestones
 - Compact: day headers and timeline at smaller scale, no composer
@@ -262,7 +263,7 @@ Complete paint tracking — global shelf, per-build formulas, step-level referen
 - Dedicated full-width page accessible via gear icon in nav bar
 - **Appearance**: Theme (Light / Dark / System)
 - **Building Defaults**: default scale, auto-status change toggle, drying times (plastic cement 30min, CA 5min, epoxy 60min, white/PVA 45min), PDF DPI (72/150/300, default 150), PDF crop behavior
-- **Paint & Catalog**: default brand, visible catalog brands (multi-checkbox), auto-add paints from project toggle
+- **Paint & Catalogue**: default brand, visible catalogue brands (multi-checkbox), auto-add paints from project toggle
 - **Currency & Pricing**: default currency (USD/EUR/GBP/JPY/CAD/AUD + freeform ISO 4217), acquire behavior (keep vs clear price)
 - **Data & Storage**: project storage location (path + change), auto-save interval (30s/1min/2min/5min), backup ("Back up now" + timestamp), restore ("Import backup" with confirmation)
 - **Keyboard Shortcuts**: expandable reference section, two-column table grouped by zone

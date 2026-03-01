@@ -54,7 +54,7 @@ Each kit card shows an owned/wishlist status badge. Wishlisted items display pri
 **Capabilities**:
 
 - Filters by status (on shelf / building / completed / wishlist), scale, manufacturer
-- Scalemates integration for kit import (name, manufacturer, scale, kit number, box art)
+- Scalemates integration: paste a kit URL to auto-import name, manufacturer, scale, product code, category, and box art. Partial imports handled gracefully (missing fields flagged with inline warnings). Re-sync available on demand for kits with a Scalemates URL.
 - Manual kit entry for items not on Scalemates
 - Instruction PDF and image attachment per kit — auto-import as source pages when starting a build
 - Kit-to-project linking — see which project a kit is being used in
@@ -316,11 +316,12 @@ When the Gallery card is expanded:
 When the Build Log card is expanded:
 
 - **Day-grouped timeline**: entries grouped by day with collapsible date headers. Today + 2 previous days expanded by default; older days collapsed. Collapsed headers show summary badges (step count, milestones, notes, photos).
-- **Four entry types** with distinct timeline dots:
+- **Five entry types** with distinct timeline dots:
   - **Step completed** (auto-logged): 14px circle filled with track color, step number in white inside. Shows step label, track name in track color, time, "auto" tag.
-  - **Note** (manual): 10px accent-colored dot. Text in a sidebar-tinted card. Editable after creation.
+  - **Note** (manual): 10px accent-colored dot. Text in a sidebar-tinted card. Editable after creation. Timer completions are auto-logged as notes with structured text (e.g. "Timer completed: Hull cement — 30 min").
   - **Photo** (manual): 10px accent-colored dot. Image thumbnail with optional caption.
   - **Milestone** (auto on track completion, or manual): 14px rounded square with flag icon in track color. Track-colored tinted card with title and step count. Track completion milestones auto-generate; users can also create manual milestones.
+  - **Build complete** (auto on project completion): 14px star shape, accent-colored. Shows project name and completion date. Auto-logged when user clicks "Mark Complete" in Project Info.
 - **Composer** at the top: three tabs (Note / Photo / Milestone) with type-specific input. Note: textarea. Photo: drop zone with caption input. Milestone: title input with optional "Track completion" checkbox and track selector.
 - **Filters**: All | Steps | Notes | Photos | Milestones. Pill toggles.
 - **Compact view** (in 2×2 grid): day headers and timeline visible at smaller scale, no composer, no filters.
@@ -382,15 +383,16 @@ Lives in the Paints tab of the Collection zone's entity switcher. Contains every
 
 **Detail panel**: 200px right sidebar showing big swatch (60px), name, brand/code/type, status (owned/wishlist), "Used In" section listing linked projects, color hex, notes field, action buttons.
 
-**Data model per paint**: color (hex), name, code, brand, type (Acrylic/Enamel/Lacquer), owned (boolean), price, currency, buy_url, kits (array of IDs), color_family (auto-assigned via HSL analysis, user-overridable), notes.
+**Data model per paint**: color (hex), name, code, brand, type (Acrylic/Enamel/Lacquer/Oil), finish (Flat/Semi-Gloss/Gloss/Metallic/Clear/Satin), owned (boolean), price, currency, buy_url, kits (array of IDs), color_family (auto-assigned via HSL analysis, user-overridable), notes.
 
-**Color families**: Reds & Oranges, Greys, Blues, Browns & Tans, Metallics, Greens, Whites & Creams, Blacks. Auto-assigned from the paint's hex value via HSL analysis. User can override per paint.
+**Color families**: Reds & Oranges, Yellows, Greens, Blues, Purples & Violets, Browns & Tans, Greys & Neutrals, Whites, Blacks. Auto-assigned from the paint's hex value via HSL analysis (evaluation order: lightness extremes first, then saturation, then hue). Metallics are a finish property, not a color family. User can override per paint.
 
 **Add paint flow**:
 
-- Primary: **Catalog lookup**. Search by code/name/brand, brand filter tabs (All | Tamiya | Vallejo | Mr. Color etc.), results list with plus icon to add as owned. Auto-fills name, swatch, type, brand.
-- Fallback: **Manual entry** form (name, brand, code, type dropdown, color picker). "Can't find it? Add manually" link.
+- Primary: **Catalogue lookup**. Search box with brand filter dropdown (defaults to user's default brand from Settings, or "All brands"). Filter-as-you-type against bundled catalogue data (sourced from the [Arcturus5404/miniature-paints](https://github.com/Arcturus5404/miniature-paints) MIT-licensed dataset, converted to JSON at build time). Results show swatch, code, name, brand + range, finish. Selecting a result pre-fills all fields. V1 brands: Tamiya, Vallejo (Model Color, Model Air, Game Color), Mr. Hobby (Mr. Color, Aqueous), AK Interactive, Ammo by Mig. Additional brands enabled in future updates.
+- Fallback: **Manual entry** form (name, brand, code, type dropdown, color picker). "Not in catalogue? Add manually" link.
 - **Auto-add**: When a paint is assigned to a build step and isn't on the shelf, it's auto-added as owned. Toast notification. Controlled by Settings toggle (default: on).
+- **Catalogue updates**: Ship with app updates only. Paint lines change infrequently. Manual entry covers any gaps.
 
 ### Per-Build Paint Palette
 
@@ -434,7 +436,7 @@ A floating timer bubble is available in all zones. It appears when one or more t
 
 **App close with active timers**: Active timers are persisted to the database. On relaunch, any timer whose start time plus duration has already elapsed fires an immediate "Timer completed while away" notification. Timers still in progress resume with the correct remaining time.
 
-**Build log**: Drying timer completions are recorded as auto-entries in the build log, noting the step name (if step-linked) and elapsed time.
+**Build log**: Drying timer completions are auto-logged as note entries in the build log with structured text (e.g. "Timer completed: Hull cement — 30 min"), noting the step name (if step-linked) and elapsed time.
 
 ---
 
@@ -601,7 +603,7 @@ A dedicated full-width settings page accessible via a gear icon in the nav bar. 
 
 **Build Defaults**: Default scale (pill selector with common scales + freeform), auto-status change toggle (move shelf kit to Building on project link), default drying times for four adhesive types (plastic cement, CA glue, epoxy, white/PVA glue).
 
-**Paint & Catalog**: Default brand (pre-selects tab in catalog lookup), visible catalog brands (multi-checkbox), auto-add paints from project toggle.
+**Paint & Catalogue**: Default brand (pre-selects dropdown in catalogue lookup), visible catalogue brands (multi-checkbox), auto-add paints from project toggle.
 
 **Wishlist & Pricing**: Default currency (dropdown with ISO 4217 codes), acquire behavior (preserve or clear price data on acquire).
 
