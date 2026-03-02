@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
 import { useAppStore } from "@/store";
 import { KitCard } from "./KitCard";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Kit, KitStatus } from "@/shared/types";
 import { KIT_CATEGORIES } from "@/shared/types";
@@ -88,8 +89,12 @@ export function KitsTab({
 }: KitsTabProps) {
   const kits = useAppStore((s) => s.kits);
   const statusFilter = useAppStore((s) => s.statusFilter);
+  const setStatusFilter = useAppStore((s) => s.setStatusFilter);
   const kitGroupBy = useAppStore((s) => s.kitGroupBy);
   const kitSearch = useAppStore((s) => s.kitSearch);
+  const setKitSearch = useAppStore((s) => s.setKitSearch);
+
+  const hasActiveFilters = statusFilter !== "all" || kitSearch !== "";
 
   const filteredKits = useMemo(() => {
     let result = kits;
@@ -192,10 +197,21 @@ export function KitsTab({
             onStartProject={onStartProject}
           />
         ))}
-        {filteredKits.length === 0 && (
-          <p className="py-8 text-center text-xs text-text-tertiary">
-            No kits found
-          </p>
+        {filteredKits.length === 0 && hasActiveFilters && (
+          <div className="flex flex-col items-center gap-2 py-8">
+            <p className="text-xs text-text-tertiary">
+              No kits match your filters
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1.5 text-[10px]"
+              onClick={() => { setStatusFilter("all"); setKitSearch(""); }}
+            >
+              <X className="h-3 w-3" />
+              Clear filters
+            </Button>
+          </div>
         )}
       </div>
     );
@@ -214,10 +230,21 @@ export function KitsTab({
           onStartProject={onStartProject}
         />
       ))}
-      {filteredKits.length === 0 && (
-        <p className="py-8 text-center text-xs text-text-tertiary">
-          No kits found
-        </p>
+      {filteredKits.length === 0 && hasActiveFilters && (
+        <div className="flex flex-col items-center gap-2 py-8">
+          <p className="text-xs text-text-tertiary">
+            No kits match your filters
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1.5 text-[10px]"
+            onClick={() => { setStatusFilter("all"); setKitSearch(""); }}
+          >
+            <X className="h-3 w-3" />
+            Clear filters
+          </Button>
+        </div>
       )}
     </div>
   );

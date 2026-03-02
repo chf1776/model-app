@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { Play, ChevronDown, Pencil, Plus } from "lucide-react";
+import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
+import { openPath } from "@tauri-apps/plugin-opener";
+import { Play, ChevronDown, Pencil, Plus, FileText, ImageIcon, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -8,7 +10,7 @@ import {
   DialogOverlay,
   DialogPortal,
 } from "@/components/ui/dialog";
-import type { Kit, Accessory } from "@/shared/types";
+import type { Kit, Accessory, KitFile } from "@/shared/types";
 import {
   STATUS_COLORS,
   STATUS_LABELS,
@@ -46,30 +48,52 @@ export function KitCard({
   const [expanded, setExpanded] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [kitAccessories, setKitAccessories] = useState<Accessory[]>([]);
-  const [loadedAccessories, setLoadedAccessories] = useState(false);
+  const [kitFiles, setKitFiles] = useState<KitFile[]>([]);
+  const [loadedTray, setLoadedTray] = useState(false);
 
   const handleExpand = useCallback(async () => {
     const willExpand = !expanded;
     setExpanded(willExpand);
-    if (willExpand && !loadedAccessories) {
+    if (willExpand && !loadedTray) {
       try {
-        const accessories = await api.listAccessoriesForKit(kit.id);
+        const [accessories, files] = await Promise.all([
+          api.listAccessoriesForKit(kit.id),
+          api.listKitFiles(kit.id),
+        ]);
         setKitAccessories(accessories);
-        setLoadedAccessories(true);
+        setKitFiles(files);
+        setLoadedTray(true);
       } catch (err) {
-        console.error("Failed to load accessories:", err);
+        console.error("Failed to load tray data:", err);
       }
     }
-  }, [expanded, loadedAccessories, kit.id]);
+  }, [expanded, loadedTray, kit.id]);
 
   // Reload accessories after adding one
   const reloadAccessories = useCallback(async () => {
     try {
       const accessories = await api.listAccessoriesForKit(kit.id);
       setKitAccessories(accessories);
-      setLoadedAccessories(true);
+      setLoadedTray(true);
     } catch {
       // ignore
+    }
+  }, [kit.id]);
+
+  const handleAttachFile = useCallback(async () => {
+    const selected = await openFileDialog({
+      multiple: false,
+      filters: [
+        { name: "Documents & Images", extensions: ["pdf", "png", "jpg", "jpeg", "webp"] },
+      ],
+    });
+    if (!selected) return;
+    try {
+      const file = await api.attachKitFile(kit.id, selected, null);
+      setKitFiles((prev) => [...prev, file]);
+      toast.success("File attached");
+    } catch (err) {
+      toast.error(`Failed to attach file: ${err}`);
     }
   }, [kit.id]);
 
@@ -177,7 +201,12 @@ export function KitCard({
 
         {/* Right-side indicators */}
         <div className="flex items-center gap-1.5">
-          {loadedAccessories && kitAccessories.length > 0 && (
+          {loadedTray && kitFiles.length > 0 && (
+            <span className="rounded-full bg-muted px-1.5 py-[1px] text-[9px] font-medium text-text-tertiary">
+              {kitFiles.length} file{kitFiles.length !== 1 ? "s" : ""}
+            </span>
+          )}
+          {loadedTray && kitAccessories.length > 0 && (
             <span className="rounded-full bg-muted px-1.5 py-[1px] text-[9px] font-medium text-text-tertiary">
               {kitAccessories.length} part{kitAccessories.length !== 1 ? "s" : ""}
             </span>
@@ -305,6 +334,56 @@ export function KitCard({
                       }
                     />
                   </div>
+                );
+              })}
+            </div>
+          )}
+
+          <Separator className="my-2" />
+
+          {/* Linked files */}
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-semibold text-text-primary">
+              Files
+              {kitFiles.length > 0 && (
+                <span className="ml-1 font-normal text-text-tertiary">
+                  {kitFiles.length}
+                </span>
+              )}
+            </span>
+            <button
+              onClick={handleAttachFile}
+              className="flex items-center gap-0.5 text-[10px] font-medium text-accent hover:text-accent-hover"
+            >
+              <Paperclip className="h-2.5 w-2.5" />
+              Attach
+            </button>
+          </div>
+
+          {kitFiles.length === 0 ? (
+            <p className="mt-1.5 text-[10px] text-text-tertiary">
+              No files attached
+            </p>
+          ) : (
+            <div className="mt-1.5 flex flex-col gap-1">
+              {kitFiles.map((file) => {
+                const fileName = file.file_path.split("/").pop() ?? file.file_path;
+                const isImage = file.file_type === "image";
+                return (
+                  <button
+                    key={file.id}
+                    onClick={() => openPath(file.file_path)}
+                    className="flex items-center gap-2 rounded-md border border-border bg-background px-2 py-1 text-left transition-colors hover:border-accent/30"
+                  >
+                    {isImage ? (
+                      <ImageIcon className="h-3 w-3 shrink-0 text-text-tertiary" />
+                    ) : (
+                      <FileText className="h-3 w-3 shrink-0 text-text-tertiary" />
+                    )}
+                    <span className="truncate text-[10px] font-medium text-text-primary">
+                      {file.label || fileName}
+                    </span>
+                  </button>
                 );
               })}
             </div>

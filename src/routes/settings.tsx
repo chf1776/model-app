@@ -1,8 +1,12 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FolderOpen } from "lucide-react";
 import { useNavigate } from "react-router";
+import { appDataDir } from "@tauri-apps/api/path";
+import { getVersion } from "@tauri-apps/api/app";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 import * as api from "@/api";
 import { cn } from "@/lib/utils";
 
@@ -17,9 +21,13 @@ const THEMES: { value: Theme; label: string }[] = [
 export default function SettingsRoute() {
   const navigate = useNavigate();
   const [theme, setTheme] = useState<Theme>("light");
+  const [dbPath, setDbPath] = useState<string>("");
+  const [appVersion, setAppVersion] = useState<string>("");
 
   useEffect(() => {
     api.getSetting("theme").then((v) => setTheme(v as Theme)).catch(() => {});
+    appDataDir().then((dir) => setDbPath(`${dir}model-builder/db.sqlite`)).catch(() => {});
+    getVersion().then(setAppVersion).catch(() => {});
   }, []);
 
   const handleThemeChange = async (value: Theme) => {
@@ -74,9 +82,27 @@ export default function SettingsRoute() {
             Data
           </h2>
           <Separator className="mb-3" />
-          <p className="text-[11px] text-text-tertiary">
-            Import/export and backup features coming in Phase 5.
-          </p>
+          <div className="space-y-2">
+            <Label className="text-[11px] text-text-secondary">
+              Database location
+            </Label>
+            {dbPath && (
+              <div className="flex items-center gap-2">
+                <code className="min-w-0 flex-1 truncate rounded-md bg-muted px-2 py-1 font-mono text-[10px] text-text-tertiary">
+                  {dbPath}
+                </code>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 shrink-0 gap-1.5 text-[10px]"
+                  onClick={() => revealItemInDir(dbPath)}
+                >
+                  <FolderOpen className="h-3 w-3" />
+                  Show in Finder
+                </Button>
+              </div>
+            )}
+          </div>
         </section>
 
         {/* About */}
@@ -85,9 +111,14 @@ export default function SettingsRoute() {
             About
           </h2>
           <Separator className="mb-3" />
-          <p className="text-[11px] text-text-tertiary">
-            Model Builder's Assistant v0.1.0
-          </p>
+          <div className="space-y-1">
+            <p className="text-[11px] text-text-tertiary">
+              Model Builder's Assistant{appVersion ? ` v${appVersion}` : ""}
+            </p>
+            <p className="text-[10px] text-text-tertiary">
+              Built with Tauri + React
+            </p>
+          </div>
         </section>
       </div>
     </div>

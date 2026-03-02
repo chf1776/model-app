@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useAppStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -21,6 +21,7 @@ export function PaintsTab({ onEdit, onAdd }: PaintsTabProps) {
   const paintProjectMap = useAppStore((s) => s.paintProjectMap);
   const projects = useAppStore((s) => s.projects);
   const search = useAppStore((s) => s.paintSearch);
+  const setPaintSearch = useAppStore((s) => s.setPaintSearch);
 
   const selectedPaint = useMemo(
     () => paints.find((p) => p.id === selectedPaintId) ?? null,
@@ -147,9 +148,20 @@ export function PaintsTab({ onEdit, onAdd }: PaintsTabProps) {
               />
             ))}
             {filteredPaints.length === 0 && search && (
-              <p className="py-8 text-center text-xs text-text-tertiary">
-                No paints matching "{search}"
-              </p>
+              <div className="flex flex-col items-center gap-2 py-8">
+                <p className="text-xs text-text-tertiary">
+                  No paints matching "{search}"
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1.5 text-[10px]"
+                  onClick={() => setPaintSearch("")}
+                >
+                  <X className="h-3 w-3" />
+                  Clear search
+                </Button>
+              </div>
             )}
           </div>
         </ScrollArea>

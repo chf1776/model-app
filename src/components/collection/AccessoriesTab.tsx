@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, ChevronRight } from "lucide-react";
+import { Plus, ChevronRight, X } from "lucide-react";
 import { useAppStore } from "@/store";
 import { AccessoryRow } from "./AccessoryRow";
 import { Button } from "@/components/ui/button";
@@ -65,9 +65,15 @@ interface AccessoriesTabProps {
 export function AccessoriesTab({ onEdit, onAdd }: AccessoriesTabProps) {
   const accessories = useAppStore((s) => s.accessories);
   const accessoryStatusFilter = useAppStore((s) => s.accessoryStatusFilter);
+  const setAccessoryStatusFilter = useAppStore((s) => s.setAccessoryStatusFilter);
   const accessoryTypeFilter = useAppStore((s) => s.accessoryTypeFilter);
+  const setAccessoryTypeFilter = useAppStore((s) => s.setAccessoryTypeFilter);
   const accessoryGroupBy = useAppStore((s) => s.accessoryGroupBy);
+  const setAccessoryGroupBy = useAppStore((s) => s.setAccessoryGroupBy);
   const accessorySearch = useAppStore((s) => s.accessorySearch);
+  const setAccessorySearch = useAppStore((s) => s.setAccessorySearch);
+
+  const hasActiveFilters = accessoryStatusFilter !== "all" || accessoryTypeFilter !== "all" || accessorySearch !== "";
 
   const filteredAccessories = useMemo(() => {
     let result = accessories;
@@ -155,10 +161,26 @@ export function AccessoriesTab({ onEdit, onAdd }: AccessoriesTabProps) {
           onEdit={onEdit}
         />
       ))}
-      {filteredAccessories.length === 0 && (
-        <p className="py-8 text-center text-xs text-text-tertiary">
-          No accessories found
-        </p>
+      {filteredAccessories.length === 0 && hasActiveFilters && (
+        <div className="flex flex-col items-center gap-2 py-8">
+          <p className="text-xs text-text-tertiary">
+            No accessories match your filters
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1.5 text-[10px]"
+            onClick={() => {
+              setAccessoryStatusFilter("all");
+              setAccessoryTypeFilter("all");
+              setAccessoryGroupBy("type");
+              setAccessorySearch("");
+            }}
+          >
+            <X className="h-3 w-3" />
+            Clear filters
+          </Button>
+        </div>
       )}
     </div>
   );
