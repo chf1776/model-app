@@ -43,6 +43,7 @@ export function AppShell() {
   const setActiveProject = useAppStore((s) => s.setActiveProject);
   const loadKits = useAppStore((s) => s.loadKits);
   const loadAccessories = useAppStore((s) => s.loadAccessories);
+  const loadPaints = useAppStore((s) => s.loadPaints);
   const loadProjects = useAppStore((s) => s.loadProjects);
   const loadActiveProject = useAppStore((s) => s.loadActiveProject);
   const activeEntityTab = useAppStore((s) => s.activeEntityTab);
@@ -54,9 +55,10 @@ export function AppShell() {
   useEffect(() => {
     loadKits();
     loadAccessories();
+    loadPaints();
     loadProjects();
     loadActiveProject();
-  }, [loadKits, loadAccessories, loadProjects, loadActiveProject]);
+  }, [loadKits, loadAccessories, loadPaints, loadProjects, loadActiveProject]);
 
   // Sync zone state from URL
   useEffect(() => {

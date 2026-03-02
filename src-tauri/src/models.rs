@@ -106,6 +106,64 @@ pub struct UpdateAccessoryInput {
     pub notes: Option<String>,
 }
 
+// ── Paint ────────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Paint {
+    pub id: String,
+    pub brand: String,
+    pub name: String,
+    pub reference_code: Option<String>,
+    #[serde(rename = "type")]
+    pub paint_type: String,
+    pub finish: Option<String>,
+    pub color: Option<String>,
+    pub color_family: Option<String>,
+    pub status: String,
+    pub price: Option<f64>,
+    pub currency: Option<String>,
+    pub buy_url: Option<String>,
+    pub price_updated_at: Option<i64>,
+    pub notes: Option<String>,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreatePaintInput {
+    pub brand: String,
+    pub name: String,
+    #[serde(rename = "type")]
+    pub paint_type: String,
+    pub reference_code: Option<String>,
+    pub finish: Option<String>,
+    pub color: Option<String>,
+    pub color_family: Option<String>,
+    pub status: Option<String>,
+    pub price: Option<f64>,
+    pub currency: Option<String>,
+    pub buy_url: Option<String>,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdatePaintInput {
+    pub id: String,
+    pub brand: Option<String>,
+    pub name: Option<String>,
+    #[serde(rename = "type")]
+    pub paint_type: Option<String>,
+    pub reference_code: Option<String>,
+    pub finish: Option<String>,
+    pub color: Option<String>,
+    pub color_family: Option<String>,
+    pub status: Option<String>,
+    pub price: Option<f64>,
+    pub currency: Option<String>,
+    pub buy_url: Option<String>,
+    pub notes: Option<String>,
+}
+
 // ── Kit File ─────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

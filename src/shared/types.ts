@@ -160,6 +160,115 @@ export const ACCESSORY_TYPE_LABELS: Record<AccessoryType, string> = {
   other: "Other",
 };
 
+// ── Paints ──────────────────────────────────────────────────────────────────
+
+export type PaintType = "acrylic" | "enamel" | "lacquer" | "oil";
+export type PaintFinish = "flat" | "semi_gloss" | "gloss" | "metallic" | "clear" | "satin";
+export type PaintStatus = "owned" | "wishlist";
+export type ColorFamily =
+  | "reds_oranges"
+  | "yellows"
+  | "greens"
+  | "blues"
+  | "purples"
+  | "browns"
+  | "greys"
+  | "whites"
+  | "blacks";
+
+export interface Paint {
+  id: string;
+  brand: string;
+  name: string;
+  reference_code: string | null;
+  type: PaintType;
+  finish: PaintFinish | null;
+  color: string | null;
+  color_family: ColorFamily | null;
+  status: PaintStatus;
+  price: number | null;
+  currency: string | null;
+  buy_url: string | null;
+  price_updated_at: number | null;
+  notes: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface CreatePaintInput {
+  brand: string;
+  name: string;
+  type: PaintType;
+  reference_code?: string | null;
+  finish?: PaintFinish | null;
+  color?: string | null;
+  color_family?: ColorFamily | null;
+  status?: PaintStatus | null;
+  price?: number | null;
+  currency?: string | null;
+  buy_url?: string | null;
+  notes?: string | null;
+}
+
+export interface UpdatePaintInput {
+  id: string;
+  brand?: string | null;
+  name?: string | null;
+  type?: PaintType | null;
+  reference_code?: string | null;
+  finish?: PaintFinish | null;
+  color?: string | null;
+  color_family?: ColorFamily | null;
+  status?: PaintStatus | null;
+  price?: number | null;
+  currency?: string | null;
+  buy_url?: string | null;
+  notes?: string | null;
+}
+
+export const PAINT_TYPE_LABELS: Record<PaintType, string> = {
+  acrylic: "Acrylic",
+  enamel: "Enamel",
+  lacquer: "Lacquer",
+  oil: "Oil",
+};
+
+export const PAINT_FINISH_LABELS: Record<PaintFinish, string> = {
+  flat: "Flat",
+  semi_gloss: "Semi-Gloss",
+  gloss: "Gloss",
+  metallic: "Metallic",
+  clear: "Clear",
+  satin: "Satin",
+};
+
+export const COLOR_FAMILY_LABELS: Record<ColorFamily, string> = {
+  reds_oranges: "Reds & Oranges",
+  yellows: "Yellows",
+  greens: "Greens",
+  blues: "Blues",
+  purples: "Purples",
+  browns: "Browns",
+  greys: "Greys",
+  whites: "Whites",
+  blacks: "Blacks",
+};
+
+export const COLOR_FAMILY_ORDER: ColorFamily[] = [
+  "reds_oranges",
+  "yellows",
+  "greens",
+  "blues",
+  "purples",
+  "browns",
+  "greys",
+  "whites",
+  "blacks",
+];
+
+export type PaintGroupBy = "color_family" | "brand";
+export type PaintViewMode = "list" | "grid";
+
 export type Zone = "collection" | "build" | "overview";
 
 export const KIT_CATEGORIES: { value: KitCategory; label: string }[] = [

@@ -1,15 +1,29 @@
 import type { StateCreator } from "zustand";
-import type { Kit, KitStatus, Accessory } from "@/shared/types";
+import type {
+  Kit,
+  KitStatus,
+  Accessory,
+  Paint,
+  PaintGroupBy,
+  PaintViewMode,
+} from "@/shared/types";
 import type { AppStore } from "./index";
 import * as api from "@/api";
 
 export interface CollectionSlice {
   kits: Kit[];
   accessories: Accessory[];
+  paints: Paint[];
   activeEntityTab: "kits" | "accessories" | "paints";
   statusFilter: KitStatus | "all";
+  paintGroupBy: PaintGroupBy;
+  paintViewMode: PaintViewMode;
+  selectedPaintId: string | null;
   setActiveEntityTab: (tab: "kits" | "accessories" | "paints") => void;
   setStatusFilter: (filter: KitStatus | "all") => void;
+  setPaintGroupBy: (groupBy: PaintGroupBy) => void;
+  setPaintViewMode: (mode: PaintViewMode) => void;
+  setSelectedPaintId: (id: string | null) => void;
   loadKits: () => Promise<void>;
   addKit: (kit: Kit) => void;
   updateKit: (kit: Kit) => void;
@@ -18,6 +32,10 @@ export interface CollectionSlice {
   addAccessory: (accessory: Accessory) => void;
   updateAccessory: (accessory: Accessory) => void;
   removeAccessory: (id: string) => void;
+  loadPaints: () => Promise<void>;
+  addPaint: (paint: Paint) => void;
+  updatePaint: (paint: Paint) => void;
+  removePaint: (id: string) => void;
 }
 
 export const createCollectionSlice: StateCreator<
@@ -28,11 +46,18 @@ export const createCollectionSlice: StateCreator<
 > = (set) => ({
   kits: [],
   accessories: [],
+  paints: [],
   activeEntityTab: "kits",
   statusFilter: "all",
+  paintGroupBy: "color_family",
+  paintViewMode: "list",
+  selectedPaintId: null,
 
   setActiveEntityTab: (tab) => set({ activeEntityTab: tab }),
   setStatusFilter: (filter) => set({ statusFilter: filter }),
+  setPaintGroupBy: (groupBy) => set({ paintGroupBy: groupBy }),
+  setPaintViewMode: (mode) => set({ paintViewMode: mode }),
+  setSelectedPaintId: (id) => set({ selectedPaintId: id }),
 
   loadKits: async () => {
     const kits = await api.listKits();
@@ -70,5 +95,25 @@ export const createCollectionSlice: StateCreator<
   removeAccessory: (id) =>
     set((state) => ({
       accessories: state.accessories.filter((a) => a.id !== id),
+    })),
+
+  loadPaints: async () => {
+    const paints = await api.listPaints();
+    set({ paints });
+  },
+
+  addPaint: (paint) =>
+    set((state) => ({ paints: [paint, ...state.paints] })),
+
+  updatePaint: (paint) =>
+    set((state) => ({
+      paints: state.paints.map((p) => (p.id === paint.id ? paint : p)),
+    })),
+
+  removePaint: (id) =>
+    set((state) => ({
+      paints: state.paints.filter((p) => p.id !== id),
+      selectedPaintId:
+        state.selectedPaintId === id ? null : state.selectedPaintId,
     })),
 });

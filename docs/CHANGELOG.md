@@ -12,6 +12,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - EXPORT_FEATURE.md: Full export feature specification (curation dialog, PDF page design, Typst templates, HTML/ZIP formats)
 - export-mockup.jsx: Interactive React mockup of the export dialog
 
+## [0.1.2] — 2026-03-01 — Phase 1B-2: Paints & Catalogue
+
+### Added
+- **Paint CRUD**: Full create, read, update, delete for paints with brand, name, type, finish, hex color, color family, and status (owned/wishlist)
+- **Paint queries & commands**: Rust backend with `list_all`, `get_by_id`, `insert`, `update`, `delete`
+- **Paint catalogue**: Bundled reference data (2,598 paints) from Arcturus5404/miniature-paints (MIT) — Tamiya, Vallejo (Model Color, Model Air, Game Color), Mr. Hobby (Mr. Color, Aqueous Hobby Color), AK Interactive, Ammo by Mig Jimenez
+- **Color family utility**: Auto-assignment from hex via HSL analysis (reds & oranges, yellows, greens, blues, purples, browns, greys, whites, blacks)
+- **PaintsTab**: Main container with grouped sections, search filter, and conditional detail panel
+- **PaintRow**: List view with 18px swatch, name, code (monospace), brand, type, and inline owned/wishlist status toggle
+- **PaintSwatchCard**: Grid view with 64px swatch cards (36px color block + name + code)
+- **PaintGroupSection**: Collapsible groups with chevron toggle, count, mini swatch previews when collapsed
+- **PaintDetailPanel**: 200px right sidebar with large swatch, full info, auto-save notes, and edit button
+- **PaintsToolbar**: Group by (Color Family / Brand / Project-disabled), search input, list/grid view toggle
+- **AddPaintDialog**: Catalogue search mode (autoFocus, brand filter pills, quick-add from results) + manual entry mode (brand, name, type, code, finish, hex + live preview, notes, wishlist fields)
+- **EditPaintDialog**: Pre-populated edit form with color family override dropdown and AlertDialog delete confirmation
+- **Paint count in EntitySwitcher**: Live count from store
+- **loadPaints in AppShell**: Paint data initialized on app mount
+
 ## [0.1.1] — 2026-03-01 — Phase 1B-1: Accessories
 
 ### Added

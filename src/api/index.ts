@@ -7,6 +7,9 @@ import type {
   Accessory,
   CreateAccessoryInput,
   UpdateAccessoryInput,
+  Paint,
+  CreatePaintInput,
+  UpdatePaintInput,
   Project,
   CreateProjectInput,
 } from "@/shared/types";
@@ -73,6 +76,24 @@ export async function listAccessoriesForKit(
   kitId: string,
 ): Promise<Accessory[]> {
   return invoke<Accessory[]>("list_accessories_for_kit", { kitId });
+}
+
+// ── Paints ──────────────────────────────────────────────────────────────────
+
+export async function listPaints(): Promise<Paint[]> {
+  return invoke<Paint[]>("list_paints");
+}
+
+export async function createPaint(input: CreatePaintInput): Promise<Paint> {
+  return invoke<Paint>("create_paint", { input });
+}
+
+export async function updatePaint(input: UpdatePaintInput): Promise<Paint> {
+  return invoke<Paint>("update_paint", { input });
+}
+
+export async function deletePaint(id: string): Promise<void> {
+  return invoke<void>("delete_paint", { id });
 }
 
 // ── Projects ────────────────────────────────────────────────────────────────
