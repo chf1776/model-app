@@ -1192,7 +1192,7 @@ Standard dialog (per section 28). Width: 420px. Package icon in header.
 "More details (optional)" toggle below the required fields, separated by a top border. Chevron + label (10px/500 tertiary). Starts collapsed.
 
 - Category: pill selector — Ship, Aircraft, Armor, Vehicle, Figure, Sci-Fi, Other. Same pill styling as scale. Deselectable.
-- Scalemates URL: text input, placeholder "https://www.scalemates.com/kits/...". Hint text: "pulls box art thumbnail" (10px tertiary). App fetches box art image from Scalemates for the project card thumbnail.
+- Scalemates URL: text input, placeholder "https://www.scalemates.com/kits/...". Hint text: "reference link" (10px tertiary).
 - Product Code: short text input (140px), placeholder "e.g. #78030".
 
 **Footer:** sidebar bg, Cancel (secondary) + Create Project (primary with package icon). Create button disabled until project name and kit (shelf or new) are provided.

@@ -274,7 +274,7 @@ Most kits have parallel subassembly tracks that converge later:
 ### Scalemates
 - **scalemates.com** — comprehensive kit database; kit numbers, box art, variant listings, reviews, market pricing
 - De facto standard for kit identification and research
-- The app already integrates with Scalemates for kit metadata import
+- The app stores Scalemates URLs as reference links on kits and projects
 
 ### Build Documentation Culture
 Builders commonly document builds through:

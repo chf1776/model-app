@@ -54,8 +54,7 @@ Each kit card shows an owned/wishlist status badge. Wishlisted items display pri
 **Capabilities**:
 
 - Filters by status (on shelf / building / completed / wishlist), scale, manufacturer
-- Scalemates integration: paste a kit URL to auto-import name, manufacturer, scale, product code, category, and box art. Partial imports handled gracefully (missing fields flagged with inline warnings). Re-sync available on demand for kits with a Scalemates URL.
-- Manual kit entry for items not on Scalemates
+- Manual kit entry with optional Scalemates URL field for reference linking
 - Instruction PDF and image attachment per kit — auto-import as source pages when starting a build
 - Kit-to-project linking — see which project a kit is being used in
 
@@ -335,7 +334,7 @@ When the Project Info card is expanded:
 
 **Editable metadata** — all fields from project creation, editable in place:
 
-- Project name, kit (with "Change" link to kit selector), scale, category (Ship, Aircraft, Armor, Vehicle, Figure, Sci-Fi, Other), Scalemates URL (with box art fetch), product code, and a notes/build goals textarea.
+- Project name, kit (with "Change" link to kit selector), scale, category (Ship, Aircraft, Armor, Vehicle, Figure, Sci-Fi, Other), Scalemates URL (reference link), product code, and a notes/build goals textarea.
 
 **Project actions** (below metadata, separated by a border):
 
@@ -628,7 +627,7 @@ A dedicated full-width settings page accessible via a gear icon in the nav bar. 
 
 Required: Project name (text input), Kit selection (tabbed: "From Shelf" with searchable list / "Add New Kit" with name + manufacturer + scale), Scale (auto-fills from shelf kit, or pill selector for new kit).
 
-Optional (collapsible): Category (pill selector: Ship, Aircraft, Armor, Vehicle, Figure, Sci-Fi, Other), Scalemates URL (fetches box art thumbnail), Product Code.
+Optional (collapsible): Category (pill selector: Ship, Aircraft, Armor, Vehicle, Figure, Sci-Fi, Other), Scalemates URL (reference link), Product Code.
 
 On creation: shelf kit auto-moves to "Building" status (configurable). Post-creation landing shows confirmation card with suggested next steps (upload instructions, add accessories, add paints).
 

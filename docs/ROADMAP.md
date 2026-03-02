@@ -34,7 +34,7 @@ Phases are ordered so each one produces something testable and useful on its own
 
 ### Project creation
 - **First-run empty state**: welcome card with "Create First Project" CTA and Getting Started tips
-- **Create Project dialog**: required fields (project name, kit from shelf or new via manual entry, scale), optional fields (category, product code). No Scalemates import yet.
+- **Create Project dialog**: required fields (project name, kit from shelf or new via manual entry, scale), optional fields (category, product code).
 - On creation: shelf kit auto-moves to "Building" status (configurable in Settings). Post-creation landing with suggested next steps.
 - **Auto-import kit files**: on project creation, any files attached to the kit via `kit_files` are automatically imported as `instruction_sources` for the new project. PDF page counting (pdfium rasterization) is deferred to Phase 2 setup mode; `page_count` is set to 0 at import time.
 
@@ -45,12 +45,7 @@ You can add kits, create projects, and navigate between zones. The app has a per
 
 ## Phase 1B: Collection Completeness
 
-**Goal**: Full collection management with all three entity types, wishlist system, paint shelf, and Scalemates integration.
-
-### Scalemates integration
-- Paste-URL import in Add Kit dialog (fetches name, manufacturer, scale, product code, category, box art)
-- Partial imports flagged with inline warnings
-- Re-sync on demand for existing kits
+**Goal**: Full collection management with all three entity types, wishlist system, and paint shelf.
 
 ### Accessories tab
 - Aftermarket items with parent kit links, type badges, owned/wishlist status
@@ -74,7 +69,7 @@ You can add kits, create projects, and navigate between zones. The app has a per
 - Kit card accessory tray (UI_DESIGN.md section 27.2) shows linked aftermarket parts — **done (v0.1.1)**
 
 ### Deliverable
-Full collection management. All three entity types, wishlists with pricing, paint shelf with catalogue lookup, Scalemates import, and kit-to-project pipeline with automatic accessory and manual import.
+Full collection management. All three entity types, wishlists with pricing, paint shelf with catalogue lookup, and kit-to-project pipeline with automatic accessory linking.
 
 ---
 
@@ -350,7 +345,7 @@ A fully polished, complete app. Finish a build, export a shareable document, eve
 | Phase | Name | Unlocks |
 | --- | --- | --- |
 | 1A | Foundation | App shell, basic kit management, project creation |
-| 1B | Collection Completeness | Paint shelf, accessories, Scalemates, wishlist system |
+| 1B | Collection Completeness | Paint shelf, accessories, wishlist system |
 | 2 | Setup Mode | PDF import, crop tool, track/step organization |
 | **3** | **Building — Core** | **Working build loop (critical path)** |
 | 3.5 | Basic Overview | Read-only assembly map, compact summary cards |

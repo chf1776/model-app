@@ -88,7 +88,7 @@ model-app/
 │   │   │   └── ProjectInfoCard/
 │   │   └── shared/           # Cross-zone components
 │   │       ├── WishlistBadge/
-│   │       ├── AddKitDialog/    # Reusable kit creation with Scalemates import
+│   │       ├── AddKitDialog/    # Reusable kit creation
 │   │       ├── AddPaintDialog/  # Catalogue lookup + manual entry
 │   │       ├── CreateProjectDialog/
 │   │       └── Lightbox/
@@ -769,8 +769,6 @@ refinery = { version = "0.8", features = ["rusqlite"] }  # DB migrations
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 uuid = { version = "1", features = ["v4"] }
-reqwest = { version = "0.12", features = ["json"] }  # Scalemates fetching
-scraper = "0.22"                                       # HTML parsing for Scalemates
 pdfium-render = "0.8"                                  # PDF rasterization (instruction manuals)
 libheif-rs = "1"                                       # HEIC → JPEG conversion (iPhone photos)
 typst = "0.12"                                         # Build log PDF export (template-based typesetting)
@@ -902,28 +900,6 @@ pub enum ScalematesError {
     ParseError(String),  // page loaded but scraper couldn't extract required fields
 }
 ```
-
-### Category mapping
-
-Scalemates category strings are normalized to the DB enum on import:
-
-| Scalemates path | DB value |
-| --- | --- |
-| Ships, Submarines | `ship` |
-| Aircraft | `aircraft` |
-| Military Vehicles, Tanks | `armor` |
-| Cars, Trucks, Motorcycles | `vehicle` |
-| Figures | `figure` |
-| Science Fiction, Space | `sci_fi` |
-| Everything else | `other` |
-
-### Where the UI lives
-
-The Scalemates import is accessed from:
-
-- **Add Kit dialog** (reusable component): URL paste field at the top, above manual entry fields. Pasting a URL triggers fetch; results pre-fill the form below. The dialog is used from both Collection ("+ Add Kit" button) and the Create Project flow (step 1, "Add new kit" option).
-- **Project Info card**: Scalemates URL field with "Sync" button (re-sync only, for existing kits).
-- **Kit detail view** in Collection: Scalemates URL display with "Open" external link and "Sync" button.
 
 ---
 
