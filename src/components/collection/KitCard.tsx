@@ -2,6 +2,12 @@ import { useState, useCallback, useEffect } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { Play, ChevronDown, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogTitle,
+  DialogOverlay,
+  DialogPortal,
+} from "@/components/ui/dialog";
 import type { Kit, Accessory } from "@/shared/types";
 import {
   STATUS_COLORS,
@@ -38,6 +44,7 @@ export function KitCard({
   const statusLabel = STATUS_LABELS[kit.status];
 
   const [expanded, setExpanded] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const [kitAccessories, setKitAccessories] = useState<Accessory[]>([]);
   const [loadedAccessories, setLoadedAccessories] = useState(false);
 
@@ -112,7 +119,17 @@ export function KitCard({
         onClick={handleExpand}
       >
         {/* Thumbnail */}
-        <div className="flex h-[42px] w-[56px] shrink-0 items-center justify-center rounded-md bg-muted">
+        <div
+          className="flex h-[42px] w-[56px] shrink-0 items-center justify-center rounded-md bg-muted"
+          onClick={
+            kit.box_art_path
+              ? (e) => {
+                  e.stopPropagation();
+                  setLightboxOpen(true);
+                }
+              : undefined
+          }
+        >
           {kit.box_art_path ? (
             <img
               src={convertFileSrc(kit.box_art_path)}
@@ -293,6 +310,26 @@ export function KitCard({
             </div>
           )}
         </div>
+      )}
+
+      {/* Box art lightbox */}
+      {kit.box_art_path && (
+        <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
+          <DialogPortal>
+            <DialogOverlay className="bg-black/70" />
+            <div
+              className="fixed inset-0 z-50 flex cursor-pointer items-center justify-center"
+              onClick={() => setLightboxOpen(false)}
+            >
+              <DialogTitle className="sr-only">{kit.name} box art</DialogTitle>
+              <img
+                src={convertFileSrc(kit.box_art_path)}
+                alt={kit.name}
+                className="max-h-[85vh] max-w-[85vw] rounded-lg object-contain"
+              />
+            </div>
+          </DialogPortal>
+        </Dialog>
       )}
     </div>
   );
