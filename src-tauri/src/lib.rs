@@ -32,6 +32,11 @@ pub fn run() {
             commands::collection::list_kit_files,
             commands::collection::attach_kit_file,
             commands::collection::delete_kit_file,
+            commands::accessories::list_accessories,
+            commands::accessories::create_accessory,
+            commands::accessories::update_accessory,
+            commands::accessories::delete_accessory,
+            commands::accessories::list_accessories_for_kit,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

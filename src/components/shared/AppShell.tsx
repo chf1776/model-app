@@ -42,8 +42,10 @@ export function AppShell() {
   const projects = useAppStore((s) => s.projects);
   const setActiveProject = useAppStore((s) => s.setActiveProject);
   const loadKits = useAppStore((s) => s.loadKits);
+  const loadAccessories = useAppStore((s) => s.loadAccessories);
   const loadProjects = useAppStore((s) => s.loadProjects);
   const loadActiveProject = useAppStore((s) => s.loadActiveProject);
+  const activeEntityTab = useAppStore((s) => s.activeEntityTab);
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
@@ -51,9 +53,10 @@ export function AppShell() {
   // Initialize app data on mount
   useEffect(() => {
     loadKits();
+    loadAccessories();
     loadProjects();
     loadActiveProject();
-  }, [loadKits, loadProjects, loadActiveProject]);
+  }, [loadKits, loadAccessories, loadProjects, loadActiveProject]);
 
   // Sync zone state from URL
   useEffect(() => {
@@ -71,13 +74,19 @@ export function AppShell() {
     };
   }, []);
 
-  // Sync addDialogOpen state via a custom event
+  // Sync addDialogOpen state via a custom event based on active entity tab
   useEffect(() => {
     if (addDialogOpen) {
-      window.dispatchEvent(new CustomEvent("open-add-kit-dialog"));
+      if (activeEntityTab === "accessories") {
+        window.dispatchEvent(new CustomEvent("open-add-accessory-dialog"));
+      } else if (activeEntityTab === "paints") {
+        window.dispatchEvent(new CustomEvent("open-add-paint-dialog"));
+      } else {
+        window.dispatchEvent(new CustomEvent("open-add-kit-dialog"));
+      }
       setAddDialogOpen(false);
     }
-  }, [addDialogOpen]);
+  }, [addDialogOpen, activeEntityTab]);
 
   const handleZoneChange = (zone: Zone) => {
     setActiveZone(zone);

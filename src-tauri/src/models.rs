@@ -50,6 +50,62 @@ pub struct UpdateKitInput {
     pub notes: Option<String>,
 }
 
+// ── Accessory ────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Accessory {
+    pub id: String,
+    pub name: String,
+    #[serde(rename = "type")]
+    pub accessory_type: String,
+    pub manufacturer: Option<String>,
+    pub brand: Option<String>,
+    pub reference_code: Option<String>,
+    pub parent_kit_id: Option<String>,
+    pub status: String,
+    pub price: Option<f64>,
+    pub currency: Option<String>,
+    pub buy_url: Option<String>,
+    pub notes: Option<String>,
+    pub created_at: i64,
+    pub updated_at: i64,
+    // Joined field
+    pub parent_kit_name: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateAccessoryInput {
+    pub name: String,
+    #[serde(rename = "type")]
+    pub accessory_type: String,
+    pub manufacturer: Option<String>,
+    pub brand: Option<String>,
+    pub reference_code: Option<String>,
+    pub parent_kit_id: Option<String>,
+    pub status: Option<String>,
+    pub price: Option<f64>,
+    pub currency: Option<String>,
+    pub buy_url: Option<String>,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateAccessoryInput {
+    pub id: String,
+    pub name: Option<String>,
+    #[serde(rename = "type")]
+    pub accessory_type: Option<String>,
+    pub manufacturer: Option<String>,
+    pub brand: Option<String>,
+    pub reference_code: Option<String>,
+    pub parent_kit_id: Option<String>,
+    pub status: Option<String>,
+    pub price: Option<f64>,
+    pub currency: Option<String>,
+    pub buy_url: Option<String>,
+    pub notes: Option<String>,
+}
+
 // ── Kit File ─────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -12,6 +12,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - EXPORT_FEATURE.md: Full export feature specification (curation dialog, PDF page design, Typst templates, HTML/ZIP formats)
 - export-mockup.jsx: Interactive React mockup of the export dialog
 
+## [0.1.1] — 2026-03-01 — Phase 1B-1: Accessories
+
+### Added
+- **Accessory CRUD**: Full create, read, update, delete for accessories (PE, Resin/3D, Decals, Other)
+- **Accessory queries & commands**: Rust backend with `list_all`, `list_by_kit`, `get_by_id`, `insert`, `update`, `delete`; LEFT JOIN for parent kit name
+- **AccessoryRow component**: Color-coded type bar, type label, linked parent kit name, brand, and popover-based owned/wishlist status toggle
+- **AccessoriesTab**: Flat list view with empty-state CTA
+- **AddAccessoryDialog**: Name, type pill selector, status toggle, manufacturer, brand, reference code, searchable parent kit picker, notes, and conditional wishlist fields (price, currency, buy URL)
+- **EditAccessoryDialog**: Pre-populated edit form with AlertDialog delete confirmation
+- **Expandable kit cards**: Click-to-expand tray replacing click-to-edit; tray shows kit details, "Edit Kit" button, linked accessories with inline status toggles, and "Add Accessory" button with kit pre-linked
+- **Entity-aware Add button**: AppShell "Add" button dispatches correct dialog based on active entity tab (Kits / Accessories / Paints)
+- **Accessory count in EntitySwitcher**: Live count from store
+
+### Changed
+- **KitCard**: Outer element changed from `<button>` to `<div>` with clickable header; expand/collapse replaces direct edit-dialog open
+- **KitsTab**: Props updated from `onKitClick` to `onEditKit` + `onAddAccessoryForKit`
+- **AppShell**: Loads accessories on init; Add button is entity-tab-aware
+- **Collection route**: Wired AccessoriesTab, AddAccessoryDialog, EditAccessoryDialog, and kit-tray callbacks
+
 ## 2026-03-01 — Design Review: Architecture, Schema, Phasing, and Coverage
 
 ### Architecture decisions

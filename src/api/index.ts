@@ -4,6 +4,9 @@ import type {
   KitFile,
   CreateKitInput,
   UpdateKitInput,
+  Accessory,
+  CreateAccessoryInput,
+  UpdateAccessoryInput,
   Project,
   CreateProjectInput,
 } from "@/shared/types";
@@ -42,6 +45,34 @@ export async function attachKitFile(
 
 export async function deleteKitFile(fileId: string): Promise<void> {
   return invoke<void>("delete_kit_file", { fileId });
+}
+
+// ── Accessories ─────────────────────────────────────────────────────────────
+
+export async function listAccessories(): Promise<Accessory[]> {
+  return invoke<Accessory[]>("list_accessories");
+}
+
+export async function createAccessory(
+  input: CreateAccessoryInput,
+): Promise<Accessory> {
+  return invoke<Accessory>("create_accessory", { input });
+}
+
+export async function updateAccessory(
+  input: UpdateAccessoryInput,
+): Promise<Accessory> {
+  return invoke<Accessory>("update_accessory", { input });
+}
+
+export async function deleteAccessory(id: string): Promise<void> {
+  return invoke<void>("delete_accessory", { id });
+}
+
+export async function listAccessoriesForKit(
+  kitId: string,
+): Promise<Accessory[]> {
+  return invoke<Accessory[]>("list_accessories_for_kit", { kitId });
 }
 
 // ── Projects ────────────────────────────────────────────────────────────────

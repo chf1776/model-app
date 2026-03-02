@@ -94,6 +94,72 @@ export interface CreateProjectInput {
   product_code?: string | null;
 }
 
+// ── Accessories ──────────────────────────────────────────────────────────────
+
+export type AccessoryType = "pe" | "resin_3d" | "decal" | "other";
+export type AccessoryStatus = "shelf" | "wishlist";
+
+export interface Accessory {
+  id: string;
+  name: string;
+  type: AccessoryType;
+  manufacturer: string | null;
+  brand: string | null;
+  reference_code: string | null;
+  parent_kit_id: string | null;
+  status: AccessoryStatus;
+  price: number | null;
+  currency: string | null;
+  buy_url: string | null;
+  notes: string | null;
+  created_at: number;
+  updated_at: number;
+  parent_kit_name: string | null;
+}
+
+export interface CreateAccessoryInput {
+  name: string;
+  type: AccessoryType;
+  manufacturer?: string | null;
+  brand?: string | null;
+  reference_code?: string | null;
+  parent_kit_id?: string | null;
+  status?: AccessoryStatus | null;
+  price?: number | null;
+  currency?: string | null;
+  buy_url?: string | null;
+  notes?: string | null;
+}
+
+export interface UpdateAccessoryInput {
+  id: string;
+  name?: string | null;
+  type?: AccessoryType | null;
+  manufacturer?: string | null;
+  brand?: string | null;
+  reference_code?: string | null;
+  parent_kit_id?: string | null;
+  status?: AccessoryStatus | null;
+  price?: number | null;
+  currency?: string | null;
+  buy_url?: string | null;
+  notes?: string | null;
+}
+
+export const ACCESSORY_TYPE_COLORS: Record<AccessoryType, string> = {
+  pe: "#7B5EA7",
+  resin_3d: "#C47A2A",
+  decal: "#3A7CA5",
+  other: "#5B8A3C",
+};
+
+export const ACCESSORY_TYPE_LABELS: Record<AccessoryType, string> = {
+  pe: "Photo-Etch",
+  resin_3d: "Resin / 3D",
+  decal: "Decals",
+  other: "Other",
+};
+
 export type Zone = "collection" | "build" | "overview";
 
 export const KIT_CATEGORIES: { value: KitCategory; label: string }[] = [

@@ -21,11 +21,18 @@ const SECTIONS: SectionConfig[] = [
 interface KitsSectionProps {
   section: SectionConfig;
   kits: Kit[];
-  onKitClick: (kit: Kit) => void;
+  onEditKit: (kit: Kit) => void;
+  onAddAccessoryForKit: (kitId: string) => void;
   onStartProject?: (kit: Kit) => void;
 }
 
-function KitsSection({ section, kits, onKitClick, onStartProject }: KitsSectionProps) {
+function KitsSection({
+  section,
+  kits,
+  onEditKit,
+  onAddAccessoryForKit,
+  onStartProject,
+}: KitsSectionProps) {
   const [expanded, setExpanded] = useState(section.defaultExpanded);
 
   if (kits.length === 0) return null;
@@ -51,7 +58,13 @@ function KitsSection({ section, kits, onKitClick, onStartProject }: KitsSectionP
       {expanded && (
         <div className="flex flex-col gap-1 px-4 py-1">
           {kits.map((kit) => (
-            <KitCard key={kit.id} kit={kit} onClick={onKitClick} onStartProject={onStartProject} />
+            <KitCard
+              key={kit.id}
+              kit={kit}
+              onEditKit={onEditKit}
+              onAddAccessoryForKit={onAddAccessoryForKit}
+              onStartProject={onStartProject}
+            />
           ))}
         </div>
       )}
@@ -60,11 +73,16 @@ function KitsSection({ section, kits, onKitClick, onStartProject }: KitsSectionP
 }
 
 interface KitsTabProps {
-  onKitClick: (kit: Kit) => void;
+  onEditKit: (kit: Kit) => void;
+  onAddAccessoryForKit: (kitId: string) => void;
   onStartProject?: (kit: Kit) => void;
 }
 
-export function KitsTab({ onKitClick, onStartProject }: KitsTabProps) {
+export function KitsTab({
+  onEditKit,
+  onAddAccessoryForKit,
+  onStartProject,
+}: KitsTabProps) {
   const kits = useAppStore((s) => s.kits);
   const statusFilter = useAppStore((s) => s.statusFilter);
 
@@ -94,7 +112,13 @@ export function KitsTab({ onKitClick, onStartProject }: KitsTabProps) {
     return (
       <div className="flex flex-col gap-1 px-4 py-2">
         {filteredKits.map((kit) => (
-          <KitCard key={kit.id} kit={kit} onClick={onKitClick} onStartProject={onStartProject} />
+          <KitCard
+            key={kit.id}
+            kit={kit}
+            onEditKit={onEditKit}
+            onAddAccessoryForKit={onAddAccessoryForKit}
+            onStartProject={onStartProject}
+          />
         ))}
         {filteredKits.length === 0 && (
           <p className="py-8 text-center text-xs text-text-tertiary">
@@ -112,7 +136,8 @@ export function KitsTab({ onKitClick, onStartProject }: KitsTabProps) {
           key={section.status}
           section={section}
           kits={kitsByStatus[section.status]}
-          onKitClick={onKitClick}
+          onEditKit={onEditKit}
+          onAddAccessoryForKit={onAddAccessoryForKit}
           onStartProject={onStartProject}
         />
       ))}
