@@ -4,22 +4,19 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { PaintGroupBy } from "@/shared/types";
 
-interface PaintsToolbarProps {
-  search: string;
-  onSearchChange: (value: string) => void;
-}
-
 const GROUP_ITEMS: { value: PaintGroupBy; label: string }[] = [
   { value: "color_family", label: "Color Family" },
   { value: "brand", label: "Brand" },
   { value: "project", label: "Project" },
 ];
 
-export function PaintsToolbar({ search, onSearchChange }: PaintsToolbarProps) {
+export function PaintsToolbar() {
   const paintGroupBy = useAppStore((s) => s.paintGroupBy);
   const setPaintGroupBy = useAppStore((s) => s.setPaintGroupBy);
   const paintViewMode = useAppStore((s) => s.paintViewMode);
   const setPaintViewMode = useAppStore((s) => s.setPaintViewMode);
+  const search = useAppStore((s) => s.paintSearch);
+  const setSearch = useAppStore((s) => s.setPaintSearch);
 
   return (
     <div className="flex items-center gap-2">
@@ -45,7 +42,7 @@ export function PaintsToolbar({ search, onSearchChange }: PaintsToolbarProps) {
       {/* Search */}
       <Input
         value={search}
-        onChange={(e) => onSearchChange(e.target.value)}
+        onChange={(e) => setSearch(e.target.value)}
         placeholder="Search paints..."
         className="h-6 w-[140px] text-[10px]"
       />

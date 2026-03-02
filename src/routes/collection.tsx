@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAppStore } from "@/store";
 import { EntitySwitcher } from "@/components/collection/EntitySwitcher";
-import { StatusFilterChips } from "@/components/collection/StatusFilterChips";
+import { KitToolbar } from "@/components/collection/KitToolbar";
+import { AccessoryToolbar } from "@/components/collection/AccessoryToolbar";
+import { PaintsToolbar } from "@/components/collection/PaintsToolbar";
 import { KitsTab } from "@/components/collection/KitsTab";
 import { AccessoriesTab } from "@/components/collection/AccessoriesTab";
 import { PaintsTab } from "@/components/collection/PaintsTab";
@@ -100,12 +102,10 @@ export default function CollectionRoute() {
       {/* Context Bar */}
       <div className="flex items-center gap-2 border-b border-border bg-background px-3 py-[5px]">
         <EntitySwitcher />
-        {activeEntityTab === "kits" && (
-          <>
-            <Separator orientation="vertical" className="h-4" />
-            <StatusFilterChips />
-          </>
-        )}
+        <Separator orientation="vertical" className="h-4" />
+        {activeEntityTab === "kits" && <KitToolbar />}
+        {activeEntityTab === "accessories" && <AccessoryToolbar />}
+        {activeEntityTab === "paints" && <PaintsToolbar />}
       </div>
 
       {/* Content */}

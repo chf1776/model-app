@@ -3,6 +3,8 @@ import type {
   Kit,
   KitStatus,
   Accessory,
+  AccessoryType,
+  AccessoryStatus,
   Paint,
   PaintGroupBy,
   PaintViewMode,
@@ -17,14 +19,28 @@ export interface CollectionSlice {
   paintProjectMap: Record<string, { project_id: string; project_name: string }[]>;
   activeEntityTab: "kits" | "accessories" | "paints";
   statusFilter: KitStatus | "all";
+  kitGroupBy: "status" | "category" | "manufacturer";
+  kitSearch: string;
   paintGroupBy: PaintGroupBy;
   paintViewMode: PaintViewMode;
+  paintSearch: string;
   selectedPaintId: string | null;
+  accessoryStatusFilter: "all" | AccessoryStatus;
+  accessoryTypeFilter: "all" | AccessoryType;
+  accessoryGroupBy: "type" | "parent_kit";
+  accessorySearch: string;
   setActiveEntityTab: (tab: "kits" | "accessories" | "paints") => void;
   setStatusFilter: (filter: KitStatus | "all") => void;
+  setKitGroupBy: (groupBy: "status" | "category" | "manufacturer") => void;
+  setKitSearch: (search: string) => void;
   setPaintGroupBy: (groupBy: PaintGroupBy) => void;
   setPaintViewMode: (mode: PaintViewMode) => void;
+  setPaintSearch: (search: string) => void;
   setSelectedPaintId: (id: string | null) => void;
+  setAccessoryStatusFilter: (filter: "all" | AccessoryStatus) => void;
+  setAccessoryTypeFilter: (filter: "all" | AccessoryType) => void;
+  setAccessoryGroupBy: (groupBy: "type" | "parent_kit") => void;
+  setAccessorySearch: (search: string) => void;
   loadKits: () => Promise<void>;
   addKit: (kit: Kit) => void;
   updateKit: (kit: Kit) => void;
@@ -56,15 +72,29 @@ export const createCollectionSlice: StateCreator<
   paintProjectMap: {},
   activeEntityTab: "kits",
   statusFilter: "all",
+  kitGroupBy: "status",
+  kitSearch: "",
   paintGroupBy: "color_family",
   paintViewMode: "list",
+  paintSearch: "",
   selectedPaintId: null,
+  accessoryStatusFilter: "all",
+  accessoryTypeFilter: "all",
+  accessoryGroupBy: "type",
+  accessorySearch: "",
 
   setActiveEntityTab: (tab) => set({ activeEntityTab: tab }),
   setStatusFilter: (filter) => set({ statusFilter: filter }),
+  setKitGroupBy: (groupBy) => set({ kitGroupBy: groupBy }),
+  setKitSearch: (search) => set({ kitSearch: search }),
   setPaintGroupBy: (groupBy) => set({ paintGroupBy: groupBy }),
   setPaintViewMode: (mode) => set({ paintViewMode: mode }),
+  setPaintSearch: (search) => set({ paintSearch: search }),
   setSelectedPaintId: (id) => set({ selectedPaintId: id }),
+  setAccessoryStatusFilter: (filter) => set({ accessoryStatusFilter: filter }),
+  setAccessoryTypeFilter: (filter) => set({ accessoryTypeFilter: filter }),
+  setAccessoryGroupBy: (groupBy) => set({ accessoryGroupBy: groupBy }),
+  setAccessorySearch: (search) => set({ accessorySearch: search }),
 
   loadKits: async () => {
     const kits = await api.listKits();

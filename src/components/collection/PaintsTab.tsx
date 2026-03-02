@@ -1,11 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Plus } from "lucide-react";
 import { useAppStore } from "@/store";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PaintGroupSection } from "./PaintGroupSection";
 import { PaintDetailPanel } from "./PaintDetailPanel";
-import { PaintsToolbar } from "./PaintsToolbar";
 import type { Paint } from "@/shared/types";
 import { COLOR_FAMILY_ORDER, COLOR_FAMILY_LABELS } from "@/shared/types";
 
@@ -21,7 +20,7 @@ export function PaintsTab({ onEdit, onAdd }: PaintsTabProps) {
   const selectedPaintId = useAppStore((s) => s.selectedPaintId);
   const paintProjectMap = useAppStore((s) => s.paintProjectMap);
   const projects = useAppStore((s) => s.projects);
-  const [search, setSearch] = useState("");
+  const search = useAppStore((s) => s.paintSearch);
 
   const selectedPaint = useMemo(
     () => paints.find((p) => p.id === selectedPaintId) ?? null,
@@ -135,11 +134,6 @@ export function PaintsTab({ onEdit, onAdd }: PaintsTabProps) {
     <div className="flex h-full">
       {/* Main content */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Toolbar */}
-        <div className="border-b border-border px-3 py-1.5">
-          <PaintsToolbar search={search} onSearchChange={setSearch} />
-        </div>
-
         {/* Grouped sections */}
         <ScrollArea className="flex-1">
           <div className="pb-4">
