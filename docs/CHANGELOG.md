@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5] — 2026-03-01 — Phase 1B-4: Collection Toolbars & Accessory Images
+
 ### Added
 - **Accessory thumbnail images**: Accessories now support an optional image, displayed as a 32×42px thumbnail in AccessoryRow with gradient placeholder fallback
 - **Accessory image picker**: "Choose image" button in both Add and Edit Accessory dialogs (png/jpg/jpeg/webp), matching the kit box art picker pattern

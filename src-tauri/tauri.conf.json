@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicegui/nicegui/main/tauri_schema.json",
   "productName": "Model Builder's Assistant",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "identifier": "com.model-builder.app",
   "build": {
     "frontendDist": "../dist",
