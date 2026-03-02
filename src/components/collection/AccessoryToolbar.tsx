@@ -41,8 +41,8 @@ export function AccessoryToolbar() {
 
   return (
     <div className="flex items-center gap-2">
-      {/* Status filter chips */}
-      <div className="flex items-center gap-1">
+      {/* Status filter */}
+      <div className="flex items-center rounded-md bg-muted p-[3px]">
         {STATUS_FILTERS.map((f) => {
           const isActive = accessoryStatusFilter === f.value;
           return (
@@ -50,10 +50,10 @@ export function AccessoryToolbar() {
               key={f.value}
               onClick={() => setAccessoryStatusFilter(f.value)}
               className={cn(
-                "rounded-[10px] px-2 py-[3px] text-[10px] transition-colors",
+                "rounded-[5px] px-2 py-[3px] text-[10px] transition-colors",
                 isActive
-                  ? "bg-accent-muted font-semibold text-accent"
-                  : "bg-transparent font-normal text-text-tertiary hover:text-text-secondary",
+                  ? "bg-card font-semibold text-accent shadow-sm"
+                  : "text-text-tertiary hover:text-text-secondary",
               )}
             >
               {f.label}
@@ -62,8 +62,8 @@ export function AccessoryToolbar() {
         })}
       </div>
 
-      {/* Type filter pills */}
-      <div className="flex items-center gap-1">
+      {/* Type filter */}
+      <div className="flex items-center rounded-md bg-muted p-[3px]">
         {TYPE_FILTERS.map((f) => {
           const isActive = accessoryTypeFilter === f.value;
           const activeColor =
@@ -73,17 +73,17 @@ export function AccessoryToolbar() {
               key={f.value}
               onClick={() => setAccessoryTypeFilter(f.value)}
               className={cn(
-                "rounded-[10px] px-2 py-[3px] text-[10px] transition-colors",
+                "rounded-[5px] px-2 py-[3px] text-[10px] transition-colors",
                 isActive
-                  ? "font-semibold"
-                  : "bg-transparent font-normal text-text-tertiary hover:text-text-secondary",
+                  ? "font-semibold shadow-sm"
+                  : "text-text-tertiary hover:text-text-secondary",
               )}
               style={
                 isActive
                   ? {
                       backgroundColor: activeColor
                         ? `${activeColor}18`
-                        : "var(--color-accent-muted)",
+                        : "var(--color-card)",
                       color: activeColor ?? "var(--color-accent)",
                     }
                   : undefined
@@ -118,7 +118,7 @@ export function AccessoryToolbar() {
         value={accessorySearch}
         onChange={(e) => setAccessorySearch(e.target.value)}
         placeholder="Search accessories..."
-        className="h-6 w-[140px] text-[10px]"
+        className="h-6 w-[140px] text-[9px]"
       />
     </div>
   );

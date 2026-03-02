@@ -37,8 +37,8 @@ export function KitToolbar() {
 
   return (
     <div className="flex items-center gap-2">
-      {/* Status filter chips */}
-      <div className="flex items-center gap-1">
+      {/* Status filter */}
+      <div className="flex items-center rounded-md bg-muted p-[3px]">
         {FILTERS.map((f) => {
           const count = getCounts(f.value);
           const isActive = statusFilter === f.value;
@@ -47,10 +47,10 @@ export function KitToolbar() {
               key={f.value}
               onClick={() => setStatusFilter(f.value)}
               className={cn(
-                "rounded-[10px] px-2 py-[3px] text-[10px] transition-colors",
+                "rounded-[5px] px-2 py-[3px] text-[10px] transition-colors",
                 isActive
-                  ? "bg-accent-muted font-semibold text-accent"
-                  : "bg-transparent font-normal text-text-tertiary hover:text-text-secondary",
+                  ? "bg-card font-semibold text-accent shadow-sm"
+                  : "text-text-tertiary hover:text-text-secondary",
               )}
             >
               {f.label}
@@ -85,7 +85,7 @@ export function KitToolbar() {
         value={kitSearch}
         onChange={(e) => setKitSearch(e.target.value)}
         placeholder="Search kits..."
-        className="h-6 w-[140px] text-[10px]"
+        className="h-6 w-[140px] text-[9px]"
       />
     </div>
   );
