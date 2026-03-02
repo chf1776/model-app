@@ -1,6 +1,12 @@
+import { LayoutList, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store";
 import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import type { AccessoryType, AccessoryStatus } from "@/shared/types";
 import { ACCESSORY_TYPE_COLORS } from "@/shared/types";
 
@@ -121,8 +127,27 @@ export function AccessoryToolbar() {
         value={accessorySearch}
         onChange={(e) => setAccessorySearch(e.target.value)}
         placeholder="Search accessories..."
-        className="h-6 w-[140px] text-[9px]"
+        className="h-6 w-[140px] text-[8px]"
       />
+
+      {/* View toggle */}
+      <div className="flex items-center gap-0.5">
+        <button className="rounded bg-muted p-1 text-accent">
+          <LayoutList className="h-3 w-3" />
+        </button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <button className="rounded p-1 text-text-tertiary hover:text-text-secondary">
+              <LayoutGrid className="h-3 w-3" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-2" side="bottom" align="end">
+            <p className="text-[11px] text-text-tertiary">
+              Grid view coming soon
+            </p>
+          </PopoverContent>
+        </Popover>
+      </div>
     </div>
   );
 }

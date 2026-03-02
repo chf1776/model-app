@@ -44,7 +44,7 @@ export function PaintsToolbar() {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search paints..."
-        className="h-6 w-[140px] text-[9px]"
+        className="h-6 w-[140px] text-[8px]"
       />
 
       {/* View toggle */}

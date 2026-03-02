@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Unified context bar**: All three Collection tabs (Kits, Accessories, Paints) now render tab-specific toolbars in the shared context bar after EntitySwitcher
+- **KitToolbar**: Status filter (segmented pill), group-by toggle (Status / Category / Manufacturer), search input, and grid view placeholder
+- **AccessoryToolbar**: Status filter (All / Owned / Wishlist), type filter (All / PE / Resin / Decal / Other with per-type colors), group-by toggle (Type / Parent Kit), search input, and grid view placeholder
+- **Kit search**: Filters kits by name, manufacturer, scale, and kit number
+- **Kit group-by**: Group kits by Status (default sections), Category (Ship/Aircraft/Armor/etc), or Manufacturer (alphabetical)
+- **Accessory filtering**: Filter by status (owned/wishlist) and type (PE/resin/decal/other), with search by name, brand, and reference code
+- **Accessory grouping**: Collapsible sections grouped by Type or Parent Kit (with "Unlinked" group for unlinked accessories)
+- **Paint search in store**: Paint search state moved from local component state to Zustand store for context bar integration
+
+### Changed
+- **PaintsToolbar**: Moved from inline toolbar inside PaintsTab to the shared context bar
+- **StatusFilterChips**: Absorbed into KitToolbar; standalone component deleted
+- **Toolbar styling**: All filter/group selectors use consistent segmented pill style with text labels (Status:, Type:, Group:)
+
+### Removed
+- `StatusFilterChips.tsx` (replaced by KitToolbar)
+
+---
+
 - Project proposal document defining the three-zone UX architecture (Collection, Build, Overview)
 - EXPORT_FEATURE.md: Full export feature specification (curation dialog, PDF page design, Typst templates, HTML/ZIP formats)
 - export-mockup.jsx: Interactive React mockup of the export dialog
