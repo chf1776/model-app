@@ -147,6 +147,16 @@ export async function setSetting(key: string, value: string): Promise<void> {
 
 // ── Media ───────────────────────────────────────────────────────────────────
 
+export async function saveAccessoryImage(
+  accessoryId: string,
+  sourcePath: string,
+): Promise<string> {
+  return invoke<string>("save_accessory_image", {
+    accessoryId,
+    sourcePath,
+  });
+}
+
 export async function saveBoxArt(
   kitId: string,
   sourcePath: string,

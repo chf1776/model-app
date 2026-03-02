@@ -114,6 +114,7 @@ export interface Accessory {
   price: number | null;
   currency: string | null;
   buy_url: string | null;
+  image_path: string | null;
   notes: string | null;
   created_at: number;
   updated_at: number;
@@ -131,6 +132,7 @@ export interface CreateAccessoryInput {
   price?: number | null;
   currency?: string | null;
   buy_url?: string | null;
+  image_path?: string | null;
   notes?: string | null;
 }
 
@@ -146,6 +148,7 @@ export interface UpdateAccessoryInput {
   price?: number | null;
   currency?: string | null;
   buy_url?: string | null;
+  image_path?: string | null;
   notes?: string | null;
 }
 

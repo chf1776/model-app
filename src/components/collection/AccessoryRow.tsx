@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { Link2, ChevronDown, Pencil, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -67,6 +68,19 @@ export function AccessoryRow({ accessory, onEdit }: AccessoryRowProps) {
           className="h-full w-[3px] shrink-0 self-stretch rounded-l-md"
           style={{ backgroundColor: typeColor }}
         />
+
+        {/* Thumbnail */}
+        <div className="flex h-[32px] w-[42px] shrink-0 items-center justify-center rounded-md bg-muted my-1 ml-1">
+          {accessory.image_path ? (
+            <img
+              src={convertFileSrc(accessory.image_path)}
+              alt={accessory.name}
+              className="h-full w-full rounded-md object-cover"
+            />
+          ) : (
+            <div className="h-full w-full rounded-md bg-gradient-to-br from-accent/10 to-accent/5" />
+          )}
+        </div>
 
         {/* Content */}
         <div className="flex min-w-0 flex-1 flex-col gap-0 py-1.5 pr-1">

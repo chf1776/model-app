@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
-import { Check } from "lucide-react";
+import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
+import { Check, ImagePlus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +48,7 @@ export function AddAccessoryDialog({
   const [price, setPrice] = useState("");
   const [currency, setCurrency] = useState("USD");
   const [buyUrl, setBuyUrl] = useState("");
+  const [imagePath, setImagePath] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   // Sync preselectedKitId when dialog opens
@@ -64,6 +66,18 @@ export function AddAccessoryDialog({
     );
   }, [kits, kitSearch]);
 
+  const handlePickImage = async () => {
+    const file = await openFileDialog({
+      multiple: false,
+      filters: [
+        { name: "Images", extensions: ["png", "jpg", "jpeg", "webp"] },
+      ],
+    });
+    if (file) {
+      setImagePath(file);
+    }
+  };
+
   const reset = () => {
     setName("");
     setType("pe");
@@ -77,13 +91,14 @@ export function AddAccessoryDialog({
     setPrice("");
     setCurrency("USD");
     setBuyUrl("");
+    setImagePath("");
   };
 
   const handleSubmit = async () => {
     if (!name.trim()) return;
     setSubmitting(true);
     try {
-      const accessory = await api.createAccessory({
+      let accessory = await api.createAccessory({
         name: name.trim(),
         type,
         manufacturer: manufacturer.trim() || null,
@@ -96,6 +111,16 @@ export function AddAccessoryDialog({
         buy_url: buyUrl.trim() || null,
         notes: notes.trim() || null,
       });
+      if (imagePath) {
+        try {
+          await api.saveAccessoryImage(accessory.id, imagePath);
+          const accessories = await api.listAccessories();
+          const updated = accessories.find((a) => a.id === accessory.id);
+          if (updated) accessory = updated;
+        } catch {
+          // accessory created but image save failed — still add it
+        }
+      }
       addAccessory(accessory);
       toast.success(`"${accessory.name}" added`);
       reset();
@@ -190,6 +215,19 @@ export function AddAccessoryDialog({
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Image picker */}
+          <div className="flex flex-col gap-1">
+            <Label className="text-[11px] font-medium">Image</Label>
+            <button
+              type="button"
+              onClick={handlePickImage}
+              className="flex h-16 items-center justify-center rounded-md border border-dashed border-border text-xs text-text-tertiary hover:border-accent hover:text-accent"
+            >
+              <ImagePlus className="mr-1.5 h-4 w-4" />
+              {imagePath ? "Image selected" : "Choose image..."}
+            </button>
           </div>
 
           {/* Manufacturer */}

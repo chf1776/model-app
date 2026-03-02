@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
-import { Check } from "lucide-react";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
+import { Check, ImagePlus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -55,6 +57,7 @@ export function EditAccessoryDialog({
   const [price, setPrice] = useState("");
   const [currency, setCurrency] = useState("USD");
   const [buyUrl, setBuyUrl] = useState("");
+  const [newImagePath, setNewImagePath] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -71,6 +74,7 @@ export function EditAccessoryDialog({
       setPrice(accessory.price?.toString() ?? "");
       setCurrency(accessory.currency ?? "USD");
       setBuyUrl(accessory.buy_url ?? "");
+      setNewImagePath("");
     }
   }, [accessory]);
 
@@ -84,11 +88,23 @@ export function EditAccessoryDialog({
     );
   }, [kits, kitSearch]);
 
+  const handlePickImage = async () => {
+    const file = await openFileDialog({
+      multiple: false,
+      filters: [
+        { name: "Images", extensions: ["png", "jpg", "jpeg", "webp"] },
+      ],
+    });
+    if (file) {
+      setNewImagePath(file);
+    }
+  };
+
   const handleSave = async () => {
     if (!accessory || !name.trim()) return;
     setSubmitting(true);
     try {
-      const updated = await api.updateAccessory({
+      let updated = await api.updateAccessory({
         id: accessory.id,
         name: name.trim(),
         type,
@@ -102,6 +118,16 @@ export function EditAccessoryDialog({
         buy_url: buyUrl.trim() || null,
         notes: notes.trim() || null,
       });
+      if (newImagePath) {
+        try {
+          await api.saveAccessoryImage(accessory.id, newImagePath);
+          const accessories = await api.listAccessories();
+          const refreshed = accessories.find((a) => a.id === accessory.id);
+          if (refreshed) updated = refreshed;
+        } catch {
+          // update saved but image save failed
+        }
+      }
       updateAccessoryStore(updated);
       toast.success(`"${updated.name}" updated`);
       onClose();
@@ -175,6 +201,32 @@ export function EditAccessoryDialog({
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Image */}
+          <div className="flex flex-col gap-1">
+            <Label className="text-[11px] font-medium">Image</Label>
+            {accessory?.image_path && !newImagePath && (
+              <div className="mb-1 flex h-[48px] w-[64px] items-center justify-center rounded-md bg-muted">
+                <img
+                  src={convertFileSrc(accessory.image_path)}
+                  alt={accessory.name}
+                  className="h-full w-full rounded-md object-cover"
+                />
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={handlePickImage}
+              className="flex h-16 items-center justify-center rounded-md border border-dashed border-border text-xs text-text-tertiary hover:border-accent hover:text-accent"
+            >
+              <ImagePlus className="mr-1.5 h-4 w-4" />
+              {newImagePath
+                ? "New image selected"
+                : accessory?.image_path
+                  ? "Change image..."
+                  : "Add image..."}
+            </button>
           </div>
 
           {/* Status */}

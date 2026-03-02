@@ -69,6 +69,7 @@ pub struct Accessory {
     pub price: Option<f64>,
     pub currency: Option<String>,
     pub buy_url: Option<String>,
+    pub image_path: Option<String>,
     pub notes: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
@@ -89,6 +90,7 @@ pub struct CreateAccessoryInput {
     pub price: Option<f64>,
     pub currency: Option<String>,
     pub buy_url: Option<String>,
+    pub image_path: Option<String>,
     pub notes: Option<String>,
 }
 
@@ -106,6 +108,7 @@ pub struct UpdateAccessoryInput {
     pub price: Option<f64>,
     pub currency: Option<String>,
     pub buy_url: Option<String>,
+    pub image_path: Option<String>,
     pub notes: Option<String>,
 }
 

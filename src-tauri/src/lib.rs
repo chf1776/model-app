@@ -29,6 +29,7 @@ pub fn run() {
             commands::settings::get_setting,
             commands::settings::set_setting,
             commands::media::save_box_art,
+            commands::media::save_accessory_image,
             commands::collection::list_kit_files,
             commands::collection::attach_kit_file,
             commands::collection::delete_kit_file,

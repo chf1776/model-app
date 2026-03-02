@@ -23,17 +23,18 @@ fn row_to_accessory(row: &rusqlite::Row) -> rusqlite::Result<Accessory> {
         price: row.get(8)?,
         currency: row.get(9)?,
         buy_url: row.get(10)?,
-        notes: row.get(11)?,
-        created_at: row.get(12)?,
-        updated_at: row.get(13)?,
-        parent_kit_name: row.get(14)?,
+        image_path: row.get(11)?,
+        notes: row.get(12)?,
+        created_at: row.get(13)?,
+        updated_at: row.get(14)?,
+        parent_kit_name: row.get(15)?,
     })
 }
 
 const SELECT_WITH_JOIN: &str =
     "SELECT a.id, a.name, a.type, a.manufacturer, a.brand, a.reference_code,
             a.parent_kit_id, a.status, a.price, a.currency, a.buy_url,
-            a.notes, a.created_at, a.updated_at, k.name AS parent_kit_name
+            a.image_path, a.notes, a.created_at, a.updated_at, k.name AS parent_kit_name
      FROM accessories a
      LEFT JOIN kits k ON a.parent_kit_id = k.id";
 
@@ -84,8 +85,8 @@ pub fn insert(conn: &Connection, input: CreateAccessoryInput) -> Result<Accessor
     conn.execute(
         "INSERT INTO accessories (id, name, type, manufacturer, brand, reference_code,
                                   parent_kit_id, status, price, currency, buy_url,
-                                  notes, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+                                  image_path, notes, created_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
         params![
             id,
             input.name,
@@ -98,6 +99,7 @@ pub fn insert(conn: &Connection, input: CreateAccessoryInput) -> Result<Accessor
             input.price,
             input.currency,
             input.buy_url,
+            input.image_path,
             input.notes,
             ts,
             ts,
@@ -121,13 +123,14 @@ pub fn update(conn: &Connection, input: UpdateAccessoryInput) -> Result<Accessor
     let price = input.price.or(existing.price);
     let currency = input.currency.or(existing.currency);
     let buy_url = input.buy_url.or(existing.buy_url);
+    let image_path = input.image_path.or(existing.image_path);
     let notes = input.notes.or(existing.notes);
 
     conn.execute(
         "UPDATE accessories SET name=?1, type=?2, manufacturer=?3, brand=?4,
                 reference_code=?5, parent_kit_id=?6, status=?7,
-                price=?8, currency=?9, buy_url=?10, notes=?11
-         WHERE id=?12",
+                price=?8, currency=?9, buy_url=?10, image_path=?11, notes=?12
+         WHERE id=?13",
         params![
             name,
             accessory_type,
@@ -139,6 +142,7 @@ pub fn update(conn: &Connection, input: UpdateAccessoryInput) -> Result<Accessor
             price,
             currency,
             buy_url,
+            image_path,
             notes,
             input.id,
         ],
