@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Accessory thumbnail images**: Accessories now support an optional image, displayed as a 32×42px thumbnail in AccessoryRow with gradient placeholder fallback
+- **Accessory image picker**: "Choose image" button in both Add and Edit Accessory dialogs (png/jpg/jpeg/webp), matching the kit box art picker pattern
+- **save_accessory_image command**: Rust backend command copies image to stash directory and updates the `image_path` column
+- **V3 migration**: `ALTER TABLE accessories ADD COLUMN image_path TEXT`
 - **Unified context bar**: All three Collection tabs (Kits, Accessories, Paints) now render tab-specific toolbars in the shared context bar after EntitySwitcher
 - **KitToolbar**: Status filter (segmented pill), group-by toggle (Status / Category / Manufacturer), search input, and grid view placeholder
 - **AccessoryToolbar**: Status filter (All / Owned / Wishlist), type filter (All / PE / Resin / Decal / Other with per-type colors), group-by toggle (Type / Parent Kit), search input, and grid view placeholder
