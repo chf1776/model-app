@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { Play, ChevronDown, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 import type { Kit, Accessory } from "@/shared/types";
@@ -114,7 +115,7 @@ export function KitCard({
         <div className="flex h-[42px] w-[56px] shrink-0 items-center justify-center rounded-md bg-muted">
           {kit.box_art_path ? (
             <img
-              src={`asset://localhost/${kit.box_art_path}`}
+              src={convertFileSrc(kit.box_art_path)}
               alt={kit.name}
               className="h-full w-full rounded-md object-cover"
             />
