@@ -12,6 +12,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - EXPORT_FEATURE.md: Full export feature specification (curation dialog, PDF page design, Typst templates, HTML/ZIP formats)
 - export-mockup.jsx: Interactive React mockup of the export dialog
 
+## [0.1.4] — 2026-03-01 — Phase 1B-3: Wishlist Polish & Kit-to-Project Pipeline
+
+### Fixed
+- **create_project bug**: Removed premature `active_project_id` set that wrote the kit ID instead of the project ID
+- **create_project bug**: Removed `file_path` column from `instruction_sources` INSERT (column is auto-populated by default value from V2 migration)
+
+### Added
+- **Kit-to-project pipeline**: Creating a project from a kit now auto-links all accessories with matching `parent_kit_id` via `project_accessories`
+- **Kit wishlist fields in AddKitDialog**: Price, currency, and retailer URL fields appear when adding a kit with "Wishlist" status
+- **Kit wishlist fields in EditKitDialog**: Price, currency, and retailer URL fields appear when status is "Wishlist"; fixed dialog scroll for long content
+- **Price display on wishlisted kits**: KitCard info line shows price after status label (e.g., "Wishlist · $29.99 · Tamiya · 1/350")
+- **Price display on wishlisted accessories**: AccessoryRow info line shows price after brand
+- **Price display on wishlisted paints**: PaintRow shows price after type; PaintDetailPanel shows price/currency below status toggle
+
 ## [0.1.3] — 2026-03-01 — Phase 1B-2: Project Tags on Paints
 
 ### Added

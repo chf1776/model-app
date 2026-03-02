@@ -30,6 +30,9 @@ pub struct CreateKitInput {
     pub status: Option<String>,
     pub category: Option<String>,
     pub scalemates_url: Option<String>,
+    pub price: Option<f64>,
+    pub currency: Option<String>,
+    pub retailer_url: Option<String>,
     pub notes: Option<String>,
 }
 

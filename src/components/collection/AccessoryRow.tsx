@@ -84,6 +84,14 @@ export function AccessoryRow({ accessory, onEdit }: AccessoryRowProps) {
               </span>
             </>
           )}
+          {accessory.status === "wishlist" && accessory.price != null && (
+            <>
+              <span className="text-text-tertiary">·</span>
+              <span className="font-mono text-text-tertiary">
+                ${accessory.price.toFixed(2)}
+              </span>
+            </>
+          )}
         </div>
       </div>
 

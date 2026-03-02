@@ -109,6 +109,13 @@ export function PaintDetailPanel({ paint, onEdit }: PaintDetailPanelProps) {
           )}
         </button>
 
+        {/* Price (wishlist only) */}
+        {paint.status === "wishlist" && paint.price != null && (
+          <p className="font-mono text-[10px] text-text-tertiary">
+            {paint.currency ?? "USD"} {paint.price.toFixed(2)}
+          </p>
+        )}
+
         {/* Hex display */}
         {paint.color && (
           <div className="flex items-center gap-1.5">

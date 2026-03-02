@@ -60,6 +60,9 @@ export function EditKitDialog({ kit, onClose }: EditKitDialogProps) {
   const [category, setCategory] = useState<KitCategory | "">("");
   const [status, setStatus] = useState<KitStatus>("shelf");
   const [notes, setNotes] = useState("");
+  const [price, setPrice] = useState("");
+  const [currency, setCurrency] = useState("USD");
+  const [retailerUrl, setRetailerUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [kitFiles, setKitFiles] = useState<KitFile[]>([]);
 
@@ -72,6 +75,9 @@ export function EditKitDialog({ kit, onClose }: EditKitDialogProps) {
       setCategory((kit.category as KitCategory) ?? "");
       setStatus(kit.status);
       setNotes(kit.notes ?? "");
+      setPrice(kit.price != null ? String(kit.price) : "");
+      setCurrency(kit.currency ?? "USD");
+      setRetailerUrl(kit.retailer_url ?? "");
       // Load attached files
       api.listKitFiles(kit.id).then(setKitFiles).catch(() => setKitFiles([]));
     } else {
@@ -91,6 +97,9 @@ export function EditKitDialog({ kit, onClose }: EditKitDialogProps) {
         kit_number: kitNumber.trim() || null,
         category: (category as KitCategory) || null,
         status: status,
+        price: price ? parseFloat(price) : null,
+        currency: currency.trim() || null,
+        retailer_url: retailerUrl.trim() || null,
         notes: notes.trim() || null,
       });
       updateKitStore(updated);
@@ -144,12 +153,13 @@ export function EditKitDialog({ kit, onClose }: EditKitDialogProps) {
 
   return (
     <Dialog open={kit !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[85vh] max-w-[480px] border-border bg-card p-4 shadow-lg">
+      <DialogContent className="flex max-h-[85vh] max-w-[480px] flex-col border-border bg-card p-4 shadow-lg">
         <DialogHeader>
           <DialogTitle className="text-sm font-bold">Edit Kit</DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3 overflow-y-auto py-2">
+        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="flex flex-col gap-3 py-2">
           {/* Name */}
           <div className="flex flex-col gap-1">
             <Label className="text-[11px] font-medium">
@@ -261,6 +271,42 @@ export function EditKitDialog({ kit, onClose }: EditKitDialogProps) {
             />
           </div>
 
+          {/* Wishlist fields */}
+          {status === "wishlist" && (
+            <>
+              <div className="flex gap-2">
+                <div className="flex flex-col gap-1">
+                  <Label className="text-[11px] font-medium">Price</Label>
+                  <Input
+                    type="number"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="0.00"
+                    className="h-8 w-[100px] text-xs"
+                    step="0.01"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label className="text-[11px] font-medium">Currency</Label>
+                  <Input
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                    className="h-8 w-[70px] text-xs"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label className="text-[11px] font-medium">Retailer URL</Label>
+                <Input
+                  value={retailerUrl}
+                  onChange={(e) => setRetailerUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="h-8 text-xs"
+                />
+              </div>
+            </>
+          )}
+
           {/* Files */}
           <div className="flex flex-col gap-1.5">
             <Label className="text-[11px] font-medium">Files</Label>
@@ -313,6 +359,7 @@ export function EditKitDialog({ kit, onClose }: EditKitDialogProps) {
               Attach File
             </Button>
           </div>
+        </div>
         </div>
 
         <DialogFooter className="flex items-center justify-between">

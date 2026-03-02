@@ -37,6 +37,9 @@ export function AddKitDialog({ open, onOpenChange }: AddKitDialogProps) {
   const [category, setCategory] = useState<KitCategory | "">("");
   const [status, setStatus] = useState<"shelf" | "wishlist">("shelf");
   const [boxArtPath, setBoxArtPath] = useState("");
+  const [price, setPrice] = useState("");
+  const [currency, setCurrency] = useState("USD");
+  const [retailerUrl, setRetailerUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const reset = () => {
@@ -47,6 +50,9 @@ export function AddKitDialog({ open, onOpenChange }: AddKitDialogProps) {
     setCategory("");
     setStatus("shelf");
     setBoxArtPath("");
+    setPrice("");
+    setCurrency("USD");
+    setRetailerUrl("");
   };
 
   const handlePickImage = async () => {
@@ -72,6 +78,9 @@ export function AddKitDialog({ open, onOpenChange }: AddKitDialogProps) {
         kit_number: kitNumber.trim() || null,
         status: status as KitStatus,
         category: (category as KitCategory) || null,
+        price: price ? parseFloat(price) : null,
+        currency: currency.trim() || null,
+        retailer_url: retailerUrl.trim() || null,
       });
 
       // Save box art if provided
@@ -236,6 +245,42 @@ export function AddKitDialog({ open, onOpenChange }: AddKitDialogProps) {
               {boxArtPath ? "Image selected" : "Choose image..."}
             </button>
           </div>
+
+          {/* Wishlist fields */}
+          {status === "wishlist" && (
+            <>
+              <div className="flex gap-2">
+                <div className="flex flex-col gap-1">
+                  <Label className="text-[11px] font-medium">Price</Label>
+                  <Input
+                    type="number"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="0.00"
+                    className="h-8 w-[100px] text-xs"
+                    step="0.01"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label className="text-[11px] font-medium">Currency</Label>
+                  <Input
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                    className="h-8 w-[70px] text-xs"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label className="text-[11px] font-medium">Retailer URL</Label>
+                <Input
+                  value={retailerUrl}
+                  onChange={(e) => setRetailerUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="h-8 text-xs"
+                />
+              </div>
+            </>
+          )}
         </div>
 
         <DialogFooter className="gap-2">

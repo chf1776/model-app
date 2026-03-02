@@ -59,6 +59,11 @@ export function PaintRow({ paint }: PaintRowProps) {
         <span className="flex-shrink-0 text-[8px] text-text-tertiary">
           {PAINT_TYPE_LABELS[paint.type] ?? paint.type}
         </span>
+        {paint.status === "wishlist" && paint.price != null && (
+          <span className="flex-shrink-0 font-mono text-[8px] text-text-tertiary">
+            ${paint.price.toFixed(2)}
+          </span>
+        )}
       </div>
 
       {/* Project tags */}

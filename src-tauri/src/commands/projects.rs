@@ -43,6 +43,9 @@ pub fn create_project(db: State<'_, AppDb>, input: CreateProjectInput) -> Result
                 status: Some("building".to_string()),
                 category: input.category.clone(),
                 scalemates_url: None,
+                price: None,
+                currency: None,
+                retailer_url: None,
                 notes: None,
             },
         )?;
@@ -50,10 +53,6 @@ pub fn create_project(db: State<'_, AppDb>, input: CreateProjectInput) -> Result
     } else {
         return Err("Either kit_id or new_kit_name must be provided".to_string());
     };
-
-    // Set active project
-    crate::db::queries::settings::set(&conn, "active_project_id", &kit_id)
-        .ok(); // non-critical
 
     let project = crate::db::queries::projects::insert(&conn, &input, &kit_id)?;
 
@@ -84,9 +83,26 @@ pub fn create_project(db: State<'_, AppDb>, input: CreateProjectInput) -> Result
             .to_string();
 
         conn.execute(
-            "INSERT INTO instruction_sources (id, project_id, name, original_filename, file_path, page_count, display_order, created_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, 0, ?6, ?7)",
-            params![source_id, project.id, name, original_filename, kf.file_path, idx as i32, ts],
+            "INSERT INTO instruction_sources (id, project_id, name, original_filename, page_count, display_order, created_at)
+             VALUES (?1, ?2, ?3, ?4, 0, ?5, ?6)",
+            params![source_id, project.id, name, original_filename, idx as i32, ts],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+
+    // Auto-link accessories with matching parent_kit_id
+    let mut acc_stmt = conn
+        .prepare("SELECT id FROM accessories WHERE parent_kit_id = ?1")
+        .map_err(|e| e.to_string())?;
+    let acc_ids: Vec<String> = acc_stmt
+        .query_map(params![kit_id], |row| row.get(0))
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+    for acc_id in &acc_ids {
+        conn.execute(
+            "INSERT OR IGNORE INTO project_accessories (project_id, accessory_id) VALUES (?1, ?2)",
+            params![project.id, acc_id],
         )
         .map_err(|e| e.to_string())?;
     }

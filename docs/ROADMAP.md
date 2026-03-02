@@ -64,14 +64,14 @@ You can add kits, create projects, and navigate between zones. The app has a per
 
 ### Wishlist system
 - Consistent owned/wishlist badges across all three entity types
-- Price, currency, buy URL on all wishlisted items
-- "Mark as acquired" transitions
-- Batch operations for multi-select acquire
+- Price, currency, buy/retailer URL on all wishlisted items (kits, accessories, paints) — **done (v0.1.1–v0.1.4)**
+- "Mark as acquired" transitions — **done (v0.1.1–v0.1.2)**
+- Batch operations for multi-select acquire — **deferred**
 
 ### Kit-to-project pipeline
-- Accessories linked to kits via `parent_kit_id` can have their own file attachments (manuals, PE instructions, decal placement guides)
-- On project creation from a kit: auto-link all accessories with matching `parent_kit_id` via `project_accessories`, and auto-import their file attachments as additional `instruction_sources`
-- Kit card accessory tray (UI_DESIGN.md section 27.2) shows linked aftermarket parts; these flow into the project automatically on creation
+- Accessories linked to kits via `parent_kit_id` auto-linked via `project_accessories` on project creation — **done (v0.1.4)**
+- Accessory file attachment import as `instruction_sources` — **deferred to Phase 2**
+- Kit card accessory tray (UI_DESIGN.md section 27.2) shows linked aftermarket parts — **done (v0.1.1)**
 
 ### Deliverable
 Full collection management. All three entity types, wishlists with pricing, paint shelf with catalogue lookup, Scalemates import, and kit-to-project pipeline with automatic accessory and manual import.

@@ -52,10 +52,12 @@ pub fn insert(conn: &Connection, input: CreateKitInput) -> Result<Kit, String> {
     let ts = now();
     let status = input.status.unwrap_or_else(|| "shelf".to_string());
 
+    let currency = input.currency.or(Some("USD".to_string()));
+
     conn.execute(
         "INSERT INTO kits (id, name, manufacturer, scale, kit_number, status, category,
-                           scalemates_url, notes, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                           scalemates_url, price, currency, retailer_url, notes, created_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
         params![
             id,
             input.name,
@@ -65,6 +67,9 @@ pub fn insert(conn: &Connection, input: CreateKitInput) -> Result<Kit, String> {
             status,
             input.category,
             input.scalemates_url,
+            input.price,
+            currency,
+            input.retailer_url,
             input.notes,
             ts,
             ts,
@@ -82,9 +87,9 @@ pub fn insert(conn: &Connection, input: CreateKitInput) -> Result<Kit, String> {
         status,
         category: input.category,
         scalemates_url: input.scalemates_url,
-        retailer_url: None,
-        price: None,
-        currency: Some("USD".to_string()),
+        retailer_url: input.retailer_url,
+        price: input.price,
+        currency,
         notes: input.notes,
         created_at: ts,
         updated_at: ts,

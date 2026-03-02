@@ -34,6 +34,9 @@ export interface CreateKitInput {
   status?: KitStatus | null;
   category?: KitCategory | null;
   scalemates_url?: string | null;
+  price?: number | null;
+  currency?: string | null;
+  retailer_url?: string | null;
   notes?: string | null;
 }
 

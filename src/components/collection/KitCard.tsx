@@ -132,6 +132,14 @@ export function KitCard({
             <span className="font-medium" style={{ color: statusColor }}>
               {statusLabel}
             </span>
+            {kit.status === "wishlist" && kit.price != null && (
+              <>
+                <span className="text-text-tertiary">·</span>
+                <span className="font-mono text-text-tertiary">
+                  ${kit.price.toFixed(2)}
+                </span>
+              </>
+            )}
             {kit.manufacturer && (
               <>
                 <span className="text-text-tertiary">·</span>
