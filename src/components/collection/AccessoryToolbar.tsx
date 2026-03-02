@@ -42,6 +42,7 @@ export function AccessoryToolbar() {
   return (
     <div className="flex items-center gap-2">
       {/* Status filter */}
+      <span className="text-[9px] text-text-tertiary">Status:</span>
       <div className="flex items-center rounded-md bg-muted p-[3px]">
         {STATUS_FILTERS.map((f) => {
           const isActive = accessoryStatusFilter === f.value;
@@ -63,6 +64,7 @@ export function AccessoryToolbar() {
       </div>
 
       {/* Type filter */}
+      <span className="text-[9px] text-text-tertiary">Type:</span>
       <div className="flex items-center rounded-md bg-muted p-[3px]">
         {TYPE_FILTERS.map((f) => {
           const isActive = accessoryTypeFilter === f.value;
@@ -96,6 +98,7 @@ export function AccessoryToolbar() {
       </div>
 
       {/* Group by toggle */}
+      <span className="text-[9px] text-text-tertiary">Group:</span>
       <div className="flex items-center rounded-md bg-muted p-[3px]">
         {GROUP_ITEMS.map((item) => (
           <button

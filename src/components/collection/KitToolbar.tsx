@@ -38,6 +38,7 @@ export function KitToolbar() {
   return (
     <div className="flex items-center gap-2">
       {/* Status filter */}
+      <span className="text-[9px] text-text-tertiary">Status:</span>
       <div className="flex items-center rounded-md bg-muted p-[3px]">
         {FILTERS.map((f) => {
           const count = getCounts(f.value);
@@ -63,6 +64,7 @@ export function KitToolbar() {
       </div>
 
       {/* Group by toggle */}
+      <span className="text-[9px] text-text-tertiary">Group:</span>
       <div className="flex items-center rounded-md bg-muted p-[3px]">
         {GROUP_ITEMS.map((item) => (
           <button
