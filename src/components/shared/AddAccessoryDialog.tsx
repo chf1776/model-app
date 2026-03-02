@@ -109,14 +109,15 @@ export function AddAccessoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] max-w-[480px] border-border bg-card p-4 shadow-lg">
+      <DialogContent className="flex max-h-[85vh] max-w-[480px] flex-col border-border bg-card p-4 shadow-lg">
         <DialogHeader>
           <DialogTitle className="text-sm font-bold">
             Add Accessory
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3 overflow-y-auto py-2">
+        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="flex flex-col gap-3 py-2">
           {/* Status */}
           <div className="flex flex-col gap-1">
             <Label className="text-[11px] font-medium">Add as</Label>
@@ -332,6 +333,7 @@ export function AddAccessoryDialog({
               </div>
             </>
           )}
+        </div>
         </div>
 
         <DialogFooter className="gap-2">

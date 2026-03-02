@@ -114,11 +114,12 @@ export function AddKitDialog({ open, onOpenChange }: AddKitDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[480px] border-border bg-card p-4 shadow-lg">
+      <DialogContent className="flex max-h-[85vh] max-w-[480px] flex-col border-border bg-card p-4 shadow-lg">
         <DialogHeader>
           <DialogTitle className="text-sm font-bold">Add Kit</DialogTitle>
         </DialogHeader>
 
+        <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="flex flex-col gap-3 py-2">
           {/* Status */}
           <div className="flex flex-col gap-1">
@@ -281,6 +282,7 @@ export function AddKitDialog({ open, onOpenChange }: AddKitDialogProps) {
               </div>
             </>
           )}
+        </div>
         </div>
 
         <DialogFooter className="gap-2">

@@ -129,14 +129,15 @@ export function EditAccessoryDialog({
       open={accessory !== null}
       onOpenChange={(open) => !open && onClose()}
     >
-      <DialogContent className="max-h-[85vh] max-w-[480px] border-border bg-card p-4 shadow-lg">
+      <DialogContent className="flex max-h-[85vh] max-w-[480px] flex-col border-border bg-card p-4 shadow-lg">
         <DialogHeader>
           <DialogTitle className="text-sm font-bold">
             Edit Accessory
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3 overflow-y-auto py-2">
+        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="flex flex-col gap-3 py-2">
           {/* Name */}
           <div className="flex flex-col gap-1">
             <Label className="text-[11px] font-medium">
@@ -335,6 +336,7 @@ export function EditAccessoryDialog({
               </div>
             </>
           )}
+        </div>
         </div>
 
         <DialogFooter className="flex items-center justify-between">

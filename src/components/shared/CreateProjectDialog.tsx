@@ -133,7 +133,7 @@ export function CreateProjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[420px] border-border bg-card p-4 shadow-lg">
+      <DialogContent className="flex max-h-[85vh] max-w-[420px] flex-col border-border bg-card p-4 shadow-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-sm font-bold">
             <Package className="h-4 w-4 text-accent" />
@@ -141,6 +141,7 @@ export function CreateProjectDialog({
           </DialogTitle>
         </DialogHeader>
 
+        <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="flex flex-col gap-3 py-2">
           {/* Project name */}
           <div className="flex flex-col gap-1">
@@ -371,6 +372,7 @@ export function CreateProjectDialog({
               </div>
             </div>
           )}
+        </div>
         </div>
 
         <DialogFooter className="gap-2">
