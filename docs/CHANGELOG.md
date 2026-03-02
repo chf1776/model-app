@@ -12,6 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - EXPORT_FEATURE.md: Full export feature specification (curation dialog, PDF page design, Typst templates, HTML/ZIP formats)
 - export-mockup.jsx: Interactive React mockup of the export dialog
 
+## [0.1.3] — 2026-03-01 — Phase 1B-2: Project Tags on Paints
+
+### Added
+- **Project tags on paints**: Link paints to projects via `palette_entries` table — lightweight tagging that evolves into rich palette slots in Phase 6
+- **Project tag pills on PaintRow**: Shows up to 2 project names with "+N" overflow
+- **Project count badge on PaintSwatchCard**: Small accent badge on grid view cards
+- **Projects section in PaintDetailPanel**: Lists linked project names or "None"
+- **Project multi-select in EditPaintDialog**: Toggle pills to assign/unassign projects
+- **Group by Project**: Paint shelf can now group paints by project, with "Unassigned" group for unlinked paints; paints in multiple projects appear in each group
+- **Palette entries backend**: `list_paint_project_mappings` and `set_paint_projects` Tauri commands with deduplication and sync logic
+
 ## [0.1.2] — 2026-03-01 — Phase 1B-2: Paints & Catalogue
 
 ### Added

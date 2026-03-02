@@ -19,6 +19,8 @@ export function PaintsTab({ onEdit, onAdd }: PaintsTabProps) {
   const paintGroupBy = useAppStore((s) => s.paintGroupBy);
   const paintViewMode = useAppStore((s) => s.paintViewMode);
   const selectedPaintId = useAppStore((s) => s.selectedPaintId);
+  const paintProjectMap = useAppStore((s) => s.paintProjectMap);
+  const projects = useAppStore((s) => s.projects);
   const [search, setSearch] = useState("");
 
   const selectedPaint = useMemo(
@@ -52,6 +54,46 @@ export function PaintsTab({ onEdit, onAdd }: PaintsTabProps) {
       }));
     }
 
+    if (paintGroupBy === "project") {
+      // Build project → paints mapping
+      const projMap: Record<string, Paint[]> = {};
+      const assignedPaintIds = new Set<string>();
+
+      for (const p of filteredPaints) {
+        const mappings = paintProjectMap[p.id];
+        if (mappings && mappings.length > 0) {
+          for (const m of mappings) {
+            if (!projMap[m.project_id]) projMap[m.project_id] = [];
+            projMap[m.project_id].push(p);
+            assignedPaintIds.add(p.id);
+          }
+        }
+      }
+
+      // Sort projects alphabetically by name
+      const sortedProjects = projects
+        .filter((proj) => projMap[proj.id]?.length)
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      const result = sortedProjects.map((proj) => ({
+        key: proj.id,
+        label: proj.name,
+        paints: projMap[proj.id],
+      }));
+
+      // Add unassigned group
+      const unassigned = filteredPaints.filter((p) => !assignedPaintIds.has(p.id));
+      if (unassigned.length > 0) {
+        result.push({
+          key: "__unassigned__",
+          label: "Unassigned",
+          paints: unassigned,
+        });
+      }
+
+      return result;
+    }
+
     // Group by brand
     const map: Record<string, Paint[]> = {};
     for (const p of filteredPaints) {
@@ -65,7 +107,7 @@ export function PaintsTab({ onEdit, onAdd }: PaintsTabProps) {
         label: brand,
         paints: map[brand],
       }));
-  }, [filteredPaints, paintGroupBy]);
+  }, [filteredPaints, paintGroupBy, paintProjectMap, projects]);
 
   // Determine which groups to expand by default (two largest)
   const defaultExpandedKeys = useMemo(() => {

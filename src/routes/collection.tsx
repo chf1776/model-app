@@ -22,6 +22,7 @@ export default function CollectionRoute() {
   const activeEntityTab = useAppStore((s) => s.activeEntityTab);
   const loadAccessories = useAppStore((s) => s.loadAccessories);
   const loadPaints = useAppStore((s) => s.loadPaints);
+  const loadPaintProjectMap = useAppStore((s) => s.loadPaintProjectMap);
 
   // Kit dialogs
   const [addKitDialogOpen, setAddKitDialogOpen] = useState(false);
@@ -161,6 +162,7 @@ export default function CollectionRoute() {
         onClose={() => {
           setEditPaint(null);
           loadPaints();
+          loadPaintProjectMap();
         }}
       />
       <CreateProjectDialog

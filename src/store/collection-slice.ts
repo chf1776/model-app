@@ -14,6 +14,7 @@ export interface CollectionSlice {
   kits: Kit[];
   accessories: Accessory[];
   paints: Paint[];
+  paintProjectMap: Record<string, { project_id: string; project_name: string }[]>;
   activeEntityTab: "kits" | "accessories" | "paints";
   statusFilter: KitStatus | "all";
   paintGroupBy: PaintGroupBy;
@@ -36,6 +37,11 @@ export interface CollectionSlice {
   addPaint: (paint: Paint) => void;
   updatePaint: (paint: Paint) => void;
   removePaint: (id: string) => void;
+  loadPaintProjectMap: () => Promise<void>;
+  updatePaintProjectMap: (
+    paintId: string,
+    projects: { project_id: string; project_name: string }[],
+  ) => void;
 }
 
 export const createCollectionSlice: StateCreator<
@@ -47,6 +53,7 @@ export const createCollectionSlice: StateCreator<
   kits: [],
   accessories: [],
   paints: [],
+  paintProjectMap: {},
   activeEntityTab: "kits",
   statusFilter: "all",
   paintGroupBy: "color_family",
@@ -115,5 +122,20 @@ export const createCollectionSlice: StateCreator<
       paints: state.paints.filter((p) => p.id !== id),
       selectedPaintId:
         state.selectedPaintId === id ? null : state.selectedPaintId,
+    })),
+
+  loadPaintProjectMap: async () => {
+    const mappings = await api.listPaintProjectMappings();
+    const map: Record<string, { project_id: string; project_name: string }[]> = {};
+    for (const m of mappings) {
+      if (!map[m.paint_id]) map[m.paint_id] = [];
+      map[m.paint_id].push({ project_id: m.project_id, project_name: m.project_name });
+    }
+    set({ paintProjectMap: map });
+  },
+
+  updatePaintProjectMap: (paintId, projects) =>
+    set((state) => ({
+      paintProjectMap: { ...state.paintProjectMap, [paintId]: projects },
     })),
 });

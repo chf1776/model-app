@@ -19,6 +19,8 @@ interface PaintDetailPanelProps {
 export function PaintDetailPanel({ paint, onEdit }: PaintDetailPanelProps) {
   const setSelectedPaintId = useAppStore((s) => s.setSelectedPaintId);
   const updatePaintStore = useAppStore((s) => s.updatePaint);
+  const paintProjectMap = useAppStore((s) => s.paintProjectMap);
+  const paintProjects = paintProjectMap[paint.id] ?? [];
   const [notes, setNotes] = useState(paint.notes ?? "");
 
   useEffect(() => {
@@ -126,6 +128,27 @@ export function PaintDetailPanel({ paint, onEdit }: PaintDetailPanelProps) {
             {COLOR_FAMILY_LABELS[paint.color_family] ?? paint.color_family}
           </p>
         )}
+
+        {/* Projects */}
+        <div className="flex flex-col gap-0.5">
+          <label className="text-[9px] font-medium text-text-tertiary">
+            Projects
+          </label>
+          {paintProjects.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {paintProjects.map((pp) => (
+                <span
+                  key={pp.project_id}
+                  className="rounded-full bg-accent/10 px-1.5 py-0.5 text-[9px] text-accent"
+                >
+                  {pp.project_name}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[9px] italic text-text-tertiary">None</p>
+          )}
+        </div>
 
         {/* Notes */}
         <div className="flex flex-col gap-0.5">

@@ -41,6 +41,8 @@ pub fn run() {
             commands::paints::create_paint,
             commands::paints::update_paint,
             commands::paints::delete_paint,
+            commands::palette_entries::list_paint_project_mappings,
+            commands::palette_entries::set_paint_projects,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

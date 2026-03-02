@@ -10,6 +10,7 @@ import type {
   Paint,
   CreatePaintInput,
   UpdatePaintInput,
+  PaintProjectMapping,
   Project,
   CreateProjectInput,
 } from "@/shared/types";
@@ -94,6 +95,20 @@ export async function updatePaint(input: UpdatePaintInput): Promise<Paint> {
 
 export async function deletePaint(id: string): Promise<void> {
   return invoke<void>("delete_paint", { id });
+}
+
+// ── Palette Entries (paint ↔ project mappings) ─────────────────────────────
+
+export async function listPaintProjectMappings(): Promise<PaintProjectMapping[]> {
+  return invoke<PaintProjectMapping[]>("list_paint_project_mappings");
+}
+
+export async function setPaintProjects(
+  paintId: string,
+  paintName: string,
+  projectIds: string[],
+): Promise<void> {
+  return invoke<void>("set_paint_projects", { paintId, paintName, projectIds });
 }
 
 // ── Projects ────────────────────────────────────────────────────────────────

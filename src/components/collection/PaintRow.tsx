@@ -14,6 +14,8 @@ export function PaintRow({ paint }: PaintRowProps) {
   const selectedPaintId = useAppStore((s) => s.selectedPaintId);
   const setSelectedPaintId = useAppStore((s) => s.setSelectedPaintId);
   const updatePaintStore = useAppStore((s) => s.updatePaint);
+  const paintProjectMap = useAppStore((s) => s.paintProjectMap);
+  const paintProjects = paintProjectMap[paint.id] ?? [];
   const isSelected = selectedPaintId === paint.id;
 
   const handleStatusToggle = async (e: React.MouseEvent) => {
@@ -58,6 +60,25 @@ export function PaintRow({ paint }: PaintRowProps) {
           {PAINT_TYPE_LABELS[paint.type] ?? paint.type}
         </span>
       </div>
+
+      {/* Project tags */}
+      {paintProjects.length > 0 && (
+        <div className="flex flex-shrink-0 items-center gap-0.5">
+          {paintProjects.slice(0, 2).map((pp) => (
+            <span
+              key={pp.project_id}
+              className="rounded-full bg-accent/10 px-1.5 text-[8px] text-accent"
+            >
+              {pp.project_name}
+            </span>
+          ))}
+          {paintProjects.length > 2 && (
+            <span className="text-[8px] text-text-tertiary">
+              +{paintProjects.length - 2}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Status toggle */}
       <button

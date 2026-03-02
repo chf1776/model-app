@@ -51,6 +51,9 @@ interface EditPaintDialogProps {
 export function EditPaintDialog({ paint, onClose }: EditPaintDialogProps) {
   const updatePaintStore = useAppStore((s) => s.updatePaint);
   const removePaint = useAppStore((s) => s.removePaint);
+  const projects = useAppStore((s) => s.projects);
+  const paintProjectMap = useAppStore((s) => s.paintProjectMap);
+  const updatePaintProjectMap = useAppStore((s) => s.updatePaintProjectMap);
 
   const [brand, setBrand] = useState("");
   const [name, setName] = useState("");
@@ -64,6 +67,7 @@ export function EditPaintDialog({ paint, onClose }: EditPaintDialogProps) {
   const [price, setPrice] = useState("");
   const [currency, setCurrency] = useState("USD");
   const [buyUrl, setBuyUrl] = useState("");
+  const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -80,8 +84,11 @@ export function EditPaintDialog({ paint, onClose }: EditPaintDialogProps) {
       setPrice(paint.price?.toString() ?? "");
       setCurrency(paint.currency ?? "USD");
       setBuyUrl(paint.buy_url ?? "");
+      setSelectedProjectIds(
+        (paintProjectMap[paint.id] ?? []).map((pp) => pp.project_id),
+      );
     }
-  }, [paint]);
+  }, [paint, paintProjectMap]);
 
   // Auto-assign color family when color changes
   useEffect(() => {
@@ -110,6 +117,11 @@ export function EditPaintDialog({ paint, onClose }: EditPaintDialogProps) {
         notes: notes.trim() || null,
       });
       updatePaintStore(updated);
+      await api.setPaintProjects(paint.id, updated.name, selectedProjectIds);
+      const selectedProjects = projects
+        .filter((p) => selectedProjectIds.includes(p.id))
+        .map((p) => ({ project_id: p.id, project_name: p.name }));
+      updatePaintProjectMap(paint.id, selectedProjects);
       toast.success(`"${updated.name}" updated`);
       onClose();
     } catch (err) {
@@ -136,12 +148,12 @@ export function EditPaintDialog({ paint, onClose }: EditPaintDialogProps) {
       open={paint !== null}
       onOpenChange={(open) => !open && onClose()}
     >
-      <DialogContent className="max-h-[85vh] max-w-[480px] border-border bg-card p-4 shadow-lg">
+      <DialogContent className="flex max-h-[85vh] max-w-[480px] flex-col border-border bg-card p-4 shadow-lg">
         <DialogHeader>
           <DialogTitle className="text-sm font-bold">Edit Paint</DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3 overflow-y-auto py-2">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto py-2">
           {/* Brand */}
           <div className="flex flex-col gap-1">
             <Label className="text-[11px] font-medium">
@@ -298,6 +310,39 @@ export function EditPaintDialog({ paint, onClose }: EditPaintDialogProps) {
               ))}
             </div>
           </div>
+
+          {/* Projects */}
+          {projects.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <Label className="text-[11px] font-medium">Projects</Label>
+              <div className="flex flex-wrap gap-1">
+                {projects.map((proj) => {
+                  const selected = selectedProjectIds.includes(proj.id);
+                  return (
+                    <button
+                      key={proj.id}
+                      type="button"
+                      onClick={() =>
+                        setSelectedProjectIds((prev) =>
+                          selected
+                            ? prev.filter((id) => id !== proj.id)
+                            : [...prev, proj.id],
+                        )
+                      }
+                      className={cn(
+                        "rounded-[10px] px-2.5 py-[3px] text-[10px] transition-colors",
+                        selected
+                          ? "bg-accent font-semibold text-white"
+                          : "bg-muted text-text-tertiary hover:text-text-secondary",
+                      )}
+                    >
+                      {proj.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Notes */}
           <div className="flex flex-col gap-1">

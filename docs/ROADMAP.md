@@ -58,6 +58,7 @@ You can add kits, create projects, and navigate between zones. The app has a per
 
 ### Paints tab
 - Global paint shelf with group by (Color Family | Brand | Project), search, list/grid views, detail panel
+- Group by Project now implemented: uses `palette_entries` for lightweight project-paint tagging; project tag pills on paint rows/cards, project multi-select in edit dialog
 - Catalogue lookup (bundled data from Arcturus5404/miniature-paints repo, search box + brand filter dropdown)
 - Manual paint entry fallback
 
@@ -270,7 +271,9 @@ Full project visibility. See the build structure, browse all photos, read the co
 **Goal**: Know exactly what paint you used, when, and how you mixed it.
 
 ### Per-build paint palette
-- Direct paints: pull in any paint from global shelf
+- Basic palette_entries (simple paint → project links with `is_formula=0`) already exist from Phase 1B-2 for project tagging and Group by Project in the paint shelf
+- Direct paints: pull in any paint from global shelf — basic version already done via edit dialog multi-select
+- Phase 6 enriches palette_entries with purpose names, formulas (`palette_components`), mixing notes, and step references (`step_paint_refs`)
 - Formulas: named custom colour with:
   - Colour name + purpose/stage (e.g. "Winter Dunkelgelb — base coat")
   - Component paints with percentage or ratio

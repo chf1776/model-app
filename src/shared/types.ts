@@ -266,7 +266,13 @@ export const COLOR_FAMILY_ORDER: ColorFamily[] = [
   "blacks",
 ];
 
-export type PaintGroupBy = "color_family" | "brand";
+export type PaintGroupBy = "color_family" | "brand" | "project";
+
+export interface PaintProjectMapping {
+  paint_id: string;
+  project_id: string;
+  project_name: string;
+}
 export type PaintViewMode = "list" | "grid";
 
 export type Zone = "collection" | "build" | "overview";

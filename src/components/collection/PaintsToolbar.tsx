@@ -9,10 +9,10 @@ interface PaintsToolbarProps {
   onSearchChange: (value: string) => void;
 }
 
-const GROUP_ITEMS: { value: PaintGroupBy | "project"; label: string; disabled?: boolean }[] = [
+const GROUP_ITEMS: { value: PaintGroupBy; label: string }[] = [
   { value: "color_family", label: "Color Family" },
   { value: "brand", label: "Brand" },
-  { value: "project", label: "Project", disabled: true },
+  { value: "project", label: "Project" },
 ];
 
 export function PaintsToolbar({ search, onSearchChange }: PaintsToolbarProps) {
@@ -29,19 +29,12 @@ export function PaintsToolbar({ search, onSearchChange }: PaintsToolbarProps) {
         {GROUP_ITEMS.map((item) => (
           <button
             key={item.value}
-            disabled={item.disabled}
-            onClick={() => {
-              if (!item.disabled && item.value !== "project") {
-                setPaintGroupBy(item.value as PaintGroupBy);
-              }
-            }}
+            onClick={() => setPaintGroupBy(item.value)}
             className={cn(
               "rounded-[5px] px-2 py-[3px] text-[10px] transition-colors",
-              item.disabled
-                ? "cursor-not-allowed text-text-tertiary/40"
-                : paintGroupBy === item.value
-                  ? "bg-card font-semibold text-accent shadow-sm"
-                  : "text-text-tertiary hover:text-text-secondary",
+              paintGroupBy === item.value
+                ? "bg-card font-semibold text-accent shadow-sm"
+                : "text-text-tertiary hover:text-text-secondary",
             )}
           >
             {item.label}
