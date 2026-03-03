@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Paint, PaintViewMode } from "@/shared/types";
@@ -8,24 +7,24 @@ import { PaintSwatchCard } from "./PaintSwatchCard";
 interface PaintGroupSectionProps {
   label: string;
   paints: Paint[];
-  defaultExpanded: boolean;
+  expanded: boolean;
+  onToggle: () => void;
   viewMode: PaintViewMode;
 }
 
 export function PaintGroupSection({
   label,
   paints,
-  defaultExpanded,
+  expanded,
+  onToggle,
   viewMode,
 }: PaintGroupSectionProps) {
-  const [expanded, setExpanded] = useState(defaultExpanded);
-
   if (paints.length === 0) return null;
 
   return (
     <div className="mt-2">
       <button
-        onClick={() => setExpanded(!expanded)}
+        onClick={onToggle}
         className="flex w-full items-center gap-1.5 py-1.5"
       >
         <ChevronRight
@@ -38,11 +37,10 @@ export function PaintGroupSection({
           {label}
         </span>
         <span className="text-[10px] text-text-tertiary">{paints.length}</span>
-        <div className="ml-1 h-px flex-1 bg-border" />
 
         {/* Collapsed mini swatches */}
         {!expanded && (
-          <div className="flex items-center gap-0.5">
+          <div className="ml-1 flex items-center gap-0.5">
             {paints.slice(0, 5).map((p) => (
               <div
                 key={p.id}
@@ -57,6 +55,8 @@ export function PaintGroupSection({
             )}
           </div>
         )}
+
+        <div className="ml-1 h-px flex-1 bg-border" />
       </button>
 
       {expanded && (

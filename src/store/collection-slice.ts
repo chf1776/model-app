@@ -8,6 +8,7 @@ import type {
   Paint,
   PaintGroupBy,
   PaintViewMode,
+  PaintGroupExpandedState,
 } from "@/shared/types";
 import type { AppStore } from "./index";
 import * as api from "@/api";
@@ -25,6 +26,7 @@ export interface CollectionSlice {
   paintViewMode: PaintViewMode;
   paintSearch: string;
   selectedPaintId: string | null;
+  paintGroupExpanded: PaintGroupExpandedState;
   accessoryStatusFilter: "all" | AccessoryStatus;
   accessoryTypeFilter: "all" | AccessoryType;
   accessoryGroupBy: "type" | "parent_kit";
@@ -37,6 +39,8 @@ export interface CollectionSlice {
   setPaintViewMode: (mode: PaintViewMode) => void;
   setPaintSearch: (search: string) => void;
   setSelectedPaintId: (id: string | null) => void;
+  setPaintGroupExpandedBase: (base: boolean) => void;
+  togglePaintGroupExpanded: (groupKey: string) => void;
   setAccessoryStatusFilter: (filter: "all" | AccessoryStatus) => void;
   setAccessoryTypeFilter: (filter: "all" | AccessoryType) => void;
   setAccessoryGroupBy: (groupBy: "type" | "parent_kit") => void;
@@ -78,6 +82,7 @@ export const createCollectionSlice: StateCreator<
   paintViewMode: "list",
   paintSearch: "",
   selectedPaintId: null,
+  paintGroupExpanded: { base: true, overrides: {} },
   accessoryStatusFilter: "all",
   accessoryTypeFilter: "all",
   accessoryGroupBy: "type",
@@ -87,10 +92,27 @@ export const createCollectionSlice: StateCreator<
   setStatusFilter: (filter) => set({ statusFilter: filter }),
   setKitGroupBy: (groupBy) => set({ kitGroupBy: groupBy }),
   setKitSearch: (search) => set({ kitSearch: search }),
-  setPaintGroupBy: (groupBy) => set({ paintGroupBy: groupBy }),
+  setPaintGroupBy: (groupBy) =>
+    set((state) => ({
+      paintGroupBy: groupBy,
+      paintGroupExpanded: { base: state.paintGroupExpanded.base, overrides: {} },
+    })),
   setPaintViewMode: (mode) => set({ paintViewMode: mode }),
   setPaintSearch: (search) => set({ paintSearch: search }),
   setSelectedPaintId: (id) => set({ selectedPaintId: id }),
+  setPaintGroupExpandedBase: (base) =>
+    set({ paintGroupExpanded: { base, overrides: {} } }),
+  togglePaintGroupExpanded: (groupKey) =>
+    set((state) => {
+      const { base, overrides } = state.paintGroupExpanded;
+      const current = overrides[groupKey] ?? base;
+      return {
+        paintGroupExpanded: {
+          base,
+          overrides: { ...overrides, [groupKey]: !current },
+        },
+      };
+    }),
   setAccessoryStatusFilter: (filter) => set({ accessoryStatusFilter: filter }),
   setAccessoryTypeFilter: (filter) => set({ accessoryTypeFilter: filter }),
   setAccessoryGroupBy: (groupBy) => set({ accessoryGroupBy: groupBy }),

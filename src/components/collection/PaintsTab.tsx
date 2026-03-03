@@ -20,6 +20,9 @@ export function PaintsTab({ onEdit, onAdd }: PaintsTabProps) {
   const selectedPaintId = useAppStore((s) => s.selectedPaintId);
   const paintProjectMap = useAppStore((s) => s.paintProjectMap);
   const projects = useAppStore((s) => s.projects);
+  const expandBase = useAppStore((s) => s.paintGroupExpanded.base);
+  const expandOverrides = useAppStore((s) => s.paintGroupExpanded.overrides);
+  const togglePaintGroup = useAppStore((s) => s.togglePaintGroupExpanded);
   const search = useAppStore((s) => s.paintSearch);
   const setPaintSearch = useAppStore((s) => s.setPaintSearch);
 
@@ -109,12 +112,6 @@ export function PaintsTab({ onEdit, onAdd }: PaintsTabProps) {
       }));
   }, [filteredPaints, paintGroupBy, paintProjectMap, projects]);
 
-  // Determine which groups to expand by default (two largest)
-  const defaultExpandedKeys = useMemo(() => {
-    const sorted = [...groups].sort((a, b) => b.paints.length - a.paints.length);
-    return new Set(sorted.slice(0, 2).map((g) => g.key));
-  }, [groups]);
-
   if (paints.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-16">
@@ -143,7 +140,8 @@ export function PaintsTab({ onEdit, onAdd }: PaintsTabProps) {
                 key={g.key}
                 label={g.label}
                 paints={g.paints}
-                defaultExpanded={defaultExpandedKeys.has(g.key)}
+                expanded={expandOverrides[g.key] ?? expandBase}
+                onToggle={() => togglePaintGroup(g.key)}
                 viewMode={paintViewMode}
               />
             ))}

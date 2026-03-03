@@ -10,11 +10,13 @@ interface PaintRowProps {
   paint: Paint;
 }
 
+const EMPTY_PROJECTS: { project_id: string; project_name: string }[] = [];
+
 export function PaintRow({ paint }: PaintRowProps) {
   const selectedPaintId = useAppStore((s) => s.selectedPaintId);
   const setSelectedPaintId = useAppStore((s) => s.setSelectedPaintId);
   const updatePaintStore = useAppStore((s) => s.updatePaint);
-  const paintProjects = useAppStore((s) => s.paintProjectMap[paint.id] ?? []);
+  const paintProjects = useAppStore((s) => s.paintProjectMap[paint.id] ?? EMPTY_PROJECTS);
   const isSelected = selectedPaintId === paint.id;
 
   const handleStatusToggle = async (e: React.MouseEvent) => {

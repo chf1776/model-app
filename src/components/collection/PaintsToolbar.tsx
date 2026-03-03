@@ -1,4 +1,4 @@
-import { LayoutList, LayoutGrid } from "lucide-react";
+import { LayoutList, LayoutGrid, ChevronsUpDown, ChevronsDownUp } from "lucide-react";
 import { useAppStore } from "@/store";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -15,13 +15,13 @@ export function PaintsToolbar() {
   const setPaintGroupBy = useAppStore((s) => s.setPaintGroupBy);
   const paintViewMode = useAppStore((s) => s.paintViewMode);
   const setPaintViewMode = useAppStore((s) => s.setPaintViewMode);
+  const setPaintGroupExpandedBase = useAppStore((s) => s.setPaintGroupExpandedBase);
   const search = useAppStore((s) => s.paintSearch);
   const setSearch = useAppStore((s) => s.setPaintSearch);
 
   return (
     <div className="flex items-center gap-2">
       {/* Group by */}
-      <span className="text-[9px] text-text-tertiary">Group:</span>
       <div className="flex items-center rounded-md bg-muted p-[3px]">
         {GROUP_ITEMS.map((item) => (
           <button
@@ -37,6 +37,24 @@ export function PaintsToolbar() {
             {item.label}
           </button>
         ))}
+      </div>
+
+      {/* Expand/collapse all */}
+      <div className="flex items-center gap-0.5">
+        <button
+          onClick={() => setPaintGroupExpandedBase(true)}
+          className="rounded p-1 text-text-tertiary hover:text-text-secondary"
+          title="Expand all groups"
+        >
+          <ChevronsUpDown className="h-3 w-3" />
+        </button>
+        <button
+          onClick={() => setPaintGroupExpandedBase(false)}
+          className="rounded p-1 text-text-tertiary hover:text-text-secondary"
+          title="Collapse all groups"
+        >
+          <ChevronsDownUp className="h-3 w-3" />
+        </button>
       </div>
 
       {/* Search */}

@@ -280,6 +280,10 @@ export interface PaintProjectMapping {
   project_name: string;
 }
 export type PaintViewMode = "list" | "grid";
+export interface PaintGroupExpandedState {
+  base: boolean;
+  overrides: Record<string, boolean>;
+}
 
 // ── Instruction Sources ──────────────────────────────────────────────────────
 
