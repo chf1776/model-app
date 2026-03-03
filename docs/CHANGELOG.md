@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Paint group expand/collapse all**: Toolbar buttons to expand or collapse all paint group sections at once
+- **Persistent paint group state**: Expanded/collapsed state for paint groups survives tab switches; uses a base+overrides model so expand/collapse all sets the default for new groups too
+- **Lazy image loading**: Kit box art and accessory thumbnails now use `loading="lazy"`
+
+### Changed
+- **Paint group default**: All paint groups now default to expanded (previously only the two largest)
+- **Paint group swatches**: Collapsed mini swatches now appear next to the group count instead of far right
+- **Paint toolbar**: Removed redundant "Group:" label
+- **Rust backend cleanup**: Extracted shared `util.rs` module with `now()`, `get_pdf_dpi()`, `project_dir()`, and `instructions_dir()` helpers — deduplicated 8 `now()` functions across query files and consolidated ~25 mutex lock patterns into `AppDb::conn()`
+- **Build slice cleanup**: Extracted `DEFAULT_PAGE_STATE` and `DEFAULT_VIEWER_STATE` constants, renamed `fitToViewCounter` to `fitToViewTrigger`
+- **AppShell init**: Parallelized data loads with `Promise.all`
+- **PaintRow selector**: Fixed unstable Zustand selector reference (`?? []` inside selector → stable `EMPTY_PROJECTS` constant)
+
+### Removed
+- Dead code: `set_build_mode()` in project_ui_state queries, `delete_by_source()` in instruction_pages queries
+- Unused `compact` prop from AccessoryRow
+
 ## [0.2.0] — 2026-03-02 — Phase 2A: PDF Import, Page Viewer & Build Zone Shell
 
 ### Added
