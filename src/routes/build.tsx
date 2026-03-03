@@ -1,12 +1,119 @@
-import { useState } from "react";
-import { Wrench, Plus, Package } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Wrench, Plus } from "lucide-react";
 import { useAppStore } from "@/store";
 import { CreateProjectDialog } from "@/components/shared/CreateProjectDialog";
 import { Button } from "@/components/ui/button";
+import { BuildToolbar } from "@/components/build/BuildToolbar";
+import { InstructionCanvas } from "@/components/build/InstructionCanvas";
+import { PageNavigator } from "@/components/build/PageNavigator";
+import { EmptyInstructionsState } from "@/components/build/EmptyInstructionsState";
+import { ProcessingOverlay } from "@/components/build/ProcessingOverlay";
+import { SourceManagerPanel } from "@/components/build/SourceManagerPanel";
+import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
+import { toast } from "sonner";
+import * as api from "@/api";
 
 export default function BuildRoute() {
   const project = useAppStore((s) => s.project);
+  const activeProjectId = useAppStore((s) => s.activeProjectId);
+  const instructionSources = useAppStore((s) => s.instructionSources);
+  const isProcessingPdf = useAppStore((s) => s.isProcessingPdf);
+  const setIsProcessingPdf = useAppStore((s) => s.setIsProcessingPdf);
+  const addInstructionSource = useAppStore((s) => s.addInstructionSource);
+  const setCurrentSource = useAppStore((s) => s.setCurrentSource);
+  const nextPage = useAppStore((s) => s.nextPage);
+  const prevPage = useAppStore((s) => s.prevPage);
+  const viewerZoom = useAppStore((s) => s.viewerZoom);
+  const setViewerZoom = useAppStore((s) => s.setViewerZoom);
+
   const [createOpen, setCreateOpen] = useState(false);
+  const [sourceManagerOpen, setSourceManagerOpen] = useState(false);
+
+  const hasSources = instructionSources.length > 0;
+
+  const handleUploadPdf = async () => {
+    if (!activeProjectId) return;
+
+    const selected = await openFileDialog({
+      multiple: false,
+      filters: [{ name: "PDF", extensions: ["pdf"] }],
+    });
+
+    if (!selected) return;
+
+    setIsProcessingPdf(true);
+    try {
+      const source = await api.uploadInstructionPdf(
+        activeProjectId,
+        selected,
+      );
+      addInstructionSource(source);
+      setCurrentSource(source.id);
+      toast.success(`Imported "${source.name}" (${source.page_count} pages)`);
+    } catch (err) {
+      toast.error(`Failed to import PDF: ${err}`);
+    } finally {
+      setIsProcessingPdf(false);
+    }
+  };
+
+  // Keyboard navigation
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      // Don't capture keys when typing in inputs
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      switch (e.key) {
+        case "Tab":
+          e.preventDefault();
+          if (e.shiftKey) {
+            prevPage();
+          } else {
+            nextPage();
+          }
+          break;
+        case "+":
+        case "=":
+          e.preventDefault();
+          setViewerZoom(viewerZoom * 1.2);
+          break;
+        case "-":
+          e.preventDefault();
+          setViewerZoom(viewerZoom / 1.2);
+          break;
+        case "0":
+          e.preventDefault();
+          window.dispatchEvent(new CustomEvent("fit-to-view"));
+          break;
+      }
+    },
+    [nextPage, prevPage, viewerZoom, setViewerZoom],
+  );
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
+
+  // Listen for fit-to-view events from toolbar
+  useEffect(() => {
+    const handler = () => {
+      // InstructionCanvas will handle this via its own fitToView
+      // We trigger a page index re-set to force a re-fit
+      const store = useAppStore.getState();
+      const idx = store.currentPageIndex;
+      store.setCurrentPageIndex(-1);
+      // Use microtask to ensure state update
+      queueMicrotask(() => store.setCurrentPageIndex(idx));
+    };
+    window.addEventListener("fit-to-view", handler);
+    return () => window.removeEventListener("fit-to-view", handler);
+  }, []);
 
   if (!project) {
     return (
@@ -40,28 +147,25 @@ export default function BuildRoute() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Build toolbar shell */}
-      <div className="flex items-center gap-2 border-b border-border bg-background px-3 py-1">
-        <div className="flex items-center gap-1.5 text-xs text-text-secondary">
-          <Package className="h-3.5 w-3.5 text-accent" />
-          <span className="font-medium">{project.name}</span>
-        </div>
-        <div className="flex-1" />
-        <span className="text-[10px] text-text-tertiary">
-          Build workspace coming in Phase 2
-        </span>
-      </div>
+      <BuildToolbar
+        onOpenSourceManager={() => setSourceManagerOpen((v) => !v)}
+      />
 
-      {/* Build content area */}
-      <div className="flex flex-1 items-center justify-center">
-        <div className="text-center">
-          <p className="text-sm text-text-tertiary">
-            Build workspace will be available in Phase 2
-          </p>
-          <p className="mt-1 text-xs text-text-tertiary">
-            Upload instructions, create tracks, and track your build progress
-          </p>
-        </div>
+      <div className="relative flex-1 bg-[#E8E4DF]">
+        {isProcessingPdf && <ProcessingOverlay />}
+
+        {sourceManagerOpen && (
+          <SourceManagerPanel onClose={() => setSourceManagerOpen(false)} />
+        )}
+
+        {hasSources ? (
+          <>
+            <InstructionCanvas />
+            <PageNavigator />
+          </>
+        ) : (
+          <EmptyInstructionsState onUpload={handleUploadPdf} />
+        )}
       </div>
     </div>
   );

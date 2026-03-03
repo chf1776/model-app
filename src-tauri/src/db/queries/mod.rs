@@ -1,7 +1,10 @@
 pub mod accessories;
+pub mod instruction_pages;
+pub mod instruction_sources;
 pub mod kit_files;
 pub mod kits;
 pub mod paints;
 pub mod palette_entries;
+pub mod project_ui_state;
 pub mod projects;
 pub mod settings;

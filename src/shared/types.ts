@@ -281,6 +281,39 @@ export interface PaintProjectMapping {
 }
 export type PaintViewMode = "list" | "grid";
 
+// ── Instruction Sources ──────────────────────────────────────────────────────
+
+export interface InstructionSource {
+  id: string;
+  project_id: string;
+  name: string;
+  original_filename: string;
+  file_path: string;
+  page_count: number;
+  display_order: number;
+  created_at: number;
+}
+
+export interface InstructionPage {
+  id: string;
+  source_id: string;
+  page_index: number;
+  file_path: string;
+  width: number;
+  height: number;
+}
+
+export interface ProjectUiState {
+  project_id: string;
+  active_step_id: string | null;
+  build_mode: "setup" | "building";
+  nav_mode: "track" | "page";
+  image_zoom: number;
+  image_pan_x: number;
+  image_pan_y: number;
+  updated_at: number;
+}
+
 export type Zone = "collection" | "build" | "overview";
 
 export const KIT_CATEGORIES: { value: KitCategory; label: string }[] = [

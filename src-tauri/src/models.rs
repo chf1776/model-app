@@ -217,3 +217,43 @@ pub struct CreateProjectInput {
     pub scalemates_url: Option<String>,
     pub product_code: Option<String>,
 }
+
+// ── Instruction Source ──────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InstructionSource {
+    pub id: String,
+    pub project_id: String,
+    pub name: String,
+    pub original_filename: String,
+    pub file_path: String,
+    pub page_count: i32,
+    pub display_order: i32,
+    pub created_at: i64,
+}
+
+// ── Instruction Page ────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InstructionPage {
+    pub id: String,
+    pub source_id: String,
+    pub page_index: i32,
+    pub file_path: String,
+    pub width: i32,
+    pub height: i32,
+}
+
+// ── Project UI State ────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProjectUiState {
+    pub project_id: String,
+    pub active_step_id: Option<String>,
+    pub build_mode: String,
+    pub nav_mode: String,
+    pub image_zoom: f64,
+    pub image_pan_x: f64,
+    pub image_pan_y: f64,
+    pub updated_at: i64,
+}

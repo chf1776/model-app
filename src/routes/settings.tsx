@@ -11,6 +11,7 @@ import * as api from "@/api";
 import { cn } from "@/lib/utils";
 
 type Theme = "light" | "dark" | "system";
+type PdfDpi = "72" | "150" | "300";
 
 const THEMES: { value: Theme; label: string }[] = [
   { value: "light", label: "Light" },
@@ -18,14 +19,22 @@ const THEMES: { value: Theme; label: string }[] = [
   { value: "system", label: "System" },
 ];
 
+const DPI_OPTIONS: { value: PdfDpi; label: string }[] = [
+  { value: "72", label: "72 (Draft)" },
+  { value: "150", label: "150 (Default)" },
+  { value: "300", label: "300 (High)" },
+];
+
 export default function SettingsRoute() {
   const navigate = useNavigate();
   const [theme, setTheme] = useState<Theme>("light");
+  const [pdfDpi, setPdfDpi] = useState<PdfDpi>("150");
   const [dbPath, setDbPath] = useState<string>("");
   const [appVersion, setAppVersion] = useState<string>("");
 
   useEffect(() => {
     api.getSetting("theme").then((v) => setTheme(v as Theme)).catch(() => {});
+    api.getSetting("pdf_dpi").then((v) => setPdfDpi(v as PdfDpi)).catch(() => {});
     appDataDir().then((dir) => setDbPath(`${dir}model-builder/db.sqlite`)).catch(() => {});
     getVersion().then(setAppVersion).catch(() => {});
   }, []);
@@ -33,6 +42,11 @@ export default function SettingsRoute() {
   const handleThemeChange = async (value: Theme) => {
     setTheme(value);
     await api.setSetting("theme", value);
+  };
+
+  const handleDpiChange = async (value: PdfDpi) => {
+    setPdfDpi(value);
+    await api.setSetting("pdf_dpi", value);
   };
 
   return (
@@ -74,6 +88,39 @@ export default function SettingsRoute() {
               ))}
             </div>
           </div>
+        </section>
+
+        {/* PDF Import */}
+        <section className="mb-6">
+          <h2 className="mb-2 text-xs font-semibold text-text-primary">
+            PDF Import
+          </h2>
+          <Separator className="mb-3" />
+          <div className="flex items-center gap-4">
+            <Label className="text-[11px] text-text-secondary">
+              Render DPI
+            </Label>
+            <div className="flex gap-1 rounded-md bg-muted p-[3px]">
+              {DPI_OPTIONS.map((d) => (
+                <button
+                  key={d.value}
+                  onClick={() => handleDpiChange(d.value)}
+                  className={cn(
+                    "rounded-[5px] px-3 py-[3px] text-[10px] transition-colors",
+                    pdfDpi === d.value
+                      ? "bg-card font-semibold text-accent shadow-sm"
+                      : "text-text-tertiary",
+                  )}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="mt-1.5 text-[10px] text-text-tertiary">
+            Higher DPI = sharper pages but larger files and slower import.
+            Applies to new imports only.
+          </p>
         </section>
 
         {/* Data */}

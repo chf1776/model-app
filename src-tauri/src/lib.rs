@@ -1,6 +1,7 @@
 mod commands;
 mod db;
 mod models;
+mod services;
 
 use db::AppDb;
 use tauri::Manager;
@@ -44,6 +45,13 @@ pub fn run() {
             commands::paints::delete_paint,
             commands::palette_entries::list_paint_project_mappings,
             commands::palette_entries::set_paint_projects,
+            commands::instructions::list_instruction_sources,
+            commands::instructions::list_instruction_pages,
+            commands::instructions::upload_instruction_pdf,
+            commands::instructions::process_instruction_source,
+            commands::instructions::delete_instruction_source,
+            commands::instructions::get_project_ui_state,
+            commands::instructions::save_view_state,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

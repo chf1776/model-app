@@ -13,6 +13,9 @@ import type {
   PaintProjectMapping,
   Project,
   CreateProjectInput,
+  InstructionSource,
+  InstructionPage,
+  ProjectUiState,
 } from "@/shared/types";
 
 // ── Kits ────────────────────────────────────────────────────────────────────
@@ -165,4 +168,57 @@ export async function saveBoxArt(
     kitId,
     sourcePath,
   });
+}
+
+// ── Instructions ─────────────────────────────────────────────────────────────
+
+export async function listInstructionSources(
+  projectId: string,
+): Promise<InstructionSource[]> {
+  return invoke<InstructionSource[]>("list_instruction_sources", { projectId });
+}
+
+export async function listInstructionPages(
+  sourceId: string,
+): Promise<InstructionPage[]> {
+  return invoke<InstructionPage[]>("list_instruction_pages", { sourceId });
+}
+
+export async function uploadInstructionPdf(
+  projectId: string,
+  sourcePath: string,
+  name?: string,
+): Promise<InstructionSource> {
+  return invoke<InstructionSource>("upload_instruction_pdf", {
+    projectId,
+    sourcePath,
+    name: name ?? null,
+  });
+}
+
+export async function processInstructionSource(
+  sourceId: string,
+): Promise<InstructionSource> {
+  return invoke<InstructionSource>("process_instruction_source", { sourceId });
+}
+
+export async function deleteInstructionSource(
+  sourceId: string,
+): Promise<void> {
+  return invoke<void>("delete_instruction_source", { sourceId });
+}
+
+export async function getProjectUiState(
+  projectId: string,
+): Promise<ProjectUiState> {
+  return invoke<ProjectUiState>("get_project_ui_state", { projectId });
+}
+
+export async function saveViewState(
+  projectId: string,
+  zoom: number,
+  panX: number,
+  panY: number,
+): Promise<void> {
+  return invoke<void>("save_view_state", { projectId, zoom, panX, panY });
 }
