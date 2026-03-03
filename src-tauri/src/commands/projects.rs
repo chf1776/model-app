@@ -2,9 +2,7 @@ use crate::db::AppDb;
 use crate::models::{CreateKitInput, CreateProjectInput, Project};
 use rusqlite::params;
 use std::path::PathBuf;
-use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{Manager, State};
-use uuid::Uuid;
 
 #[tauri::command]
 pub fn list_projects(db: State<'_, AppDb>) -> Result<Vec<Project>, String> {
@@ -19,7 +17,7 @@ pub fn get_project(db: State<'_, AppDb>, id: String) -> Result<Project, String> 
 }
 
 #[tauri::command]
-pub fn create_project(db: State<'_, AppDb>, input: CreateProjectInput) -> Result<Project, String> {
+pub fn create_project(app: tauri::AppHandle, db: State<'_, AppDb>, input: CreateProjectInput) -> Result<Project, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
 
     // Determine kit_id: use existing or create new
@@ -56,38 +54,82 @@ pub fn create_project(db: State<'_, AppDb>, input: CreateProjectInput) -> Result
 
     let project = crate::db::queries::projects::insert(&conn, &input, &kit_id)?;
 
-    // Auto-import kit files as instruction sources
+    // Auto-import kit files as instruction sources + rasterize PDFs
     let kit_files = crate::db::queries::kit_files::list_by_kit(&conn, &kit_id)
         .unwrap_or_default();
-    let ts = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as i64;
+    let pdf_kit_files: Vec<_> = kit_files.iter().filter(|kf| kf.file_type == "pdf").collect();
 
-    for (idx, kf) in kit_files.iter().enumerate() {
-        let source_id = Uuid::new_v4().to_string();
-        let name = kf
-            .label
-            .clone()
-            .unwrap_or_else(|| {
-                PathBuf::from(&kf.file_path)
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .unwrap_or("Untitled")
-                    .to_string()
-            });
-        let original_filename = PathBuf::from(&kf.file_path)
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("unknown")
-            .to_string();
+    if !pdf_kit_files.is_empty() {
+        let app_data = app.path().app_data_dir().map_err(|e| e.to_string())?;
+        let dpi: u32 = crate::db::queries::settings::get(&conn, "pdf_dpi")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(150);
 
-        conn.execute(
-            "INSERT INTO instruction_sources (id, project_id, name, original_filename, page_count, display_order, created_at)
-             VALUES (?1, ?2, ?3, ?4, 0, ?5, ?6)",
-            params![source_id, project.id, name, original_filename, idx as i32, ts],
-        )
-        .map_err(|e| e.to_string())?;
+        for kf in &pdf_kit_files {
+            let name = kf
+                .label
+                .clone()
+                .unwrap_or_else(|| {
+                    PathBuf::from(&kf.file_path)
+                        .file_stem()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("Untitled")
+                        .to_string()
+                });
+            let original_filename = PathBuf::from(&kf.file_path)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("unknown.pdf")
+                .to_string();
+
+            // Insert source record
+            let source = crate::db::queries::instruction_sources::insert(
+                &conn,
+                &project.id,
+                &name,
+                &original_filename,
+                &kf.file_path,
+            )?;
+
+            // Set up output directory and rasterize
+            let instructions_dir = app_data
+                .join("model-builder")
+                .join("projects")
+                .join(&project.id)
+                .join("instructions")
+                .join(&source.id);
+            let pages_dir = instructions_dir.join("pages");
+
+            // Copy PDF to project dir
+            std::fs::create_dir_all(&instructions_dir)
+                .map_err(|e| format!("Failed to create instructions dir: {e}"))?;
+            let pdf_dest = instructions_dir.join("original.pdf");
+            std::fs::copy(&kf.file_path, &pdf_dest)
+                .map_err(|e| format!("Failed to copy PDF: {e}"))?;
+
+            let pdf_path = PathBuf::from(&kf.file_path);
+            match crate::services::pdf::rasterize_pdf(&pdf_path, &pages_dir, dpi) {
+                Ok(rasterized) => {
+                    let page_data: Vec<(usize, String, u32, u32)> = rasterized
+                        .iter()
+                        .map(|p| (p.page_index, p.file_path.to_string_lossy().to_string(), p.width, p.height))
+                        .collect();
+
+                    crate::db::queries::instruction_pages::insert_batch(&conn, &source.id, &page_data)?;
+
+                    let page_count = rasterized.len() as i32;
+                    let dest_str = pdf_dest.to_string_lossy().to_string();
+                    crate::db::queries::instruction_sources::update_after_processing(
+                        &conn, &source.id, page_count, &dest_str,
+                    )?;
+                }
+                Err(e) => {
+                    // Non-fatal: source stays with page_count=0, user can re-process later
+                    eprintln!("Warning: failed to rasterize PDF for kit file {}: {}", kf.id, e);
+                }
+            }
+        }
     }
 
     // Auto-link accessories with matching parent_kit_id
