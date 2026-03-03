@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **PDF import via MuPDF**: Rust-side PDF rasterization using `mupdf` crate (builds MuPDF from C source via cargo). Pages rendered as PNGs at configurable DPI (72/150/300)
 - **Instruction source management**: Upload, list, delete, and process instruction PDFs per project. Files stored in `{appData}/model-builder/projects/{id}/instructions/`
-- **Konva page viewer**: Full canvas-based page viewer using react-konva with scroll-wheel zoom (centered on cursor), click-drag pan, and fit-to-view
+- **Konva page viewer**: Full canvas-based page viewer using react-konva with scroll-wheel zoom (centered on cursor), click-drag pan, fit-to-view, and white page backing for transparent PDFs
 - **Page rotation**: Rotate pages 90 degrees at a time (toolbar button or `R` key), persisted to database across sessions
 - **Page navigator**: Frosted glass overlay at bottom-center with source name, page counter, prev/next controls, and multi-source dropdown
 - **Source manager panel**: Slide-out panel listing all instruction sources with delete (confirmation dialog) and process actions

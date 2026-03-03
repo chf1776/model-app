@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback, useState } from "react";
-import { Stage, Layer, Image as KonvaImage } from "react-konva";
+import { Stage, Layer, Rect, Image as KonvaImage } from "react-konva";
 import useImage from "use-image";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useAppStore } from "@/store";
@@ -231,6 +231,11 @@ export function InstructionCanvas() {
           style={{ cursor: "grab" }}
         >
           <Layer>
+            <Rect
+              width={effectiveW}
+              height={effectiveH}
+              fill="#FFFFFF"
+            />
             <PageImage
               src={imageSrc}
               rotation={rotation}
