@@ -1,6 +1,6 @@
+use crate::util::now;
 use rusqlite::{params, Connection};
 use serde::Serialize;
-use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize)]
@@ -8,13 +8,6 @@ pub struct PaletteMapping {
     pub paint_id: String,
     pub project_id: String,
     pub project_name: String,
-}
-
-fn now() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as i64
 }
 
 /// Returns distinct (paint_id, project_id, project_name) pairs for all palette entries

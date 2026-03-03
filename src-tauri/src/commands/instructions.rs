@@ -9,7 +9,7 @@ pub fn list_instruction_sources(
     db: State<'_, AppDb>,
     project_id: String,
 ) -> Result<Vec<InstructionSource>, String> {
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let conn = db.conn()?;
     crate::db::queries::instruction_sources::list_by_project(&conn, &project_id)
 }
 
@@ -18,7 +18,7 @@ pub fn list_instruction_pages(
     db: State<'_, AppDb>,
     source_id: String,
 ) -> Result<Vec<InstructionPage>, String> {
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let conn = db.conn()?;
     crate::db::queries::instruction_pages::list_by_source(&conn, &source_id)
 }
 
@@ -49,7 +49,7 @@ pub fn upload_instruction_pdf(
         .to_string();
 
     // Insert source record first to get the actual ID
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let conn = db.conn()?;
     let mut source = crate::db::queries::instruction_sources::insert(
         &conn,
         &project_id,
@@ -59,12 +59,7 @@ pub fn upload_instruction_pdf(
     )?;
 
     // Create output directory using the actual source ID
-    let instructions_dir = app_data
-        .join("model-builder")
-        .join("projects")
-        .join(&project_id)
-        .join("instructions")
-        .join(&source.id);
+    let instructions_dir = crate::util::instructions_dir(&app_data, &project_id, &source.id);
 
     fs::create_dir_all(&instructions_dir)
         .map_err(|e| format!("Failed to create instructions dir: {e}"))?;
@@ -75,10 +70,7 @@ pub fn upload_instruction_pdf(
         .map_err(|e| format!("Failed to copy PDF: {e}"))?;
 
     // Read DPI setting and rasterize
-    let dpi: u32 = crate::db::queries::settings::get(&conn, "pdf_dpi")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(150);
+    let dpi = crate::util::get_pdf_dpi(&conn);
 
     let pages_dir = instructions_dir.join("pages");
     let page_count = crate::services::pdf::rasterize_and_persist(
@@ -97,7 +89,7 @@ pub fn process_instruction_source(
     db: State<'_, AppDb>,
     source_id: String,
 ) -> Result<InstructionSource, String> {
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let conn = db.conn()?;
     let source = crate::db::queries::instruction_sources::get_by_id(&conn, &source_id)?;
 
     if source.page_count > 0 {
@@ -106,12 +98,7 @@ pub fn process_instruction_source(
 
     let app_data = app.path().app_data_dir().map_err(|e| e.to_string())?;
 
-    let instructions_dir = app_data
-        .join("model-builder")
-        .join("projects")
-        .join(&source.project_id)
-        .join("instructions")
-        .join(&source.id);
+    let instructions_dir = crate::util::instructions_dir(&app_data, &source.project_id, &source.id);
     let pages_dir = instructions_dir.join("pages");
 
     let pdf_path = PathBuf::from(&source.file_path);
@@ -119,10 +106,7 @@ pub fn process_instruction_source(
         return Err(format!("PDF file not found: {}", source.file_path));
     }
 
-    let dpi: u32 = crate::db::queries::settings::get(&conn, "pdf_dpi")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(150);
+    let dpi = crate::util::get_pdf_dpi(&conn);
 
     let page_count = crate::services::pdf::rasterize_and_persist(
         &conn, &source.id, &pdf_path, &pages_dir, dpi,
@@ -139,7 +123,7 @@ pub fn delete_instruction_source(
     db: State<'_, AppDb>,
     source_id: String,
 ) -> Result<(), String> {
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let conn = db.conn()?;
     let source = crate::db::queries::instruction_sources::get_by_id(&conn, &source_id)?;
 
     // Delete from database (CASCADE will remove pages)
@@ -147,12 +131,7 @@ pub fn delete_instruction_source(
 
     // Clean up files on disk
     let app_data = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let instructions_dir = app_data
-        .join("model-builder")
-        .join("projects")
-        .join(&source.project_id)
-        .join("instructions")
-        .join(&source.id);
+    let instructions_dir = crate::util::instructions_dir(&app_data, &source.project_id, &source.id);
 
     if instructions_dir.exists() {
         let _ = fs::remove_dir_all(&instructions_dir);
@@ -167,7 +146,7 @@ pub fn set_page_rotation(
     page_id: String,
     rotation: i32,
 ) -> Result<(), String> {
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let conn = db.conn()?;
     crate::db::queries::instruction_pages::set_rotation(&conn, &page_id, rotation)
 }
 
@@ -176,7 +155,7 @@ pub fn get_project_ui_state(
     db: State<'_, AppDb>,
     project_id: String,
 ) -> Result<ProjectUiState, String> {
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let conn = db.conn()?;
     crate::db::queries::project_ui_state::get_or_create(&conn, &project_id)
 }
 
@@ -188,6 +167,6 @@ pub fn save_view_state(
     pan_x: f64,
     pan_y: f64,
 ) -> Result<(), String> {
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let conn = db.conn()?;
     crate::db::queries::project_ui_state::save_view_state(&conn, &project_id, zoom, pan_x, pan_y)
 }

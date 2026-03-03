@@ -6,19 +6,19 @@ use tauri::{Manager, State};
 
 #[tauri::command]
 pub fn list_projects(db: State<'_, AppDb>) -> Result<Vec<Project>, String> {
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let conn = db.conn()?;
     crate::db::queries::projects::list_all(&conn)
 }
 
 #[tauri::command]
 pub fn get_project(db: State<'_, AppDb>, id: String) -> Result<Project, String> {
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let conn = db.conn()?;
     crate::db::queries::projects::get_by_id(&conn, &id)
 }
 
 #[tauri::command]
 pub fn create_project(app: tauri::AppHandle, db: State<'_, AppDb>, input: CreateProjectInput) -> Result<Project, String> {
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let conn = db.conn()?;
 
     // Determine kit_id: use existing or create new
     let kit_id = if let Some(ref existing_id) = input.kit_id {
@@ -61,10 +61,7 @@ pub fn create_project(app: tauri::AppHandle, db: State<'_, AppDb>, input: Create
 
     if !pdf_kit_files.is_empty() {
         let app_data = app.path().app_data_dir().map_err(|e| e.to_string())?;
-        let dpi: u32 = crate::db::queries::settings::get(&conn, "pdf_dpi")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(150);
+        let dpi = crate::util::get_pdf_dpi(&conn);
 
         for kf in &pdf_kit_files {
             let name = kf
@@ -91,12 +88,7 @@ pub fn create_project(app: tauri::AppHandle, db: State<'_, AppDb>, input: Create
                 &kf.file_path,
             )?;
 
-            let instructions_dir = app_data
-                .join("model-builder")
-                .join("projects")
-                .join(&project.id)
-                .join("instructions")
-                .join(&source.id);
+            let instructions_dir = crate::util::instructions_dir(&app_data, &project.id, &source.id);
 
             std::fs::create_dir_all(&instructions_dir)
                 .map_err(|e| format!("Failed to create instructions dir: {e}"))?;
@@ -142,7 +134,7 @@ pub fn create_project(app: tauri::AppHandle, db: State<'_, AppDb>, input: Create
 
 #[tauri::command]
 pub fn rename_project(db: State<'_, AppDb>, id: String, name: String) -> Result<(), String> {
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let conn = db.conn()?;
     conn.execute(
         "UPDATE projects SET name = ?1 WHERE id = ?2",
         rusqlite::params![name, id],
@@ -153,7 +145,7 @@ pub fn rename_project(db: State<'_, AppDb>, id: String, name: String) -> Result<
 
 #[tauri::command]
 pub fn delete_project(app: tauri::AppHandle, db: State<'_, AppDb>, id: String) -> Result<(), String> {
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let conn = db.conn()?;
 
     // Clear active project if it's the one being deleted
     let active_id = crate::db::queries::settings::get(&conn, "active_project_id")
@@ -164,10 +156,7 @@ pub fn delete_project(app: tauri::AppHandle, db: State<'_, AppDb>, id: String) -
 
     // Clean up instruction files on disk
     let app_data = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let project_dir = app_data
-        .join("model-builder")
-        .join("projects")
-        .join(&id);
+    let project_dir = app_data.join("model-builder").join("projects").join(&id);
     if project_dir.exists() {
         let _ = std::fs::remove_dir_all(&project_dir);
     }
@@ -178,13 +167,13 @@ pub fn delete_project(app: tauri::AppHandle, db: State<'_, AppDb>, id: String) -
 
 #[tauri::command]
 pub fn set_active_project(db: State<'_, AppDb>, id: String) -> Result<(), String> {
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let conn = db.conn()?;
     crate::db::queries::settings::set(&conn, "active_project_id", &id)
 }
 
 #[tauri::command]
 pub fn get_active_project(db: State<'_, AppDb>) -> Result<Option<Project>, String> {
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let conn = db.conn()?;
     let id = crate::db::queries::settings::get(&conn, "active_project_id")
         .unwrap_or_default();
     if id.is_empty() {

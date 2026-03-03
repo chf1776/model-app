@@ -1,14 +1,7 @@
 use crate::models::KitFile;
+use crate::util::now;
 use rusqlite::{params, Connection};
-use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
-
-fn now() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as i64
-}
 
 pub fn list_by_kit(conn: &Connection, kit_id: &str) -> Result<Vec<KitFile>, String> {
     let mut stmt = conn

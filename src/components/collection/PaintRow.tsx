@@ -14,8 +14,7 @@ export function PaintRow({ paint }: PaintRowProps) {
   const selectedPaintId = useAppStore((s) => s.selectedPaintId);
   const setSelectedPaintId = useAppStore((s) => s.setSelectedPaintId);
   const updatePaintStore = useAppStore((s) => s.updatePaint);
-  const paintProjectMap = useAppStore((s) => s.paintProjectMap);
-  const paintProjects = paintProjectMap[paint.id] ?? [];
+  const paintProjects = useAppStore((s) => s.paintProjectMap[paint.id] ?? []);
   const isSelected = selectedPaintId === paint.id;
 
   const handleStatusToggle = async (e: React.MouseEvent) => {

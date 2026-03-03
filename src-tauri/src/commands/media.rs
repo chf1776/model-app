@@ -31,7 +31,7 @@ pub fn save_box_art(
     let dest_str = dest.to_string_lossy().to_string();
 
     // Update kit record
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let conn = db.conn()?;
     conn.execute(
         "UPDATE kits SET box_art_path = ?1 WHERE id = ?2",
         rusqlite::params![dest_str, kit_id],
@@ -67,7 +67,7 @@ pub fn save_accessory_image(
 
     let dest_str = dest.to_string_lossy().to_string();
 
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let conn = db.conn()?;
     conn.execute(
         "UPDATE accessories SET image_path = ?1 WHERE id = ?2",
         rusqlite::params![dest_str, accessory_id],

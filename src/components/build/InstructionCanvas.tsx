@@ -60,7 +60,7 @@ export function InstructionCanvas() {
   const viewerPanY = useAppStore((s) => s.viewerPanY);
   const setViewerZoom = useAppStore((s) => s.setViewerZoom);
   const setViewerPan = useAppStore((s) => s.setViewerPan);
-  const fitToViewCounter = useAppStore((s) => s.fitToViewCounter);
+  const fitToViewTrigger = useAppStore((s) => s.fitToViewTrigger);
 
   const currentPage = currentSourcePages[currentPageIndex];
   const imageSrc = currentPage ? convertFileSrc(currentPage.file_path) : null;
@@ -144,10 +144,10 @@ export function InstructionCanvas() {
 
   // Respond to explicit fit-to-view requests (keyboard `0`, toolbar button)
   useEffect(() => {
-    if (fitToViewCounter > 0) {
+    if (fitToViewTrigger > 0) {
       fitToViewRef.current();
     }
-  }, [fitToViewCounter]);
+  }, [fitToViewTrigger]);
 
   // Debounced save view state
   const debouncedSave = useCallback(

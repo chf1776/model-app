@@ -42,6 +42,10 @@ impl AppDb {
         })
     }
 
+    pub fn conn(&self) -> Result<std::sync::MutexGuard<'_, Connection>, String> {
+        self.conn.lock().map_err(|e| e.to_string())
+    }
+
     pub fn stash_dir(app_data_dir: &PathBuf) -> PathBuf {
         app_data_dir.join("model-builder").join("stash")
     }

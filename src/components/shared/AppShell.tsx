@@ -101,12 +101,14 @@ export function AppShell() {
 
   // Initialize app data on mount
   useEffect(() => {
-    loadKits();
-    loadAccessories();
-    loadPaints();
-    loadPaintProjectMap();
-    loadProjects();
-    loadActiveProject();
+    Promise.all([
+      loadKits(),
+      loadAccessories(),
+      loadPaints(),
+      loadPaintProjectMap(),
+      loadProjects(),
+      loadActiveProject(),
+    ]);
   }, [loadKits, loadAccessories, loadPaints, loadPaintProjectMap, loadProjects, loadActiveProject]);
 
   // Sync zone state from URL
@@ -155,8 +157,7 @@ export function AppShell() {
     if (!project || !renameValue.trim()) return;
     try {
       await api.renameProject(project.id, renameValue.trim());
-      await loadProjects();
-      await loadActiveProject();
+      await Promise.all([loadProjects(), loadActiveProject()]);
       toast.success("Project renamed");
       setRenameOpen(false);
     } catch (err) {

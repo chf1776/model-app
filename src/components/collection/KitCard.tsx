@@ -158,6 +158,7 @@ export function KitCard({
             <img
               src={convertFileSrc(kit.box_art_path)}
               alt={kit.name}
+              loading="lazy"
               className="h-full w-full rounded-md object-cover"
             />
           ) : (

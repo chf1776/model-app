@@ -1,14 +1,7 @@
 use crate::models::{CreateProjectInput, Project};
+use crate::util::now;
 use rusqlite::{params, Connection};
-use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
-
-fn now() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as i64
-}
 
 pub fn list_all(conn: &Connection) -> Result<Vec<Project>, String> {
     let mut stmt = conn

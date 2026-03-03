@@ -86,12 +86,3 @@ pub fn set_rotation(conn: &Connection, page_id: &str, rotation: i32) -> Result<(
     .map_err(|e| e.to_string())?;
     Ok(())
 }
-
-pub fn delete_by_source(conn: &Connection, source_id: &str) -> Result<(), String> {
-    conn.execute(
-        "DELETE FROM instruction_pages WHERE source_id = ?1",
-        params![source_id],
-    )
-    .map_err(|e| e.to_string())?;
-    Ok(())
-}

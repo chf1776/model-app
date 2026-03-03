@@ -18,7 +18,6 @@ import { ACCESSORY_TYPE_COLORS, ACCESSORY_TYPE_LABELS } from "@/shared/types";
 interface AccessoryRowProps {
   accessory: Accessory;
   onEdit: (accessory: Accessory) => void;
-  compact?: boolean;
 }
 
 export function AccessoryRow({ accessory, onEdit }: AccessoryRowProps) {
@@ -75,6 +74,7 @@ export function AccessoryRow({ accessory, onEdit }: AccessoryRowProps) {
             <img
               src={convertFileSrc(accessory.image_path)}
               alt={accessory.name}
+              loading="lazy"
               className="h-full w-full rounded-md object-cover"
             />
           ) : (

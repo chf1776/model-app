@@ -2,6 +2,7 @@ mod commands;
 mod db;
 mod models;
 mod services;
+mod util;
 
 use db::AppDb;
 use tauri::Manager;

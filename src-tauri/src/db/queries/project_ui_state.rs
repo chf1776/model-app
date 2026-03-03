@@ -1,13 +1,6 @@
 use crate::models::ProjectUiState;
+use crate::util::now;
 use rusqlite::{params, Connection};
-use std::time::{SystemTime, UNIX_EPOCH};
-
-fn now() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as i64
-}
 
 pub fn get_or_create(conn: &Connection, project_id: &str) -> Result<ProjectUiState, String> {
     let ts = now();
@@ -58,13 +51,3 @@ pub fn save_view_state(
     Ok(())
 }
 
-pub fn set_build_mode(conn: &Connection, project_id: &str, mode: &str) -> Result<(), String> {
-    let ts = now();
-
-    conn.execute(
-        "UPDATE project_ui_state SET build_mode = ?1, updated_at = ?2 WHERE project_id = ?3",
-        params![mode, ts, project_id],
-    )
-    .map_err(|e| e.to_string())?;
-    Ok(())
-}

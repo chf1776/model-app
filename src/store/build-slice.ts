@@ -33,7 +33,7 @@ export interface BuildSlice {
   viewerZoom: number;
   viewerPanX: number;
   viewerPanY: number;
-  fitToViewCounter: number;
+  fitToViewTrigger: number;
   setViewerZoom: (zoom: number) => void;
   setViewerPan: (x: number, y: number) => void;
   resetViewerState: () => void;
@@ -43,6 +43,18 @@ export interface BuildSlice {
   isProcessingPdf: boolean;
   setIsProcessingPdf: (processing: boolean) => void;
 }
+
+const DEFAULT_PAGE_STATE = {
+  currentSourceId: null as string | null,
+  currentSourcePages: [] as InstructionPage[],
+  currentPageIndex: 0,
+};
+
+const DEFAULT_VIEWER_STATE = {
+  viewerZoom: 1,
+  viewerPanX: 0,
+  viewerPanY: 0,
+};
 
 export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   set,
@@ -54,15 +66,11 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
 
   // Instruction sources
   instructionSources: [],
-  currentSourceId: null,
-  currentSourcePages: [],
-  currentPageIndex: 0,
+  ...DEFAULT_PAGE_STATE,
 
   // Viewer state
-  viewerZoom: 1,
-  viewerPanX: 0,
-  viewerPanY: 0,
-  fitToViewCounter: 0,
+  ...DEFAULT_VIEWER_STATE,
+  fitToViewTrigger: 0,
 
   // Processing state
   isProcessingPdf: false,
@@ -80,9 +88,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         activeProjectId: null,
         project: null,
         instructionSources: [],
-        currentSourceId: null,
-        currentSourcePages: [],
-        currentPageIndex: 0,
+        ...DEFAULT_PAGE_STATE,
       });
     }
     // Reload projects list
@@ -96,13 +102,8 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     set({
       activeProjectId: id,
       project,
-      // Reset page state when switching projects
-      currentSourceId: null,
-      currentSourcePages: [],
-      currentPageIndex: 0,
-      viewerZoom: 1,
-      viewerPanX: 0,
-      viewerPanY: 0,
+      ...DEFAULT_PAGE_STATE,
+      ...DEFAULT_VIEWER_STATE,
     });
     // Load instruction sources for the new project
     get().loadInstructionSources(id);
@@ -113,9 +114,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       activeProjectId: null,
       project: null,
       instructionSources: [],
-      currentSourceId: null,
-      currentSourcePages: [],
-      currentPageIndex: 0,
+      ...DEFAULT_PAGE_STATE,
     }),
 
   loadActiveProject: async () => {
@@ -170,9 +169,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       currentSourceId: sourceId,
       currentSourcePages: pages,
       currentPageIndex: 0,
-      viewerZoom: 1,
-      viewerPanX: 0,
-      viewerPanY: 0,
+      ...DEFAULT_VIEWER_STATE,
     });
   },
 
@@ -220,7 +217,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   },
 
   requestFitToView: () => {
-    set((s) => ({ fitToViewCounter: s.fitToViewCounter + 1 }));
+    set((s) => ({ fitToViewTrigger: s.fitToViewTrigger + 1 }));
   },
 
   setIsProcessingPdf: (processing) => {

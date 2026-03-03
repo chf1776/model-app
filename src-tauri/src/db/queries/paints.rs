@@ -1,14 +1,7 @@
 use crate::models::{Paint, CreatePaintInput, UpdatePaintInput};
+use crate::util::now;
 use rusqlite::{params, Connection};
-use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
-
-fn now() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as i64
-}
 
 fn row_to_paint(row: &rusqlite::Row) -> rusqlite::Result<Paint> {
     Ok(Paint {

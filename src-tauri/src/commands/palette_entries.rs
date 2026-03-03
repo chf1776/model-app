@@ -6,7 +6,7 @@ use tauri::State;
 pub fn list_paint_project_mappings(
     db: State<'_, AppDb>,
 ) -> Result<Vec<PaletteMapping>, String> {
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let conn = db.conn()?;
     crate::db::queries::palette_entries::list_all_paint_mappings(&conn)
 }
 
@@ -17,6 +17,6 @@ pub fn set_paint_projects(
     paint_name: String,
     project_ids: Vec<String>,
 ) -> Result<(), String> {
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let conn = db.conn()?;
     crate::db::queries::palette_entries::set_projects_for_paint(&conn, &paint_id, &paint_name, &project_ids)
 }
