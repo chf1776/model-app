@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Build zone**: Replaced Phase 2 placeholder with full instruction viewer layout
 - **Build slice**: Expanded with instruction sources, page navigation, viewer state, rotation, and processing state
+- **Project creation**: Kit PDF files are now auto-rasterized during project creation with a processing overlay instead of requiring manual processing
 
 ## [0.1.5] — 2026-03-01 — Phase 1B-4: Collection Toolbars & Accessory Images
 

@@ -39,6 +39,7 @@ export function CreateProjectDialog({
   const loadProjects = useAppStore((s) => s.loadProjects);
   const setActiveProject = useAppStore((s) => s.setActiveProject);
   const setActiveZone = useAppStore((s) => s.setActiveZone);
+  const setIsProcessingPdf = useAppStore((s) => s.setIsProcessingPdf);
 
   const [projectName, setProjectName] = useState("");
   const [kitMode, setKitMode] = useState<"shelf" | "new">("shelf");
@@ -102,6 +103,17 @@ export function CreateProjectDialog({
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setSubmitting(true);
+
+    // Show processing overlay early — navigate to build zone before the
+    // potentially slow createProject call so the user sees progress
+    const kitHasPdfs = kitMode === "shelf" && selectedKitId;
+    if (kitHasPdfs) {
+      setIsProcessingPdf(true);
+      setActiveZone("build");
+      navigate("/build");
+      onOpenChange(false);
+    }
+
     try {
       const project = await api.createProject({
         name: projectName.trim(),
@@ -118,16 +130,20 @@ export function CreateProjectDialog({
       await loadKits();
       await loadProjects();
       await setActiveProject(project.id);
-      setActiveZone("build");
-      navigate("/build");
+
+      if (!kitHasPdfs) {
+        setActiveZone("build");
+        navigate("/build");
+        onOpenChange(false);
+      }
 
       toast.success(`Project "${project.name}" created`);
       reset();
-      onOpenChange(false);
     } catch (err) {
       toast.error(`Failed to create project: ${err}`);
     } finally {
       setSubmitting(false);
+      setIsProcessingPdf(false);
     }
   };
 
