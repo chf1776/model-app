@@ -33,6 +33,11 @@ export default function BuildRoute() {
 
   const hasSources = instructionSources.length > 0;
 
+  // Close source manager when processing starts
+  useEffect(() => {
+    if (isProcessingPdf) setSourceManagerOpen(false);
+  }, [isProcessingPdf]);
+
   const handleUploadPdf = async () => {
     if (!activeProjectId) return;
 

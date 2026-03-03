@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Source manager panel**: Slide-out panel listing all instruction sources with delete (confirmation dialog) and process actions
 - **Build toolbar**: Context toolbar with Setup mode label, project name, zoom controls (in/out/fit/rotate), source manager toggle, and Upload PDF button
 - **Empty instructions state**: Upload CTA shown when no PDFs exist for the active project
-- **Processing overlay**: Loading indicator during PDF rasterization
+- **Processing overlay**: Full-screen loading indicator during PDF rasterization (project creation and additional uploads)
 - **Project UI state persistence**: Zoom and pan state saved to database per project
 - **Keyboard shortcuts**: Tab/Shift+Tab (next/prev page), +/- (zoom), 0 (fit to view), R (rotate)
 - **DPI setting**: New "PDF Import" section in Settings with 72/150/300 DPI toggle
