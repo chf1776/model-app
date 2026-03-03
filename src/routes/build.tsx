@@ -26,6 +26,7 @@ export default function BuildRoute() {
   const viewerZoom = useAppStore((s) => s.viewerZoom);
   const setViewerZoom = useAppStore((s) => s.setViewerZoom);
   const requestFitToView = useAppStore((s) => s.requestFitToView);
+  const rotatePage = useAppStore((s) => s.rotatePage);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [sourceManagerOpen, setSourceManagerOpen] = useState(false);
@@ -91,9 +92,14 @@ export default function BuildRoute() {
           e.preventDefault();
           requestFitToView();
           break;
+        case "r":
+        case "R":
+          e.preventDefault();
+          rotatePage();
+          break;
       }
     },
-    [nextPage, prevPage, viewerZoom, setViewerZoom, requestFitToView],
+    [nextPage, prevPage, viewerZoom, setViewerZoom, requestFitToView, rotatePage],
   );
 
   useEffect(() => {

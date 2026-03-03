@@ -5,7 +5,7 @@ use uuid::Uuid;
 pub fn list_by_source(conn: &Connection, source_id: &str) -> Result<Vec<InstructionPage>, String> {
     let mut stmt = conn
         .prepare(
-            "SELECT id, source_id, page_index, file_path, width, height
+            "SELECT id, source_id, page_index, file_path, width, height, rotation
              FROM instruction_pages
              WHERE source_id = ?1
              ORDER BY page_index",
@@ -21,6 +21,7 @@ pub fn list_by_source(conn: &Connection, source_id: &str) -> Result<Vec<Instruct
                 file_path: row.get(3)?,
                 width: row.get(4)?,
                 height: row.get(5)?,
+                rotation: row.get(6)?,
             })
         })
         .map_err(|e| e.to_string())?
@@ -53,10 +54,20 @@ pub fn insert_batch(
             file_path: file_path.clone(),
             width: *width as i32,
             height: *height as i32,
+            rotation: 0,
         });
     }
 
     Ok(result)
+}
+
+pub fn set_rotation(conn: &Connection, page_id: &str, rotation: i32) -> Result<(), String> {
+    conn.execute(
+        "UPDATE instruction_pages SET rotation = ?1 WHERE id = ?2",
+        params![rotation, page_id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 pub fn delete_by_source(conn: &Connection, source_id: &str) -> Result<(), String> {

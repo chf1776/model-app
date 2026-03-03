@@ -27,6 +27,7 @@ export interface BuildSlice {
   setCurrentPageIndex: (index: number) => void;
   nextPage: () => void;
   prevPage: () => void;
+  rotatePage: () => Promise<void>;
 
   // Viewer state
   viewerZoom: number;
@@ -191,6 +192,19 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     if (currentPageIndex > 0) {
       set({ currentPageIndex: currentPageIndex - 1 });
     }
+  },
+
+  rotatePage: async () => {
+    const { currentSourcePages, currentPageIndex } = get();
+    const page = currentSourcePages[currentPageIndex];
+    if (!page) return;
+    const newRotation = (page.rotation + 90) % 360;
+    await api.setPageRotation(page.id, newRotation);
+    // Update local state
+    const updatedPages = currentSourcePages.map((p, i) =>
+      i === currentPageIndex ? { ...p, rotation: newRotation } : p,
+    );
+    set({ currentSourcePages: updatedPages });
   },
 
   setViewerZoom: (zoom) => {

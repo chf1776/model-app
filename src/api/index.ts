@@ -210,6 +210,13 @@ export async function processInstructionSource(
   return invoke<InstructionSource>("process_instruction_source", { sourceId });
 }
 
+export async function setPageRotation(
+  pageId: string,
+  rotation: number,
+): Promise<void> {
+  return invoke<void>("set_page_rotation", { pageId, rotation });
+}
+
 export async function deleteInstructionSource(
   sourceId: string,
 ): Promise<void> {

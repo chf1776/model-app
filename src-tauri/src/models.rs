@@ -242,6 +242,7 @@ pub struct InstructionPage {
     pub file_path: String,
     pub width: i32,
     pub height: i32,
+    pub rotation: i32,
 }
 
 // ── Project UI State ────────────────────────────────────────────────────────

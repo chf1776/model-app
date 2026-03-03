@@ -11,10 +11,38 @@ const MAX_ZOOM = 5.0;
 const ZOOM_STEP = 1.08;
 const SAVE_DEBOUNCE_MS = 500;
 
-function PageImage({ src }: { src: string }) {
+function PageImage({
+  src,
+  rotation,
+  width,
+  height,
+}: {
+  src: string;
+  rotation: number;
+  width: number;
+  height: number;
+}) {
   const [image] = useImage(src, "anonymous");
   if (!image) return null;
-  return <KonvaImage image={image} />;
+
+  // Rotate around the center of the image
+  const offsetX = width / 2;
+  const offsetY = height / 2;
+  // After rotation, reposition so the top-left of the bounding box is at (0,0)
+  const isPortraitSwap = rotation === 90 || rotation === 270;
+  const x = isPortraitSwap ? height / 2 : width / 2;
+  const y = isPortraitSwap ? width / 2 : height / 2;
+
+  return (
+    <KonvaImage
+      image={image}
+      rotation={rotation}
+      offsetX={offsetX}
+      offsetY={offsetY}
+      x={x}
+      y={y}
+    />
+  );
 }
 
 export function InstructionCanvas() {
@@ -36,6 +64,20 @@ export function InstructionCanvas() {
 
   const currentPage = currentSourcePages[currentPageIndex];
   const imageSrc = currentPage ? convertFileSrc(currentPage.file_path) : null;
+  const rotation = currentPage?.rotation ?? 0;
+
+  // Effective dimensions after rotation
+  const isSwapped = rotation === 90 || rotation === 270;
+  const effectiveW = currentPage
+    ? isSwapped
+      ? currentPage.height
+      : currentPage.width
+    : 0;
+  const effectiveH = currentPage
+    ? isSwapped
+      ? currentPage.width
+      : currentPage.height
+    : 0;
 
   // ResizeObserver for stage dimensions
   useEffect(() => {
@@ -50,7 +92,6 @@ export function InstructionCanvas() {
     });
 
     observer.observe(container);
-    // Initial size
     setStageSize({
       width: container.clientWidth,
       height: container.clientHeight,
@@ -66,16 +107,16 @@ export function InstructionCanvas() {
     const padding = 40;
     const availW = stageSize.width - padding * 2;
     const availH = stageSize.height - padding * 2;
-    const scaleX = availW / currentPage.width;
-    const scaleY = availH / currentPage.height;
+    const scaleX = availW / effectiveW;
+    const scaleY = availH / effectiveH;
     const zoom = Math.min(scaleX, scaleY, 1);
 
-    const panX = (stageSize.width - currentPage.width * zoom) / 2;
-    const panY = (stageSize.height - currentPage.height * zoom) / 2;
+    const panX = (stageSize.width - effectiveW * zoom) / 2;
+    const panY = (stageSize.height - effectiveH * zoom) / 2;
 
     setViewerZoom(zoom);
     setViewerPan(panX, panY);
-  }, [currentPage, stageSize, setViewerZoom, setViewerPan]);
+  }, [currentPage, stageSize, effectiveW, effectiveH, setViewerZoom, setViewerPan]);
 
   // Auto-fit on page change
   useEffect(() => {
@@ -84,6 +125,13 @@ export function InstructionCanvas() {
       hasFitRef.current = true;
     }
   }, [currentPageIndex, currentPage?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-fit when rotation changes
+  useEffect(() => {
+    if (currentPage) {
+      fitToView();
+    }
+  }, [rotation]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fit when stage first gets a valid size
   useEffect(() => {
@@ -130,7 +178,6 @@ export function InstructionCanvas() {
         Math.min(MAX_ZOOM, oldZoom * (direction > 0 ? ZOOM_STEP : 1 / ZOOM_STEP)),
       );
 
-      // Zoom toward cursor position
       const mousePointTo = {
         x: (pointer.x - viewerPanX) / oldZoom,
         y: (pointer.y - viewerPanY) / oldZoom,
@@ -168,7 +215,7 @@ export function InstructionCanvas() {
 
   return (
     <div ref={containerRef} className="h-full w-full">
-      {stageSize.width > 0 && imageSrc && (
+      {stageSize.width > 0 && imageSrc && currentPage && (
         <Stage
           ref={stageRef}
           width={stageSize.width}
@@ -183,7 +230,12 @@ export function InstructionCanvas() {
           style={{ cursor: "grab" }}
         >
           <Layer>
-            <PageImage src={imageSrc} />
+            <PageImage
+              src={imageSrc}
+              rotation={rotation}
+              width={currentPage.width}
+              height={currentPage.height}
+            />
           </Layer>
         </Stage>
       )}

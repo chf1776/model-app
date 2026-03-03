@@ -1,4 +1,4 @@
-import { Upload, ZoomIn, ZoomOut, Maximize2, FileStack } from "lucide-react";
+import { Upload, ZoomIn, ZoomOut, Maximize2, FileStack, RotateCw } from "lucide-react";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ export function BuildToolbar({ onOpenSourceManager }: BuildToolbarProps) {
   const addInstructionSource = useAppStore((s) => s.addInstructionSource);
   const setCurrentSource = useAppStore((s) => s.setCurrentSource);
   const requestFitToView = useAppStore((s) => s.requestFitToView);
+  const rotatePage = useAppStore((s) => s.rotatePage);
 
   const handleUploadPdf = async () => {
     if (!activeProjectId) return;
@@ -106,6 +107,13 @@ export function BuildToolbar({ onOpenSourceManager }: BuildToolbarProps) {
               title="Fit to view"
             >
               <Maximize2 className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={rotatePage}
+              className="rounded p-1 text-text-tertiary hover:bg-muted hover:text-text-secondary"
+              title="Rotate page (R)"
+            >
+              <RotateCw className="h-3.5 w-3.5" />
             </button>
           </div>
 

@@ -237,6 +237,16 @@ pub fn delete_instruction_source(
 }
 
 #[tauri::command]
+pub fn set_page_rotation(
+    db: State<'_, AppDb>,
+    page_id: String,
+    rotation: i32,
+) -> Result<(), String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    crate::db::queries::instruction_pages::set_rotation(&conn, &page_id, rotation)
+}
+
+#[tauri::command]
 pub fn get_project_ui_state(
     db: State<'_, AppDb>,
     project_id: String,

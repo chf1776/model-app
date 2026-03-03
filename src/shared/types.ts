@@ -301,6 +301,7 @@ export interface InstructionPage {
   file_path: string;
   width: number;
   height: number;
+  rotation: number;
 }
 
 export interface ProjectUiState {

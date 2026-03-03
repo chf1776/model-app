@@ -52,6 +52,7 @@ pub fn run() {
             commands::instructions::upload_instruction_pdf,
             commands::instructions::process_instruction_source,
             commands::instructions::delete_instruction_source,
+            commands::instructions::set_page_rotation,
             commands::instructions::get_project_ui_state,
             commands::instructions::save_view_state,
         ])
