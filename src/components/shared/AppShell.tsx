@@ -108,7 +108,7 @@ export function AppShell() {
       loadPaintProjectMap(),
       loadProjects(),
       loadActiveProject(),
-    ]);
+    ]).catch(console.error);
   }, [loadKits, loadAccessories, loadPaints, loadPaintProjectMap, loadProjects, loadActiveProject]);
 
   // Sync zone state from URL

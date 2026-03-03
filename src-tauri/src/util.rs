@@ -16,11 +16,15 @@ pub fn get_pdf_dpi(conn: &Connection) -> u32 {
         .unwrap_or(150)
 }
 
-pub fn instructions_dir(app_data: &Path, project_id: &str, source_id: &str) -> PathBuf {
+pub fn project_dir(app_data: &Path, project_id: &str) -> PathBuf {
     app_data
         .join("model-builder")
         .join("projects")
         .join(project_id)
+}
+
+pub fn instructions_dir(app_data: &Path, project_id: &str, source_id: &str) -> PathBuf {
+    project_dir(app_data, project_id)
         .join("instructions")
         .join(source_id)
 }

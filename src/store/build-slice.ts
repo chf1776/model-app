@@ -213,7 +213,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   },
 
   resetViewerState: () => {
-    set({ viewerZoom: 1, viewerPanX: 0, viewerPanY: 0 });
+    set(DEFAULT_VIEWER_STATE);
   },
 
   requestFitToView: () => {

@@ -156,7 +156,7 @@ pub fn delete_project(app: tauri::AppHandle, db: State<'_, AppDb>, id: String) -
 
     // Clean up instruction files on disk
     let app_data = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let project_dir = app_data.join("model-builder").join("projects").join(&id);
+    let project_dir = crate::util::project_dir(&app_data, &id);
     if project_dir.exists() {
         let _ = std::fs::remove_dir_all(&project_dir);
     }
