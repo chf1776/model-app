@@ -12,6 +12,8 @@
   --color-sidebar: #F2EFEB;
   --color-border: #E5E0DA;
   --color-muted: #EDEBE8;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #0C0A09;
 
   /* Accent */
   --color-accent: #4E7282;

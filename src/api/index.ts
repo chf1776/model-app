@@ -130,6 +130,14 @@ export async function createProject(
   return invoke<Project>("create_project", { input });
 }
 
+export async function renameProject(id: string, name: string): Promise<void> {
+  return invoke<void>("rename_project", { id, name });
+}
+
+export async function deleteProject(id: string): Promise<void> {
+  return invoke<void>("delete_project", { id });
+}
+
 export async function setActiveProject(id: string): Promise<void> {
   return invoke<void>("set_active_project", { id });
 }

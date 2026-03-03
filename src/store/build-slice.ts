@@ -9,6 +9,7 @@ export interface BuildSlice {
   projects: Project[];
   loadProjects: () => Promise<void>;
   setActiveProject: (id: string) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
   clearActiveProject: () => void;
   loadActiveProject: () => Promise<void>;
 
@@ -31,9 +32,11 @@ export interface BuildSlice {
   viewerZoom: number;
   viewerPanX: number;
   viewerPanY: number;
+  fitToViewCounter: number;
   setViewerZoom: (zoom: number) => void;
   setViewerPan: (x: number, y: number) => void;
   resetViewerState: () => void;
+  requestFitToView: () => void;
 
   // Processing state
   isProcessingPdf: boolean;
@@ -58,11 +61,30 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   viewerZoom: 1,
   viewerPanX: 0,
   viewerPanY: 0,
+  fitToViewCounter: 0,
 
   // Processing state
   isProcessingPdf: false,
 
   loadProjects: async () => {
+    const projects = await api.listProjects();
+    set({ projects });
+  },
+
+  deleteProject: async (id) => {
+    await api.deleteProject(id);
+    const state = get();
+    if (state.activeProjectId === id) {
+      set({
+        activeProjectId: null,
+        project: null,
+        instructionSources: [],
+        currentSourceId: null,
+        currentSourcePages: [],
+        currentPageIndex: 0,
+      });
+    }
+    // Reload projects list
     const projects = await api.listProjects();
     set({ projects });
   },
@@ -181,6 +203,10 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
 
   resetViewerState: () => {
     set({ viewerZoom: 1, viewerPanX: 0, viewerPanY: 0 });
+  },
+
+  requestFitToView: () => {
+    set((s) => ({ fitToViewCounter: s.fitToViewCounter + 1 }));
   },
 
   setIsProcessingPdf: (processing) => {

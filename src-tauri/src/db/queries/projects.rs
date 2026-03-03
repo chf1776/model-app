@@ -114,3 +114,9 @@ pub fn insert(conn: &Connection, input: &CreateProjectInput, kit_id: &str) -> Re
 
     get_by_id(conn, &id)
 }
+
+pub fn delete(conn: &Connection, id: &str) -> Result<(), String> {
+    conn.execute("DELETE FROM projects WHERE id = ?1", params![id])
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}

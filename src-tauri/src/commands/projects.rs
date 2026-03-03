@@ -3,7 +3,7 @@ use crate::models::{CreateKitInput, CreateProjectInput, Project};
 use rusqlite::params;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tauri::State;
+use tauri::{Manager, State};
 use uuid::Uuid;
 
 #[tauri::command]
@@ -112,6 +112,42 @@ pub fn create_project(db: State<'_, AppDb>, input: CreateProjectInput) -> Result
         .ok();
 
     Ok(project)
+}
+
+#[tauri::command]
+pub fn rename_project(db: State<'_, AppDb>, id: String, name: String) -> Result<(), String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE projects SET name = ?1 WHERE id = ?2",
+        rusqlite::params![name, id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn delete_project(app: tauri::AppHandle, db: State<'_, AppDb>, id: String) -> Result<(), String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+
+    // Clear active project if it's the one being deleted
+    let active_id = crate::db::queries::settings::get(&conn, "active_project_id")
+        .unwrap_or_default();
+    if active_id == id {
+        crate::db::queries::settings::set(&conn, "active_project_id", "").ok();
+    }
+
+    // Clean up instruction files on disk
+    let app_data = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let project_dir = app_data
+        .join("model-builder")
+        .join("projects")
+        .join(&id);
+    if project_dir.exists() {
+        let _ = std::fs::remove_dir_all(&project_dir);
+    }
+
+    // CASCADE handles project_ui_state, instruction_sources, instruction_pages, etc.
+    crate::db::queries::projects::delete(&conn, &id)
 }
 
 #[tauri::command]

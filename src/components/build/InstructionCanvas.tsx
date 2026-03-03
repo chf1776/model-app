@@ -32,6 +32,7 @@ export function InstructionCanvas() {
   const viewerPanY = useAppStore((s) => s.viewerPanY);
   const setViewerZoom = useAppStore((s) => s.setViewerZoom);
   const setViewerPan = useAppStore((s) => s.setViewerPan);
+  const fitToViewCounter = useAppStore((s) => s.fitToViewCounter);
 
   const currentPage = currentSourcePages[currentPageIndex];
   const imageSrc = currentPage ? convertFileSrc(currentPage.file_path) : null;
@@ -91,6 +92,13 @@ export function InstructionCanvas() {
       hasFitRef.current = true;
     }
   }, [stageSize, currentPage, fitToView]);
+
+  // Respond to explicit fit-to-view requests (keyboard `0`, toolbar button)
+  useEffect(() => {
+    if (fitToViewCounter > 0) {
+      fitToView();
+    }
+  }, [fitToViewCounter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debounced save view state
   const debouncedSave = useCallback(

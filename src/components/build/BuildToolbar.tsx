@@ -19,10 +19,7 @@ export function BuildToolbar({ onOpenSourceManager }: BuildToolbarProps) {
   const setIsProcessingPdf = useAppStore((s) => s.setIsProcessingPdf);
   const addInstructionSource = useAppStore((s) => s.addInstructionSource);
   const setCurrentSource = useAppStore((s) => s.setCurrentSource);
-  const currentSourcePages = useAppStore((s) => s.currentSourcePages);
-  const currentPageIndex = useAppStore((s) => s.currentPageIndex);
-
-  const currentPage = currentSourcePages[currentPageIndex];
+  const requestFitToView = useAppStore((s) => s.requestFitToView);
 
   const handleUploadPdf = async () => {
     if (!activeProjectId) return;
@@ -53,11 +50,7 @@ export function BuildToolbar({ onOpenSourceManager }: BuildToolbarProps) {
   const handleZoomIn = () => setViewerZoom(viewerZoom * 1.2);
   const handleZoomOut = () => setViewerZoom(viewerZoom / 1.2);
 
-  const handleFitToView = () => {
-    if (!currentPage) return;
-    // Dispatch a custom event that InstructionCanvas listens for
-    window.dispatchEvent(new CustomEvent("fit-to-view"));
-  };
+  const handleFitToView = () => requestFitToView();
 
   const zoomPercent = Math.round(viewerZoom * 100);
 

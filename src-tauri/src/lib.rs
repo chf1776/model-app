@@ -25,6 +25,8 @@ pub fn run() {
             commands::projects::list_projects,
             commands::projects::get_project,
             commands::projects::create_project,
+            commands::projects::rename_project,
+            commands::projects::delete_project,
             commands::projects::set_active_project,
             commands::projects::get_active_project,
             commands::settings::get_setting,

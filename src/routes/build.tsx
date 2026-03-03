@@ -25,6 +25,7 @@ export default function BuildRoute() {
   const prevPage = useAppStore((s) => s.prevPage);
   const viewerZoom = useAppStore((s) => s.viewerZoom);
   const setViewerZoom = useAppStore((s) => s.setViewerZoom);
+  const requestFitToView = useAppStore((s) => s.requestFitToView);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [sourceManagerOpen, setSourceManagerOpen] = useState(false);
@@ -88,32 +89,17 @@ export default function BuildRoute() {
           break;
         case "0":
           e.preventDefault();
-          window.dispatchEvent(new CustomEvent("fit-to-view"));
+          requestFitToView();
           break;
       }
     },
-    [nextPage, prevPage, viewerZoom, setViewerZoom],
+    [nextPage, prevPage, viewerZoom, setViewerZoom, requestFitToView],
   );
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
-
-  // Listen for fit-to-view events from toolbar
-  useEffect(() => {
-    const handler = () => {
-      // InstructionCanvas will handle this via its own fitToView
-      // We trigger a page index re-set to force a re-fit
-      const store = useAppStore.getState();
-      const idx = store.currentPageIndex;
-      store.setCurrentPageIndex(-1);
-      // Use microtask to ensure state update
-      queueMicrotask(() => store.setCurrentPageIndex(idx));
-    };
-    window.addEventListener("fit-to-view", handler);
-    return () => window.removeEventListener("fit-to-view", handler);
-  }, []);
 
   if (!project) {
     return (
