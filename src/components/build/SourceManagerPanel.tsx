@@ -1,5 +1,4 @@
 import { FileText, Trash2, RefreshCw, X, Upload } from "lucide-react";
-import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAppStore } from "@/store";
 import * as api from "@/api";
+import { useUploadPdf } from "./useUploadPdf";
 
 interface SourceManagerPanelProps {
   onClose: () => void;
@@ -25,36 +25,11 @@ export function SourceManagerPanel({ onClose }: SourceManagerPanelProps) {
   const instructionSources = useAppStore((s) => s.instructionSources);
   const currentSourceId = useAppStore((s) => s.currentSourceId);
   const setCurrentSource = useAppStore((s) => s.setCurrentSource);
-  const addInstructionSource = useAppStore((s) => s.addInstructionSource);
   const removeInstructionSource = useAppStore((s) => s.removeInstructionSource);
   const setIsProcessingPdf = useAppStore((s) => s.setIsProcessingPdf);
   const loadInstructionSources = useAppStore((s) => s.loadInstructionSources);
 
-  const handleUpload = async () => {
-    if (!activeProjectId) return;
-
-    const selected = await openFileDialog({
-      multiple: false,
-      filters: [{ name: "PDF", extensions: ["pdf"] }],
-    });
-
-    if (!selected) return;
-
-    setIsProcessingPdf(true);
-    try {
-      const source = await api.uploadInstructionPdf(
-        activeProjectId,
-        selected,
-      );
-      addInstructionSource(source);
-      setCurrentSource(source.id);
-      toast.success(`Imported "${source.name}" (${source.page_count} pages)`);
-    } catch (err) {
-      toast.error(`Failed to import PDF: ${err}`);
-    } finally {
-      setIsProcessingPdf(false);
-    }
-  };
+  const handleUpload = useUploadPdf();
 
   const handleDelete = async (sourceId: string, sourceName: string) => {
     try {

@@ -1,10 +1,8 @@
 import { Upload, ZoomIn, ZoomOut, Maximize2, FileStack, RotateCw } from "lucide-react";
-import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useAppStore } from "@/store";
-import * as api from "@/api";
+import { useUploadPdf } from "./useUploadPdf";
 
 interface BuildToolbarProps {
   onOpenSourceManager: () => void;
@@ -12,41 +10,13 @@ interface BuildToolbarProps {
 
 export function BuildToolbar({ onOpenSourceManager }: BuildToolbarProps) {
   const project = useAppStore((s) => s.project);
-  const activeProjectId = useAppStore((s) => s.activeProjectId);
   const instructionSources = useAppStore((s) => s.instructionSources);
   const viewerZoom = useAppStore((s) => s.viewerZoom);
   const setViewerZoom = useAppStore((s) => s.setViewerZoom);
-  const setIsProcessingPdf = useAppStore((s) => s.setIsProcessingPdf);
-  const addInstructionSource = useAppStore((s) => s.addInstructionSource);
-  const setCurrentSource = useAppStore((s) => s.setCurrentSource);
   const requestFitToView = useAppStore((s) => s.requestFitToView);
   const rotatePage = useAppStore((s) => s.rotatePage);
 
-  const handleUploadPdf = async () => {
-    if (!activeProjectId) return;
-
-    const selected = await openFileDialog({
-      multiple: false,
-      filters: [{ name: "PDF", extensions: ["pdf"] }],
-    });
-
-    if (!selected) return;
-
-    setIsProcessingPdf(true);
-    try {
-      const source = await api.uploadInstructionPdf(
-        activeProjectId,
-        selected,
-      );
-      addInstructionSource(source);
-      setCurrentSource(source.id);
-      toast.success(`Imported "${source.name}" (${source.page_count} pages)`);
-    } catch (err) {
-      toast.error(`Failed to import PDF: ${err}`);
-    } finally {
-      setIsProcessingPdf(false);
-    }
-  };
+  const handleUploadPdf = useUploadPdf();
 
   const handleZoomIn = () => setViewerZoom(viewerZoom * 1.2);
   const handleZoomOut = () => setViewerZoom(viewerZoom / 1.2);

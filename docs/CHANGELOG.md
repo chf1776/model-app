@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Build zone**: Replaced Phase 2 placeholder with full instruction viewer layout
 - **Build slice**: Expanded with instruction sources, page navigation, viewer state, rotation, and processing state
 - **Project creation**: Kit PDF files are now auto-rasterized during project creation with a processing overlay instead of requiring manual processing
+- **Code cleanup**: Extracted `useUploadPdf` hook (deduplicated 3 copies), `rasterize_and_persist` Rust helper (deduplicated 3 copies), transaction-wrapped page batch inserts, fixed stale closures in canvas viewer
 
 ## [0.1.5] — 2026-03-01 — Phase 1B-4: Collection Toolbars & Accessory Images
 

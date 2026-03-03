@@ -3,7 +3,6 @@ use crate::models::{InstructionPage, InstructionSource, ProjectUiState};
 use std::fs;
 use std::path::PathBuf;
 use tauri::{Manager, State};
-use uuid::Uuid;
 
 #[tauri::command]
 pub fn list_instruction_sources(
@@ -49,16 +48,23 @@ pub fn upload_instruction_pdf(
         .unwrap_or("unknown.pdf")
         .to_string();
 
-    // Generate source ID upfront so we can create the directory structure
-    let source_id = Uuid::new_v4().to_string();
+    // Insert source record first to get the actual ID
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let mut source = crate::db::queries::instruction_sources::insert(
+        &conn,
+        &project_id,
+        &display_name,
+        &original_filename,
+        &source_path,
+    )?;
 
-    // Create output directory: {appData}/model-builder/projects/{project_id}/instructions/{source_id}/
+    // Create output directory using the actual source ID
     let instructions_dir = app_data
         .join("model-builder")
         .join("projects")
         .join(&project_id)
         .join("instructions")
-        .join(&source_id);
+        .join(&source.id);
 
     fs::create_dir_all(&instructions_dir)
         .map_err(|e| format!("Failed to create instructions dir: {e}"))?;
@@ -68,77 +74,19 @@ pub fn upload_instruction_pdf(
     fs::copy(&source_file, &pdf_dest)
         .map_err(|e| format!("Failed to copy PDF: {e}"))?;
 
-    let file_path = pdf_dest.to_string_lossy().to_string();
-
-    // Insert source record (page_count = 0 initially)
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
-    let mut source = crate::db::queries::instruction_sources::insert(
-        &conn,
-        &project_id,
-        &display_name,
-        &original_filename,
-        &file_path,
-    )?;
-    // Override the generated ID with our pre-generated one
-    // Actually, let's update the record's path and use the ID from insert
-    let actual_source_id = &source.id;
-
-    // Re-create dir with actual source ID if different
-    let actual_instructions_dir = app_data
-        .join("model-builder")
-        .join("projects")
-        .join(&project_id)
-        .join("instructions")
-        .join(actual_source_id);
-
-    if actual_instructions_dir != instructions_dir {
-        fs::create_dir_all(&actual_instructions_dir)
-            .map_err(|e| format!("Failed to create instructions dir: {e}"))?;
-        let actual_pdf_dest = actual_instructions_dir.join("original.pdf");
-        fs::rename(&pdf_dest, &actual_pdf_dest)
-            .map_err(|e| format!("Failed to move PDF: {e}"))?;
-        // Clean up old dir
-        let _ = fs::remove_dir(&instructions_dir);
-        source.file_path = actual_pdf_dest.to_string_lossy().to_string();
-    }
-
-    // Read DPI setting
+    // Read DPI setting and rasterize
     let dpi: u32 = crate::db::queries::settings::get(&conn, "pdf_dpi")
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(150);
 
-    // Rasterize pages
-    let pages_dir = actual_instructions_dir.join("pages");
-    let pdf_path = PathBuf::from(&source.file_path);
-
-    let rasterized = crate::services::pdf::rasterize_pdf(&pdf_path, &pages_dir, dpi)?;
-
-    // Insert page records
-    let page_data: Vec<(usize, String, u32, u32)> = rasterized
-        .iter()
-        .map(|p| {
-            (
-                p.page_index,
-                p.file_path.to_string_lossy().to_string(),
-                p.width,
-                p.height,
-            )
-        })
-        .collect();
-
-    crate::db::queries::instruction_pages::insert_batch(&conn, &source.id, &page_data)?;
-
-    // Update source with page count
-    let page_count = rasterized.len() as i32;
-    crate::db::queries::instruction_sources::update_after_processing(
-        &conn,
-        &source.id,
-        page_count,
-        &source.file_path,
+    let pages_dir = instructions_dir.join("pages");
+    let page_count = crate::services::pdf::rasterize_and_persist(
+        &conn, &source.id, &pdf_dest, &pages_dir, dpi,
     )?;
 
     source.page_count = page_count;
+    source.file_path = pdf_dest.to_string_lossy().to_string();
 
     Ok(source)
 }
@@ -158,7 +106,6 @@ pub fn process_instruction_source(
 
     let app_data = app.path().app_data_dir().map_err(|e| e.to_string())?;
 
-    // Set up output directory
     let instructions_dir = app_data
         .join("model-builder")
         .join("projects")
@@ -167,40 +114,18 @@ pub fn process_instruction_source(
         .join(&source.id);
     let pages_dir = instructions_dir.join("pages");
 
-    // Read DPI setting
-    let dpi: u32 = crate::db::queries::settings::get(&conn, "pdf_dpi")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(150);
-
-    // The file_path should point to the PDF
     let pdf_path = PathBuf::from(&source.file_path);
     if !pdf_path.exists() {
         return Err(format!("PDF file not found: {}", source.file_path));
     }
 
-    let rasterized = crate::services::pdf::rasterize_pdf(&pdf_path, &pages_dir, dpi)?;
+    let dpi: u32 = crate::db::queries::settings::get(&conn, "pdf_dpi")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(150);
 
-    let page_data: Vec<(usize, String, u32, u32)> = rasterized
-        .iter()
-        .map(|p| {
-            (
-                p.page_index,
-                p.file_path.to_string_lossy().to_string(),
-                p.width,
-                p.height,
-            )
-        })
-        .collect();
-
-    crate::db::queries::instruction_pages::insert_batch(&conn, &source.id, &page_data)?;
-
-    let page_count = rasterized.len() as i32;
-    crate::db::queries::instruction_sources::update_after_processing(
-        &conn,
-        &source.id,
-        page_count,
-        &source.file_path,
+    let page_count = crate::services::pdf::rasterize_and_persist(
+        &conn, &source.id, &pdf_path, &pages_dir, dpi,
     )?;
 
     let mut updated = source;

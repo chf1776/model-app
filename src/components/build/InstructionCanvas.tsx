@@ -100,8 +100,9 @@ export function InstructionCanvas() {
     return () => observer.disconnect();
   }, []);
 
-  // Fit-to-view on first load or page change
-  const fitToView = useCallback(() => {
+  // Fit-to-view — always uses latest values via ref to avoid stale closures
+  const fitToViewRef = useRef(() => {});
+  fitToViewRef.current = () => {
     if (!currentPage || stageSize.width === 0 || stageSize.height === 0) return;
 
     const padding = 40;
@@ -116,12 +117,12 @@ export function InstructionCanvas() {
 
     setViewerZoom(zoom);
     setViewerPan(panX, panY);
-  }, [currentPage, stageSize, effectiveW, effectiveH, setViewerZoom, setViewerPan]);
+  };
 
   // Auto-fit on page change
   useEffect(() => {
     if (currentPage) {
-      fitToView();
+      fitToViewRef.current();
       hasFitRef.current = true;
     }
   }, [currentPageIndex, currentPage?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -129,24 +130,24 @@ export function InstructionCanvas() {
   // Re-fit when rotation changes
   useEffect(() => {
     if (currentPage) {
-      fitToView();
+      fitToViewRef.current();
     }
   }, [rotation]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fit when stage first gets a valid size
   useEffect(() => {
     if (!hasFitRef.current && stageSize.width > 0 && currentPage) {
-      fitToView();
+      fitToViewRef.current();
       hasFitRef.current = true;
     }
-  }, [stageSize, currentPage, fitToView]);
+  }, [stageSize, currentPage]);
 
   // Respond to explicit fit-to-view requests (keyboard `0`, toolbar button)
   useEffect(() => {
     if (fitToViewCounter > 0) {
-      fitToView();
+      fitToViewRef.current();
     }
-  }, [fitToViewCounter]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fitToViewCounter]);
 
   // Debounced save view state
   const debouncedSave = useCallback(

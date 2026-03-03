@@ -83,7 +83,6 @@ pub fn create_project(app: tauri::AppHandle, db: State<'_, AppDb>, input: Create
                 .unwrap_or("unknown.pdf")
                 .to_string();
 
-            // Insert source record
             let source = crate::db::queries::instruction_sources::insert(
                 &conn,
                 &project.id,
@@ -92,40 +91,25 @@ pub fn create_project(app: tauri::AppHandle, db: State<'_, AppDb>, input: Create
                 &kf.file_path,
             )?;
 
-            // Set up output directory and rasterize
             let instructions_dir = app_data
                 .join("model-builder")
                 .join("projects")
                 .join(&project.id)
                 .join("instructions")
                 .join(&source.id);
-            let pages_dir = instructions_dir.join("pages");
 
-            // Copy PDF to project dir
             std::fs::create_dir_all(&instructions_dir)
                 .map_err(|e| format!("Failed to create instructions dir: {e}"))?;
             let pdf_dest = instructions_dir.join("original.pdf");
             std::fs::copy(&kf.file_path, &pdf_dest)
                 .map_err(|e| format!("Failed to copy PDF: {e}"))?;
 
-            let pdf_path = PathBuf::from(&kf.file_path);
-            match crate::services::pdf::rasterize_pdf(&pdf_path, &pages_dir, dpi) {
-                Ok(rasterized) => {
-                    let page_data: Vec<(usize, String, u32, u32)> = rasterized
-                        .iter()
-                        .map(|p| (p.page_index, p.file_path.to_string_lossy().to_string(), p.width, p.height))
-                        .collect();
-
-                    crate::db::queries::instruction_pages::insert_batch(&conn, &source.id, &page_data)?;
-
-                    let page_count = rasterized.len() as i32;
-                    let dest_str = pdf_dest.to_string_lossy().to_string();
-                    crate::db::queries::instruction_sources::update_after_processing(
-                        &conn, &source.id, page_count, &dest_str,
-                    )?;
-                }
+            let pages_dir = instructions_dir.join("pages");
+            match crate::services::pdf::rasterize_and_persist(
+                &conn, &source.id, &pdf_dest, &pages_dir, dpi,
+            ) {
+                Ok(_) => {}
                 Err(e) => {
-                    // Non-fatal: source stays with page_count=0, user can re-process later
                     eprintln!("Warning: failed to rasterize PDF for kit file {}: {}", kf.id, e);
                 }
             }

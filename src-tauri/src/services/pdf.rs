@@ -1,3 +1,4 @@
+use rusqlite::Connection;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -53,4 +54,38 @@ pub fn rasterize_pdf(
     }
 
     Ok(pages)
+}
+
+/// Rasterize a PDF and persist pages to the database, updating the source record.
+/// Returns the page count on success.
+pub fn rasterize_and_persist(
+    conn: &Connection,
+    source_id: &str,
+    pdf_path: &Path,
+    pages_dir: &Path,
+    dpi: u32,
+) -> Result<i32, String> {
+    let rasterized = rasterize_pdf(pdf_path, pages_dir, dpi)?;
+
+    let page_data: Vec<(usize, String, u32, u32)> = rasterized
+        .iter()
+        .map(|p| {
+            (
+                p.page_index,
+                p.file_path.to_string_lossy().to_string(),
+                p.width,
+                p.height,
+            )
+        })
+        .collect();
+
+    crate::db::queries::instruction_pages::insert_batch(conn, source_id, &page_data)?;
+
+    let page_count = rasterized.len() as i32;
+    let file_path_str = pdf_path.to_string_lossy().to_string();
+    crate::db::queries::instruction_sources::update_after_processing(
+        conn, source_id, page_count, &file_path_str,
+    )?;
+
+    Ok(page_count)
 }
