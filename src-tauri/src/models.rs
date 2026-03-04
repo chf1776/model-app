@@ -245,6 +245,108 @@ pub struct InstructionPage {
     pub rotation: i32,
 }
 
+// ── Track ───────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Track {
+    pub id: String,
+    pub project_id: String,
+    pub name: String,
+    pub color: String,
+    pub display_order: i32,
+    pub is_standalone: bool,
+    pub join_point_step_id: Option<String>,
+    pub join_point_notes: Option<String>,
+    pub step_count: i32,
+    pub completed_count: i32,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateTrackInput {
+    pub project_id: String,
+    pub name: String,
+    pub color: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateTrackInput {
+    pub id: String,
+    pub name: Option<String>,
+    pub color: Option<String>,
+}
+
+// ── Step ────────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Step {
+    pub id: String,
+    pub track_id: String,
+    pub parent_step_id: Option<String>,
+    pub title: String,
+    pub display_order: i32,
+    pub source_page_id: Option<String>,
+    pub crop_x: Option<f64>,
+    pub crop_y: Option<f64>,
+    pub crop_w: Option<f64>,
+    pub crop_h: Option<f64>,
+    pub is_full_page: bool,
+    pub source_type: String,
+    pub source_name: Option<String>,
+    pub adhesive_type: Option<String>,
+    pub drying_time_min: Option<i32>,
+    pub pre_paint: bool,
+    pub quantity: Option<i32>,
+    pub is_completed: bool,
+    pub completed_at: Option<i64>,
+    pub quantity_current: i32,
+    pub replaces_step_id: Option<String>,
+    pub notes: Option<String>,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateStepInput {
+    pub track_id: String,
+    pub title: String,
+    pub source_page_id: Option<String>,
+    pub crop_x: Option<f64>,
+    pub crop_y: Option<f64>,
+    pub crop_w: Option<f64>,
+    pub crop_h: Option<f64>,
+    pub is_full_page: Option<bool>,
+    pub source_type: Option<String>,
+    pub source_name: Option<String>,
+    pub adhesive_type: Option<String>,
+    pub drying_time_min: Option<i32>,
+    pub pre_paint: Option<bool>,
+    pub quantity: Option<i32>,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateStepInput {
+    pub id: String,
+    pub title: Option<String>,
+    pub parent_step_id: Option<String>,
+    pub source_page_id: Option<String>,
+    pub crop_x: Option<f64>,
+    pub crop_y: Option<f64>,
+    pub crop_w: Option<f64>,
+    pub crop_h: Option<f64>,
+    pub is_full_page: Option<bool>,
+    pub source_type: Option<String>,
+    pub source_name: Option<String>,
+    pub adhesive_type: Option<String>,
+    pub drying_time_min: Option<i32>,
+    pub pre_paint: Option<bool>,
+    pub quantity: Option<i32>,
+    pub is_completed: Option<bool>,
+    pub notes: Option<String>,
+}
+
 // ── Project UI State ────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

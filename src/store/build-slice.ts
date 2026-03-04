@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import type { Project, InstructionSource, InstructionPage } from "@/shared/types";
+import type { Project, InstructionSource, InstructionPage, Track } from "@/shared/types";
 import type { AppStore } from "./index";
 import * as api from "@/api";
 
@@ -12,6 +12,15 @@ export interface BuildSlice {
   deleteProject: (id: string) => Promise<void>;
   clearActiveProject: () => void;
   loadActiveProject: () => Promise<void>;
+
+  // Tracks
+  tracks: Track[];
+  activeTrackId: string | null;
+  loadTracks: (projectId: string) => Promise<void>;
+  addTrack: (track: Track) => void;
+  updateTrackStore: (track: Track) => void;
+  removeTrack: (id: string) => void;
+  setActiveTrack: (id: string | null) => void;
 
   // Instruction sources
   instructionSources: InstructionSource[];
@@ -64,6 +73,10 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   project: null,
   projects: [],
 
+  // Tracks
+  tracks: [],
+  activeTrackId: null,
+
   // Instruction sources
   instructionSources: [],
   ...DEFAULT_PAGE_STATE,
@@ -87,6 +100,8 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       set({
         activeProjectId: null,
         project: null,
+        tracks: [],
+        activeTrackId: null,
         instructionSources: [],
         ...DEFAULT_PAGE_STATE,
       });
@@ -102,17 +117,22 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     set({
       activeProjectId: id,
       project,
+      tracks: [],
+      activeTrackId: null,
       ...DEFAULT_PAGE_STATE,
       ...DEFAULT_VIEWER_STATE,
     });
-    // Load instruction sources for the new project
+    // Load instruction sources and tracks for the new project
     get().loadInstructionSources(id);
+    get().loadTracks(id);
   },
 
   clearActiveProject: () =>
     set({
       activeProjectId: null,
       project: null,
+      tracks: [],
+      activeTrackId: null,
       instructionSources: [],
       ...DEFAULT_PAGE_STATE,
     }),
@@ -122,7 +142,34 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     if (project) {
       set({ activeProjectId: project.id, project });
       get().loadInstructionSources(project.id);
+      get().loadTracks(project.id);
     }
+  },
+
+  loadTracks: async (projectId) => {
+    const tracks = await api.listTracks(projectId);
+    set({ tracks });
+  },
+
+  addTrack: (track) => {
+    set((s) => ({ tracks: [...s.tracks, track] }));
+  },
+
+  updateTrackStore: (track) => {
+    set((s) => ({
+      tracks: s.tracks.map((t) => (t.id === track.id ? track : t)),
+    }));
+  },
+
+  removeTrack: (id) => {
+    set((s) => ({
+      tracks: s.tracks.filter((t) => t.id !== id),
+      activeTrackId: s.activeTrackId === id ? null : s.activeTrackId,
+    }));
+  },
+
+  setActiveTrack: (id) => {
+    set({ activeTrackId: id });
   },
 
   loadInstructionSources: async (projectId) => {

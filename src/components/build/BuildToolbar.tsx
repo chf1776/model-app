@@ -10,11 +10,17 @@ interface BuildToolbarProps {
 
 export function BuildToolbar({ onOpenSourceManager }: BuildToolbarProps) {
   const project = useAppStore((s) => s.project);
+  const tracks = useAppStore((s) => s.tracks);
+  const activeTrackId = useAppStore((s) => s.activeTrackId);
   const instructionSources = useAppStore((s) => s.instructionSources);
   const viewerZoom = useAppStore((s) => s.viewerZoom);
   const setViewerZoom = useAppStore((s) => s.setViewerZoom);
   const requestFitToView = useAppStore((s) => s.requestFitToView);
   const rotatePage = useAppStore((s) => s.rotatePage);
+
+  const activeTrack = activeTrackId
+    ? tracks.find((t) => t.id === activeTrackId) ?? null
+    : null;
 
   const handleUploadPdf = useUploadPdf();
 
@@ -35,6 +41,21 @@ export function BuildToolbar({ onOpenSourceManager }: BuildToolbarProps) {
       <span className="text-xs font-medium text-text-primary">
         {project?.name}
       </span>
+
+      {activeTrack && (
+        <>
+          <Separator orientation="vertical" className="h-[14px]" />
+          <div className="flex items-center gap-1.5">
+            <span
+              className="inline-block h-2 w-2 rounded-full"
+              style={{ backgroundColor: activeTrack.color }}
+            />
+            <span className="text-[11px] text-text-secondary">
+              {activeTrack.name}
+            </span>
+          </div>
+        </>
+      )}
 
       <div className="flex-1" />
 

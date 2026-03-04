@@ -13,6 +13,12 @@ import type {
   PaintProjectMapping,
   Project,
   CreateProjectInput,
+  Track,
+  CreateTrackInput,
+  UpdateTrackInput,
+  Step,
+  CreateStepInput,
+  UpdateStepInput,
   InstructionSource,
   InstructionPage,
   ProjectUiState,
@@ -176,6 +182,60 @@ export async function saveBoxArt(
     kitId,
     sourcePath,
   });
+}
+
+// ── Tracks ──────────────────────────────────────────────────────────────────
+
+export async function listTracks(projectId: string): Promise<Track[]> {
+  return invoke<Track[]>("list_tracks", { projectId });
+}
+
+export async function createTrack(input: CreateTrackInput): Promise<Track> {
+  return invoke<Track>("create_track", { input });
+}
+
+export async function updateTrack(input: UpdateTrackInput): Promise<Track> {
+  return invoke<Track>("update_track", { input });
+}
+
+export async function deleteTrack(id: string): Promise<void> {
+  return invoke<void>("delete_track", { id });
+}
+
+export async function reorderTracks(
+  projectId: string,
+  orderedIds: string[],
+): Promise<void> {
+  return invoke<void>("reorder_tracks", { projectId, orderedIds });
+}
+
+// ── Steps ───────────────────────────────────────────────────────────────────
+
+export async function listSteps(trackId: string): Promise<Step[]> {
+  return invoke<Step[]>("list_steps", { trackId });
+}
+
+export async function listProjectSteps(projectId: string): Promise<Step[]> {
+  return invoke<Step[]>("list_project_steps", { projectId });
+}
+
+export async function createStep(input: CreateStepInput): Promise<Step> {
+  return invoke<Step>("create_step", { input });
+}
+
+export async function updateStep(input: UpdateStepInput): Promise<Step> {
+  return invoke<Step>("update_step", { input });
+}
+
+export async function deleteStep(id: string): Promise<void> {
+  return invoke<void>("delete_step", { id });
+}
+
+export async function reorderSteps(
+  trackId: string,
+  orderedIds: string[],
+): Promise<void> {
+  return invoke<void>("reorder_steps", { trackId, orderedIds });
 }
 
 // ── Instructions ─────────────────────────────────────────────────────────────

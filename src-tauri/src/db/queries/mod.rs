@@ -8,3 +8,5 @@ pub mod palette_entries;
 pub mod project_ui_state;
 pub mod projects;
 pub mod settings;
+pub mod steps;
+pub mod tracks;

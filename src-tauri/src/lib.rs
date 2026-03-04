@@ -56,6 +56,17 @@ pub fn run() {
             commands::instructions::set_page_rotation,
             commands::instructions::get_project_ui_state,
             commands::instructions::save_view_state,
+            commands::tracks::list_tracks,
+            commands::tracks::create_track,
+            commands::tracks::update_track,
+            commands::tracks::delete_track,
+            commands::tracks::reorder_tracks,
+            commands::steps::list_steps,
+            commands::steps::list_project_steps,
+            commands::steps::create_step,
+            commands::steps::update_step,
+            commands::steps::delete_step,
+            commands::steps::reorder_steps,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

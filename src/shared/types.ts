@@ -285,6 +285,116 @@ export interface PaintGroupExpandedState {
   overrides: Record<string, boolean>;
 }
 
+// ── Tracks ──────────────────────────────────────────────────────────────────
+
+export interface Track {
+  id: string;
+  project_id: string;
+  name: string;
+  color: string;
+  display_order: number;
+  is_standalone: boolean;
+  join_point_step_id: string | null;
+  join_point_notes: string | null;
+  step_count: number;
+  completed_count: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface CreateTrackInput {
+  project_id: string;
+  name: string;
+  color?: string | null;
+}
+
+export interface UpdateTrackInput {
+  id: string;
+  name?: string | null;
+  color?: string | null;
+}
+
+export const TRACK_COLORS = [
+  { value: "#C2553A", label: "Terracotta" },
+  { value: "#3A7CA5", label: "Steel Blue" },
+  { value: "#5B8A3C", label: "Olive" },
+  { value: "#C49A2A", label: "Gold" },
+  { value: "#7B5EA7", label: "Purple" },
+  { value: "#C47A2A", label: "Burnt Orange" },
+  { value: "#2A8A7A", label: "Teal" },
+  { value: "#8B5E6B", label: "Mauve" },
+] as const;
+
+// ── Steps ───────────────────────────────────────────────────────────────────
+
+export type SourceType = "base_kit" | "photo_etch" | "resin_3d" | "aftermarket" | "custom_scratch";
+export type AdhesiveType = "none" | "liquid_cement" | "tube_cement" | "ca_thin" | "ca_medium_thick" | "epoxy" | "pva" | "custom";
+
+export interface Step {
+  id: string;
+  track_id: string;
+  parent_step_id: string | null;
+  title: string;
+  display_order: number;
+  source_page_id: string | null;
+  crop_x: number | null;
+  crop_y: number | null;
+  crop_w: number | null;
+  crop_h: number | null;
+  is_full_page: boolean;
+  source_type: SourceType;
+  source_name: string | null;
+  adhesive_type: AdhesiveType | null;
+  drying_time_min: number | null;
+  pre_paint: boolean;
+  quantity: number | null;
+  is_completed: boolean;
+  completed_at: number | null;
+  quantity_current: number;
+  replaces_step_id: string | null;
+  notes: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface CreateStepInput {
+  track_id: string;
+  title: string;
+  source_page_id?: string | null;
+  crop_x?: number | null;
+  crop_y?: number | null;
+  crop_w?: number | null;
+  crop_h?: number | null;
+  is_full_page?: boolean | null;
+  source_type?: SourceType | null;
+  source_name?: string | null;
+  adhesive_type?: AdhesiveType | null;
+  drying_time_min?: number | null;
+  pre_paint?: boolean | null;
+  quantity?: number | null;
+  notes?: string | null;
+}
+
+export interface UpdateStepInput {
+  id: string;
+  title?: string | null;
+  parent_step_id?: string | null;
+  source_page_id?: string | null;
+  crop_x?: number | null;
+  crop_y?: number | null;
+  crop_w?: number | null;
+  crop_h?: number | null;
+  is_full_page?: boolean | null;
+  source_type?: SourceType | null;
+  source_name?: string | null;
+  adhesive_type?: AdhesiveType | null;
+  drying_time_min?: number | null;
+  pre_paint?: boolean | null;
+  quantity?: number | null;
+  is_completed?: boolean | null;
+  notes?: string | null;
+}
+
 // ── Instruction Sources ──────────────────────────────────────────────────────
 
 export interface InstructionSource {

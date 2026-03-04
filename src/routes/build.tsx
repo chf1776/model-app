@@ -9,6 +9,7 @@ import { PageNavigator } from "@/components/build/PageNavigator";
 import { EmptyInstructionsState } from "@/components/build/EmptyInstructionsState";
 import { ProcessingOverlay } from "@/components/build/ProcessingOverlay";
 import { SourceManagerPanel } from "@/components/build/SourceManagerPanel";
+import { TrackRail } from "@/components/build/TrackRail";
 import { useUploadPdf } from "@/components/build/useUploadPdf";
 
 export default function BuildRoute() {
@@ -117,21 +118,25 @@ export default function BuildRoute() {
         onOpenSourceManager={() => setSourceManagerOpen((v) => !v)}
       />
 
-      <div className="relative flex-1 bg-[#E8E4DF]">
-        {isProcessingPdf && <ProcessingOverlay />}
+      <div className="flex flex-1 overflow-hidden">
+        <TrackRail />
 
-        {sourceManagerOpen && (
-          <SourceManagerPanel onClose={() => setSourceManagerOpen(false)} />
-        )}
+        <div className="relative flex-1 bg-[#E8E4DF]">
+          {isProcessingPdf && <ProcessingOverlay />}
 
-        {hasSources ? (
-          <>
-            <InstructionCanvas />
-            <PageNavigator />
-          </>
-        ) : (
-          <EmptyInstructionsState onUpload={handleUploadPdf} />
-        )}
+          {sourceManagerOpen && (
+            <SourceManagerPanel onClose={() => setSourceManagerOpen(false)} />
+          )}
+
+          {hasSources ? (
+            <>
+              <InstructionCanvas />
+              <PageNavigator />
+            </>
+          ) : (
+            <EmptyInstructionsState onUpload={handleUploadPdf} />
+          )}
+        </div>
       </div>
     </div>
   );

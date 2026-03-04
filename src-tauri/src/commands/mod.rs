@@ -6,3 +6,5 @@ pub mod paints;
 pub mod palette_entries;
 pub mod projects;
 pub mod settings;
+pub mod steps;
+pub mod tracks;

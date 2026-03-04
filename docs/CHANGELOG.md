@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Track & step backend**: Full Rust data layer for tracks and steps — CRUD queries, Tauri commands, TypeScript types, API wrappers, and Zustand store integration
+- **Three-panel build layout**: Build zone now has TrackRail (left) | Canvas (center) | placeholder (right) layout
+- **Track rail UI**: 200px left panel with track list, add/rename/change-color/delete dialogs, progress bars, and empty state
+- **Track auto-color**: New tracks auto-assign from an 8-color rotating palette (Terracotta, Steel Blue, Olive, Gold, Purple, Burnt Orange, Teal, Mauve)
+- **Active track toolbar**: Selected track shown with color dot + name in the build toolbar
 - **Paint group expand/collapse all**: Toolbar buttons to expand or collapse all paint group sections at once
 - **Persistent paint group state**: Expanded/collapsed state for paint groups survives tab switches; uses a base+overrides model so expand/collapse all sets the default for new groups too
 - **Lazy image loading**: Kit box art and accessory thumbnails now use `loading="lazy"`
