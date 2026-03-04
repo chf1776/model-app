@@ -1,7 +1,9 @@
-import { Upload, ZoomIn, ZoomOut, Maximize2, FileStack, RotateCw } from "lucide-react";
+import { Upload, ZoomIn, ZoomOut, Maximize2, FileStack, RotateCw, MousePointer, Crop, RectangleHorizontal } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useAppStore } from "@/store";
+import * as api from "@/api";
 import { useUploadPdf } from "./useUploadPdf";
 
 interface BuildToolbarProps {
@@ -17,6 +19,15 @@ export function BuildToolbar({ onOpenSourceManager }: BuildToolbarProps) {
   const setViewerZoom = useAppStore((s) => s.setViewerZoom);
   const requestFitToView = useAppStore((s) => s.requestFitToView);
   const rotatePage = useAppStore((s) => s.rotatePage);
+  const canvasMode = useAppStore((s) => s.canvasMode);
+  const setCanvasMode = useAppStore((s) => s.setCanvasMode);
+  const currentSourcePages = useAppStore((s) => s.currentSourcePages);
+  const currentPageIndex = useAppStore((s) => s.currentPageIndex);
+  const steps = useAppStore((s) => s.steps);
+  const addStep = useAppStore((s) => s.addStep);
+  const setActiveStep = useAppStore((s) => s.setActiveStep);
+  const activeProjectId = useAppStore((s) => s.activeProjectId);
+  const loadTracks = useAppStore((s) => s.loadTracks);
 
   const activeTrack = activeTrackId
     ? tracks.find((t) => t.id === activeTrackId) ?? null
@@ -26,10 +37,41 @@ export function BuildToolbar({ onOpenSourceManager }: BuildToolbarProps) {
 
   const handleZoomIn = () => setViewerZoom(viewerZoom * 1.2);
   const handleZoomOut = () => setViewerZoom(viewerZoom / 1.2);
-
   const handleFitToView = () => requestFitToView();
 
   const zoomPercent = Math.round(viewerZoom * 100);
+
+  const currentPage = currentSourcePages[currentPageIndex];
+
+  const handleFullPage = async () => {
+    if (!activeTrackId) {
+      toast.info("Select a track first");
+      return;
+    }
+    if (!currentPage) {
+      toast.info("No page selected");
+      return;
+    }
+    const trackSteps = steps.filter((s) => s.track_id === activeTrackId);
+    const title = `Step ${trackSteps.length + 1}`;
+    try {
+      const step = await api.createStep({
+        track_id: activeTrackId,
+        title,
+        source_page_id: currentPage.id,
+        is_full_page: true,
+        crop_x: 0,
+        crop_y: 0,
+        crop_w: currentPage.width,
+        crop_h: currentPage.height,
+      });
+      addStep(step);
+      setActiveStep(step.id);
+      if (activeProjectId) loadTracks(activeProjectId);
+    } catch (e) {
+      toast.error(`Failed to create step: ${e}`);
+    }
+  };
 
   return (
     <div className="flex items-center gap-2 border-b border-border bg-background px-3 py-1">
@@ -62,6 +104,43 @@ export function BuildToolbar({ onOpenSourceManager }: BuildToolbarProps) {
       {/* Right: Actions */}
       {instructionSources.length > 0 && (
         <>
+          {/* Mode toggle */}
+          <div className="flex items-center rounded-md border border-border">
+            <button
+              onClick={() => setCanvasMode("view")}
+              className={`rounded-l-[5px] px-1.5 py-1 ${
+                canvasMode === "view"
+                  ? "bg-accent text-white"
+                  : "text-text-tertiary hover:bg-muted hover:text-text-secondary"
+              }`}
+              title="View mode (V)"
+            >
+              <MousePointer className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => setCanvasMode("crop")}
+              className={`rounded-r-[5px] px-1.5 py-1 ${
+                canvasMode === "crop"
+                  ? "bg-accent text-white"
+                  : "text-text-tertiary hover:bg-muted hover:text-text-secondary"
+              }`}
+              title="Crop mode (C)"
+            >
+              <Crop className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          {/* Full page button */}
+          <button
+            onClick={handleFullPage}
+            className="rounded p-1 text-text-tertiary hover:bg-muted hover:text-text-secondary"
+            title="Full page step (F)"
+          >
+            <RectangleHorizontal className="h-3.5 w-3.5" />
+          </button>
+
+          <Separator orientation="vertical" className="h-[14px]" />
+
           {/* Source manager */}
           <Button
             variant="ghost"

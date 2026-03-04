@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Wrench, Plus } from "lucide-react";
+import { toast } from "sonner";
 import { useAppStore } from "@/store";
+import * as api from "@/api";
 import { CreateProjectDialog } from "@/components/shared/CreateProjectDialog";
 import { Button } from "@/components/ui/button";
 import { BuildToolbar } from "@/components/build/BuildToolbar";
@@ -10,6 +12,7 @@ import { EmptyInstructionsState } from "@/components/build/EmptyInstructionsStat
 import { ProcessingOverlay } from "@/components/build/ProcessingOverlay";
 import { SourceManagerPanel } from "@/components/build/SourceManagerPanel";
 import { TrackRail } from "@/components/build/TrackRail";
+import { StepEditorPanel } from "@/components/build/StepEditorPanel";
 import { useUploadPdf } from "@/components/build/useUploadPdf";
 
 export default function BuildRoute() {
@@ -22,6 +25,17 @@ export default function BuildRoute() {
   const setViewerZoom = useAppStore((s) => s.setViewerZoom);
   const requestFitToView = useAppStore((s) => s.requestFitToView);
   const rotatePage = useAppStore((s) => s.rotatePage);
+  const activeStepId = useAppStore((s) => s.activeStepId);
+  const setActiveStep = useAppStore((s) => s.setActiveStep);
+  const canvasMode = useAppStore((s) => s.canvasMode);
+  const setCanvasMode = useAppStore((s) => s.setCanvasMode);
+  const activeTrackId = useAppStore((s) => s.activeTrackId);
+  const currentSourcePages = useAppStore((s) => s.currentSourcePages);
+  const currentPageIndex = useAppStore((s) => s.currentPageIndex);
+  const steps = useAppStore((s) => s.steps);
+  const addStep = useAppStore((s) => s.addStep);
+  const activeProjectId = useAppStore((s) => s.activeProjectId);
+  const loadTracks = useAppStore((s) => s.loadTracks);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [sourceManagerOpen, setSourceManagerOpen] = useState(false);
@@ -72,9 +86,60 @@ export default function BuildRoute() {
           e.preventDefault();
           rotatePage();
           break;
+        case "c":
+        case "C":
+          e.preventDefault();
+          setCanvasMode("crop");
+          break;
+        case "v":
+          e.preventDefault();
+          setCanvasMode("view");
+          break;
+        case "f":
+        case "F": {
+          e.preventDefault();
+          const page = currentSourcePages[currentPageIndex];
+          if (!activeTrackId) {
+            toast.info("Select a track first");
+            break;
+          }
+          if (!page) break;
+          const trackSteps = steps.filter((s) => s.track_id === activeTrackId);
+          const title = `Step ${trackSteps.length + 1}`;
+          api
+            .createStep({
+              track_id: activeTrackId,
+              title,
+              source_page_id: page.id,
+              is_full_page: true,
+              crop_x: 0,
+              crop_y: 0,
+              crop_w: page.width,
+              crop_h: page.height,
+            })
+            .then((step) => {
+              addStep(step);
+              setActiveStep(step.id);
+              if (activeProjectId) loadTracks(activeProjectId);
+            })
+            .catch((err) => toast.error(`Failed to create step: ${err}`));
+          break;
+        }
+        case "Escape":
+          e.preventDefault();
+          if (activeStepId) {
+            setActiveStep(null);
+          } else if (canvasMode === "crop") {
+            setCanvasMode("view");
+          }
+          break;
       }
     },
-    [nextPage, prevPage, viewerZoom, setViewerZoom, requestFitToView, rotatePage],
+    [
+      nextPage, prevPage, viewerZoom, setViewerZoom, requestFitToView, rotatePage,
+      setCanvasMode, canvasMode, activeStepId, setActiveStep, activeTrackId,
+      currentSourcePages, currentPageIndex, steps, addStep, activeProjectId, loadTracks,
+    ],
   );
 
   useEffect(() => {
@@ -137,6 +202,8 @@ export default function BuildRoute() {
             <EmptyInstructionsState onUpload={handleUploadPdf} />
           )}
         </div>
+
+        {activeStepId && <StepEditorPanel />}
       </div>
     </div>
   );

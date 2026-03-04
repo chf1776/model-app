@@ -4,6 +4,8 @@ import useImage from "use-image";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useAppStore } from "@/store";
 import * as api from "@/api";
+import { useCropDrawing } from "@/hooks/useCropDrawing";
+import { CropLayer } from "./CropLayer";
 import type Konva from "konva";
 
 const MIN_ZOOM = 0.1;
@@ -61,6 +63,7 @@ export function InstructionCanvas() {
   const setViewerZoom = useAppStore((s) => s.setViewerZoom);
   const setViewerPan = useAppStore((s) => s.setViewerPan);
   const fitToViewTrigger = useAppStore((s) => s.fitToViewTrigger);
+  const canvasMode = useAppStore((s) => s.canvasMode);
 
   const currentPage = currentSourcePages[currentPageIndex];
   const imageSrc = currentPage ? convertFileSrc(currentPage.file_path) : null;
@@ -78,6 +81,11 @@ export function InstructionCanvas() {
       ? currentPage.width
       : currentPage.height
     : 0;
+
+  // Crop drawing
+  const { drawingRect, onMouseDown, onMouseMove, onMouseUp } = useCropDrawing(stageRef);
+
+  const isViewMode = canvasMode === "view";
 
   // ResizeObserver for stage dimensions
   useEffect(() => {
@@ -194,7 +202,7 @@ export function InstructionCanvas() {
     [viewerZoom, viewerPanX, viewerPanY, setViewerZoom, setViewerPan, debouncedSave],
   );
 
-  // Drag to pan
+  // Drag to pan (view mode only — draggable is disabled in crop mode)
   const handleDragEnd = useCallback(
     (e: Konva.KonvaEventObject<DragEvent>) => {
       const stage = e.target;
@@ -214,6 +222,8 @@ export function InstructionCanvas() {
     };
   }, []);
 
+  const cursor = isViewMode ? "grab" : "crosshair";
+
   return (
     <div ref={containerRef} className="h-full w-full">
       {stageSize.width > 0 && imageSrc && currentPage && (
@@ -225,10 +235,13 @@ export function InstructionCanvas() {
           scaleY={viewerZoom}
           x={viewerPanX}
           y={viewerPanY}
-          draggable
+          draggable={isViewMode}
           onWheel={handleWheel}
           onDragEnd={handleDragEnd}
-          style={{ cursor: "grab" }}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp}
+          style={{ cursor }}
         >
           <Layer>
             <Rect
@@ -243,6 +256,7 @@ export function InstructionCanvas() {
               height={currentPage.height}
             />
           </Layer>
+          <CropLayer drawingRect={drawingRect} zoom={viewerZoom} />
         </Stage>
       )}
     </div>

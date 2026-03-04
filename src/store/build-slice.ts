@@ -1,7 +1,10 @@
 import type { StateCreator } from "zustand";
-import type { Project, InstructionSource, InstructionPage, Track } from "@/shared/types";
+import type { Project, InstructionSource, InstructionPage, Track, Step } from "@/shared/types";
 import type { AppStore } from "./index";
 import * as api from "@/api";
+import { toast } from "sonner";
+
+export type CanvasMode = "view" | "crop";
 
 export interface BuildSlice {
   activeProjectId: string | null;
@@ -21,6 +24,15 @@ export interface BuildSlice {
   updateTrackStore: (track: Track) => void;
   removeTrack: (id: string) => void;
   setActiveTrack: (id: string | null) => void;
+
+  // Steps
+  steps: Step[];
+  activeStepId: string | null;
+  loadSteps: (projectId: string) => Promise<void>;
+  addStep: (step: Step) => void;
+  updateStepStore: (step: Step) => void;
+  removeStep: (id: string) => void;
+  setActiveStep: (id: string | null) => void;
 
   // Instruction sources
   instructionSources: InstructionSource[];
@@ -47,6 +59,10 @@ export interface BuildSlice {
   setViewerPan: (x: number, y: number) => void;
   resetViewerState: () => void;
   requestFitToView: () => void;
+
+  // Canvas mode
+  canvasMode: CanvasMode;
+  setCanvasMode: (mode: CanvasMode) => void;
 
   // Processing state
   isProcessingPdf: boolean;
@@ -77,6 +93,10 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   tracks: [],
   activeTrackId: null,
 
+  // Steps
+  steps: [],
+  activeStepId: null,
+
   // Instruction sources
   instructionSources: [],
   ...DEFAULT_PAGE_STATE,
@@ -84,6 +104,9 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   // Viewer state
   ...DEFAULT_VIEWER_STATE,
   fitToViewTrigger: 0,
+
+  // Canvas mode
+  canvasMode: "view" as CanvasMode,
 
   // Processing state
   isProcessingPdf: false,
@@ -102,6 +125,8 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         project: null,
         tracks: [],
         activeTrackId: null,
+        steps: [],
+        activeStepId: null,
         instructionSources: [],
         ...DEFAULT_PAGE_STATE,
       });
@@ -119,12 +144,16 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       project,
       tracks: [],
       activeTrackId: null,
+      steps: [],
+      activeStepId: null,
+      canvasMode: "view" as CanvasMode,
       ...DEFAULT_PAGE_STATE,
       ...DEFAULT_VIEWER_STATE,
     });
-    // Load instruction sources and tracks for the new project
+    // Load instruction sources, tracks, and steps for the new project
     get().loadInstructionSources(id);
     get().loadTracks(id);
+    get().loadSteps(id);
   },
 
   clearActiveProject: () =>
@@ -133,6 +162,8 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       project: null,
       tracks: [],
       activeTrackId: null,
+      steps: [],
+      activeStepId: null,
       instructionSources: [],
       ...DEFAULT_PAGE_STATE,
     }),
@@ -143,6 +174,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       set({ activeProjectId: project.id, project });
       get().loadInstructionSources(project.id);
       get().loadTracks(project.id);
+      get().loadSteps(project.id);
     }
   },
 
@@ -170,6 +202,32 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
 
   setActiveTrack: (id) => {
     set({ activeTrackId: id });
+  },
+
+  loadSteps: async (projectId) => {
+    const steps = await api.listProjectSteps(projectId);
+    set({ steps });
+  },
+
+  addStep: (step) => {
+    set((s) => ({ steps: [...s.steps, step] }));
+  },
+
+  updateStepStore: (step) => {
+    set((s) => ({
+      steps: s.steps.map((st) => (st.id === step.id ? step : st)),
+    }));
+  },
+
+  removeStep: (id) => {
+    set((s) => ({
+      steps: s.steps.filter((st) => st.id !== id),
+      activeStepId: s.activeStepId === id ? null : s.activeStepId,
+    }));
+  },
+
+  setActiveStep: (id) => {
+    set({ activeStepId: id });
   },
 
   loadInstructionSources: async (projectId) => {
@@ -265,6 +323,14 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
 
   requestFitToView: () => {
     set((s) => ({ fitToViewTrigger: s.fitToViewTrigger + 1 }));
+  },
+
+  setCanvasMode: (mode) => {
+    if (mode === "crop" && !get().activeTrackId) {
+      toast.info("Select a track first");
+      return;
+    }
+    set({ canvasMode: mode });
   },
 
   setIsProcessingPdf: (processing) => {

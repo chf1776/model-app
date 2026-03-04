@@ -330,6 +330,25 @@ export const TRACK_COLORS = [
 export type SourceType = "base_kit" | "photo_etch" | "resin_3d" | "aftermarket" | "custom_scratch";
 export type AdhesiveType = "none" | "liquid_cement" | "tube_cement" | "ca_thin" | "ca_medium_thick" | "epoxy" | "pva" | "custom";
 
+export const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
+  base_kit: "Base Kit",
+  photo_etch: "Photo-Etch",
+  resin_3d: "Resin / 3D",
+  aftermarket: "Aftermarket",
+  custom_scratch: "Scratch-Built",
+};
+
+export const ADHESIVE_TYPE_LABELS: Record<AdhesiveType, string> = {
+  none: "None",
+  liquid_cement: "Liquid Cement",
+  tube_cement: "Tube Cement",
+  ca_thin: "CA (Thin)",
+  ca_medium_thick: "CA (Medium/Thick)",
+  epoxy: "Epoxy",
+  pva: "PVA / White Glue",
+  custom: "Custom",
+};
+
 export interface Step {
   id: string;
   track_id: string;

@@ -77,38 +77,46 @@ Full collection management. All three entity types, wishlists with pricing, pain
 
 **Goal**: Import your instruction manual, define tracks, and crop every step. The project is ready to build.
 
-### PDF handling (Rust backend)
-- Upload one or more instruction PDFs per project; each becomes a named source
-- Rasterize PDF pages to PNG at configured DPI; stored in `instructions/<pdf-id>/page-NNN.png`
-- Page browser: navigate pages, switch between sources
+### Phase 2A (COMPLETE): PDF Import & Page Viewer — v0.2.0
+- MuPDF PDF rasterization, Konva canvas with zoom/pan/rotate
+- Page navigator, source manager, build toolbar
+- Keyboard shortcuts (Tab, +/-, 0, R)
 
-### Crop tool
-- Draw rectangular regions on instruction pages; assign each to a track
-- Regions stored as normalized coordinates; full-resolution crop deferred to first display/export
-- "Full page" option for steps spanning an entire page
+### Phase 2B (COMPLETE): Track & Step Foundation
+- Track/step Rust backend (CRUD queries, commands, types, API wrappers)
+- Track rail UI (200px panel, add/rename/color/delete dialogs, progress bars)
+- Step store integration (steps[], activeStepId, CRUD actions in build-slice)
+- Step UI components: StepItem, StepCompletionMarker, StepEditorPanel
+- Step display in track rail (expanded under active track, "+ Add step" as secondary method)
+
+### Phase 2C (COMPLETE): Canvas Crop Tool & Step Creation
+- **Selection-first workflow**: Canvas crop tool is the primary way to create steps — draw a rectangle on the instruction PDF, step is created instantly on the active track
+- View/Crop mode toggle (toolbar buttons + C/V keyboard shortcuts)
+- Crop regions rendered on canvas with track-colored borders and labels (visible in both modes)
+- Full-page step shortcut (toolbar button + F key)
+- Coordinate system: crop data stored in image-space, rendered in effective-space with rotation support
+- Escape key to deselect step or exit crop mode
+- CropLayer (Konva Layer) and CropRegion (Konva Group) components with inverse-zoom-scaled labels
+
+### Phase 2D: Selection, Editing & Polish
+- Crop region interaction refinements: resize handles, drag to reposition
+- Crop preview in step editor panel
+- Bidirectional rail↔canvas sync, track reassignment
+- Navigate-to-page from rail
+
+### Phase 2E: Bulk Operations & Reorder
+- Multi-select regions, bulk track assignment
+- Drag-reorder steps in rail
+- Undo last crop
+- Keyboard shortcut help
+
+### Additional Phase 2 features (later sub-phases)
 - Image cleanup: paint-over mask per step stored as a layer; source image never modified
-- Undo/redo: crop region draw, step create/delete/reorder, track create/delete/reorder, step metadata edits
-
-### Track management
-- Create, rename, reorder (drag), delete tracks; each track has a name and color
-- Track join point: set the step on another track where this subassembly merges; one per track max
-- Standalone option: tracks that never formally merge; no "?" prompt in Assembly Map
-- Join point notes
-
-### Step management
-- Create steps manually or from crop regions; reorder via drag-and-drop
-- Bulk creation: select multiple regions → "Create steps" → assign all to a track at once
-- Sub-steps: created via "Add sub-step" in step editor or right-click in step list
-- Step editor:
-  - Title, source type + source name
-  - Adhesive type (predefined dropdown with default drying times, overridable)
-  - Pre-paint required flag
-  - Quantity (for repeated-action steps)
-  - Notes, tags (from predefined tag library)
-  - Paint references (populated in Phase 6)
-  - Relations: "Blocked by" / "Blocks access to"
-  - Replaces step
-  - Reference image attachments
+- Track join point: set the step on another track where this subassembly merges
+- Sub-steps: created via "Add sub-step" in step editor
+- Step relations: "Blocked by" / "Blocks access to", replaces step
+- Reference image attachments
+- Tags (from predefined tag library)
 
 ### Deliverable
 You can import a full instruction manual, crop every step, and organize the build into tracks. The project is structured and ready for Building mode.
@@ -346,7 +354,7 @@ A fully polished, complete app. Finish a build, export a shareable document, eve
 | --- | --- | --- |
 | 1A | Foundation | App shell, basic kit management, project creation |
 | 1B | Collection Completeness | Paint shelf, accessories, wishlist system |
-| 2 | Setup Mode | PDF import, crop tool, track/step organization |
+| 2A–2E | Setup Mode | PDF import, crop tool, track/step organization |
 | **3** | **Building — Core** | **Working build loop (critical path)** |
 | 3.5 | Basic Overview | Read-only assembly map, compact summary cards |
 | 4 | Building — Enrichment | Annotations, references, timers, page mode |

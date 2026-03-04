@@ -8,11 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+#### Phase 2C: Canvas Crop Tool & Step Creation
+- **Selection-first step creation**: Draw a rectangle on the instruction PDF canvas to instantly create a step on the active track — the primary way to create steps
+- **Canvas mode toggle**: View mode (pan/zoom) and Crop mode (draw crops) with toolbar buttons and keyboard shortcuts (V/C)
+- **Crop regions on canvas**: All crop regions visible on the current page with track-colored borders, semi-transparent fills, and corner labels showing track abbreviation + step number
+- **Full-page step shortcut**: Create a step covering the entire page via toolbar button or F key
+- **Keyboard shortcuts**: C (crop mode), V (view mode), F (full-page step), Escape (deselect step or exit crop mode)
+- **CropLayer component**: Konva Layer rendering all crop regions for the current page with in-progress drawing rectangle
+- **CropRegion component**: Konva Group with inverse-zoom-scaled labels and borders that stay readable at any zoom level
+- **useCropDrawing hook**: State machine for crop drawing with stage-to-image coordinate conversion supporting all rotation angles (0/90/180/270)
+- **Canvas mode state**: `canvasMode` in build-slice with guard preventing crop mode without an active track
+
+#### Phase 2B: Track & Step Foundation
 - **Track & step backend**: Full Rust data layer for tracks and steps — CRUD queries, Tauri commands, TypeScript types, API wrappers, and Zustand store integration
-- **Three-panel build layout**: Build zone now has TrackRail (left) | Canvas (center) | placeholder (right) layout
+- **Three-panel build layout**: Build zone now has TrackRail (left) | Canvas (center) | StepEditorPanel (right) layout
 - **Track rail UI**: 200px left panel with track list, add/rename/change-color/delete dialogs, progress bars, and empty state
 - **Track auto-color**: New tracks auto-assign from an 8-color rotating palette (Terracotta, Steel Blue, Olive, Gold, Purple, Burnt Orange, Teal, Mauve)
 - **Active track toolbar**: Selected track shown with color dot + name in the build toolbar
+- **Step editor panel**: 220px right sidebar with title, track, adhesive, source type, pre-paint toggle, notes, and advanced fields (quantity, drying time)
+- **Step UI components**: StepItem, StepCompletionMarker for track rail display
+
+#### Other
 - **Paint group expand/collapse all**: Toolbar buttons to expand or collapse all paint group sections at once
 - **Persistent paint group state**: Expanded/collapsed state for paint groups survives tab switches; uses a base+overrides model so expand/collapse all sets the default for new groups too
 - **Lazy image loading**: Kit box art and accessory thumbnails now use `loading="lazy"`

@@ -3,7 +3,7 @@ import { Plus, Route } from "lucide-react";
 import { toast } from "sonner";
 import { useAppStore } from "@/store";
 import * as api from "@/api";
-import type { Track } from "@/shared/types";
+import type { Track, Step } from "@/shared/types";
 import { TrackItem } from "./TrackItem";
 import {
   AddTrackDialog,
@@ -20,6 +20,14 @@ export function TrackRail() {
   const addTrack = useAppStore((s) => s.addTrack);
   const updateTrackStore = useAppStore((s) => s.updateTrackStore);
   const removeTrack = useAppStore((s) => s.removeTrack);
+
+  const steps = useAppStore((s) => s.steps);
+  const activeStepId = useAppStore((s) => s.activeStepId);
+  const setActiveStep = useAppStore((s) => s.setActiveStep);
+  const addStep = useAppStore((s) => s.addStep);
+  const removeStep = useAppStore((s) => s.removeStep);
+  const updateStepStore = useAppStore((s) => s.updateStepStore);
+  const loadTracks = useAppStore((s) => s.loadTracks);
 
   const [addOpen, setAddOpen] = useState(false);
   const [renameTrack, setRenameTrack] = useState<Track | null>(null);
@@ -63,8 +71,52 @@ export function TrackRail() {
     try {
       await api.deleteTrack(id);
       removeTrack(id);
+      // Remove steps belonging to this track
+      const trackSteps = steps.filter((s) => s.track_id === id);
+      for (const s of trackSteps) {
+        removeStep(s.id);
+      }
     } catch (e) {
       toast.error(`Failed to delete track: ${e}`);
+    }
+  };
+
+  const handleAddStep = async (trackId: string) => {
+    const trackSteps = steps.filter((s) => s.track_id === trackId);
+    const title = `Step ${trackSteps.length + 1}`;
+    try {
+      const step = await api.createStep({ track_id: trackId, title });
+      addStep(step);
+      setActiveStep(step.id);
+      // Reload tracks to update step_count
+      if (activeProjectId) loadTracks(activeProjectId);
+    } catch (e) {
+      toast.error(`Failed to create step: ${e}`);
+    }
+  };
+
+  const handleDeleteStep = async (stepId: string) => {
+    try {
+      await api.deleteStep(stepId);
+      removeStep(stepId);
+      // Reload tracks to update step_count
+      if (activeProjectId) loadTracks(activeProjectId);
+    } catch (e) {
+      toast.error(`Failed to delete step: ${e}`);
+    }
+  };
+
+  const handleToggleStepComplete = async (step: Step) => {
+    try {
+      const updated = await api.updateStep({
+        id: step.id,
+        is_completed: !step.is_completed,
+      });
+      updateStepStore(updated);
+      // Reload tracks to update completed_count
+      if (activeProjectId) loadTracks(activeProjectId);
+    } catch (e) {
+      toast.error(`Failed to update step: ${e}`);
     }
   };
 
@@ -103,6 +155,12 @@ export function TrackRail() {
               onRename={() => setRenameTrack(track)}
               onChangeColor={() => setColorTrack(track)}
               onDelete={() => setDeleteTrackTarget(track)}
+              steps={steps.filter((s) => s.track_id === track.id)}
+              activeStepId={activeStepId}
+              onSelectStep={(id) => setActiveStep(id)}
+              onAddStep={() => handleAddStep(track.id)}
+              onDeleteStep={handleDeleteStep}
+              onToggleStepComplete={handleToggleStepComplete}
             />
           ))
         )}
