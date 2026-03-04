@@ -98,8 +98,13 @@ Full collection management. All three entity types, wishlists with pricing, pain
 - Escape key to deselect step or exit crop mode
 - CropLayer (Konva Layer) and CropRegion (Konva Group) components with inverse-zoom-scaled labels
 
-### Phase 2D: Selection, Editing & Polish
-- Crop region interaction refinements: resize handles, drag to reposition
+### Phase 2D (COMPLETE): Crop Region Resize & Reposition
+- Resize handles on selected crop regions via Konva Transformer (8 handles, no rotation)
+- Drag to reposition selected crop regions
+- Inverse coordinate conversion (effective-space → image-space) for all rotation angles
+- Zoom-independent handle sizing
+
+### Phase 2D-remaining: Selection, Editing & Polish
 - Crop preview in step editor panel
 - Bidirectional rail↔canvas sync, track reassignment
 - Navigate-to-page from rail

@@ -20,6 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **useCropDrawing hook**: State machine for crop drawing with stage-to-image coordinate conversion supporting all rotation angles (0/90/180/270)
 - **Canvas mode state**: `canvasMode` in build-slice with guard preventing crop mode without an active track
 
+#### Phase 2D: Crop Region Resize & Reposition
+- **Resize handles**: Selected crop regions show 8 Konva Transformer handles (corners + edges) for precise resizing
+- **Drag to reposition**: Selected crop regions are draggable to adjust position on the instruction page
+- **Inverse coordinate conversion**: `effectiveToImage` converts effective-space (post-rotation) coordinates back to image-space for database storage
+- **Zoom-independent handles**: Anchor size, stroke width, and corner radius scale inversely with zoom to maintain constant visual size
+- **Minimum crop size**: Enforced 5px minimum in both dimensions via Transformer `boundBoxFunc`
+
 #### Phase 2B: Track & Step Foundation
 - **Track & step backend**: Full Rust data layer for tracks and steps — CRUD queries, Tauri commands, TypeScript types, API wrappers, and Zustand store integration
 - **Three-panel build layout**: Build zone now has TrackRail (left) | Canvas (center) | StepEditorPanel (right) layout
