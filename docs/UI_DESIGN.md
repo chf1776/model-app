@@ -588,7 +588,8 @@ Expandable rail in Build zone. Shows track list (Track mode) or page thumbnail l
 - Completion: fraction text (10px) in success color when complete, tertiary otherwise
 - Thin progress bar: 40×3px, track-colored fill
 - Active track: background `#4E728214`
-- Expanded active track shows step thumbnails: 4px 6px padding, 20×14px thumbnail, 11px step name, ellipsis overflow
+- Multiple tracks can be expanded simultaneously. Click header to toggle expand/collapse; Cmd+click to expand exclusively (collapse all others). Expand/collapse all buttons in rail header.
+- Expanded tracks show step list: 4px 6px padding, 11px step name, page badge, ellipsis overflow. Steps are draggable between expanded tracks.
 
 #### 26.4 Collapse Cascade
 Per section 22: at 1200–1470px, sidebar collapses to icon-only rail mode (labels become icons). The specific collapsed width and appearance are determined by the window sizing rules.
@@ -850,7 +851,7 @@ Paints auto-assigned to a family (Reds & Oranges, Greys, Blues, Browns & Tans, M
 #### 33.1 Three-Panel Layout
 Left-to-right: Track rail | Instruction canvas | Step editor.
 
-- **Track rail**: 180px default width (resizable per section 26). Background `#F2EFEB`, border-right `1px solid #E5E0DA`. Shows track list with expanded steps for active track (per section 26.3).
+- **Track rail**: 180px default width (resizable per section 26). Background `#F2EFEB`, border-right `1px solid #E5E0DA`. Shows track list with multi-track expansion (per section 26.3). Steps draggable within and across tracks.
 - **Instruction canvas**: flex: 1 (fills remaining space). Background `#E8E4DF` (neutral warm grey, distinct from app-bg). Canvas content is zoomable/pannable via Konva.
 - **Step editor**: 220px default width. Background `#FFFFFF`, border-left `1px solid #E5E0DA`. Scrollable. At window widths below 1080px, becomes a slide-over panel instead of fixed column (per section 22).
 

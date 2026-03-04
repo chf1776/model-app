@@ -1087,7 +1087,7 @@ Complex builds (e.g. 1/350 warship with full PE sets) can generate 150–250+ st
 ### Components requiring attention at scale
 
 - **Assembly Map**: At 200+ steps with 22px node spacing, the map is ~4400px wide. Horizontal scrolling and fit-to-screen zoom are already specified. Ensure node rendering uses canvas (Konva) rather than DOM elements to avoid layout thrashing.
-- **Step rail (Build zone)**: 200+ steps in a single track would overflow the rail. The collapsed-track pattern (only active track expanded) mitigates this. Within the active track, the step list should use virtualized scrolling if it exceeds ~50 items.
+- **Step rail (Build zone)**: 200+ steps in a single track would overflow the rail. The multi-track expansion pattern (multiple tracks expandable, Cmd+click for exclusive mode) mitigates this. Within expanded tracks, the step list should use virtualized scrolling if it exceeds ~50 items.
 - **Materials card**: A project with 30+ accessories and 50+ paints needs efficient list rendering. Consider virtualizing the BOM list in expanded view.
 - **Build Log**: Months of daily entries. Day-group collapsing (default: today + 2 days expanded) handles this. Older entries load on scroll.
 - **Overview card grid**: No scaling concern (always 4 cards).

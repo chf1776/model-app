@@ -111,11 +111,12 @@ Full collection management. All three entity types, wishlists with pricing, pain
 - Page number badges on steps in rail (P1, P3, etc.)
 - Navigate-to-page from rail
 
-### Phase 2E: Bulk Operations & Reorder
-- Multi-select regions, bulk track assignment
-- Drag-reorder steps in rail
-- Undo last crop
-- Keyboard shortcut help
+### Phase 2E (COMPLETE): Bulk Operations, Reorder & Cross-Track Drag
+- Multi-select steps (Cmd+click, Shift+click), bulk delete
+- Drag-reorder steps within tracks, cross-track drag-and-drop (single or multi-select)
+- Multi-track expansion (click to toggle, Cmd+click for exclusive), expand/collapse all buttons
+- Undo last crop (Cmd+Z)
+- Keyboard shortcut help dialog (?)
 
 ### Additional Phase 2 features (later sub-phases)
 - Image cleanup: paint-over mask per step stored as a layer; source image never modified

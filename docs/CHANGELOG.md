@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Phase 2E-continued: Cross-Track Drag-and-Drop & Track Expansion
+- **Cross-track drag-and-drop**: Drag steps between tracks directly in the rail — single steps or multi-selected groups. Steps insert at the drop position in the target track with automatic reordering of both source and target tracks
+- **Multi-track expansion**: Multiple tracks can now show their step lists simultaneously. Click a track header to toggle its expansion; Cmd+click to expand exclusively (collapsing all others)
+- **Expand/collapse all buttons**: Two state-aware icon buttons in the track rail header — expand all (highlighted when all tracks open) and collapse all (highlighted when all tracks closed)
+- **Unified DndContext**: Single drag-and-drop context hoisted to TrackRail level, enabling within-track reorder and cross-track moves in one gesture
+- **Drop zones on expanded tracks**: Empty expanded tracks show a "Drop steps here" placeholder; collapsed tracks have no drop zone
+
+### Removed
+- **Move to Track menu**: Removed the dropdown submenu for moving steps between tracks — superseded by direct drag-and-drop
+
 #### Phase 2C: Canvas Crop Tool & Step Creation
 - **Selection-first step creation**: Draw a rectangle on the instruction PDF canvas to instantly create a step on the active track — the primary way to create steps
 - **Canvas mode toggle**: View mode (pan/zoom) and Crop mode (draw crops) with toolbar buttons and keyboard shortcuts (V/C)
