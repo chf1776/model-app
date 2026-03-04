@@ -139,6 +139,22 @@ pub fn update(conn: &Connection, input: UpdateStepInput) -> Result<Step, String>
     let existing = get_by_id(conn, &input.id)?;
     let ts = now();
 
+    // Handle track reassignment
+    let track_changed = input.track_id.as_ref().is_some_and(|tid| *tid != existing.track_id);
+    let track_id = input.track_id.unwrap_or_else(|| existing.track_id.clone());
+    let display_order = if track_changed {
+        let max_order: i32 = conn
+            .query_row(
+                "SELECT COALESCE(MAX(display_order), -1) FROM steps WHERE track_id = ?1",
+                params![track_id],
+                |row| row.get(0),
+            )
+            .unwrap_or(-1);
+        max_order + 1
+    } else {
+        existing.display_order
+    };
+
     let title = input.title.unwrap_or(existing.title);
     let parent_step_id = input.parent_step_id.or(existing.parent_step_id);
     let source_page_id = input.source_page_id.or(existing.source_page_id);
@@ -166,14 +182,17 @@ pub fn update(conn: &Connection, input: UpdateStepInput) -> Result<Step, String>
     };
 
     conn.execute(
-        "UPDATE steps SET title = ?1, parent_step_id = ?2, source_page_id = ?3,
-                crop_x = ?4, crop_y = ?5, crop_w = ?6, crop_h = ?7,
-                is_full_page = ?8, source_type = ?9, source_name = ?10,
-                adhesive_type = ?11, drying_time_min = ?12, pre_paint = ?13,
-                quantity = ?14, is_completed = ?15, completed_at = ?16,
-                notes = ?17, updated_at = ?18
-         WHERE id = ?19",
+        "UPDATE steps SET track_id = ?1, display_order = ?2, title = ?3,
+                parent_step_id = ?4, source_page_id = ?5,
+                crop_x = ?6, crop_y = ?7, crop_w = ?8, crop_h = ?9,
+                is_full_page = ?10, source_type = ?11, source_name = ?12,
+                adhesive_type = ?13, drying_time_min = ?14, pre_paint = ?15,
+                quantity = ?16, is_completed = ?17, completed_at = ?18,
+                notes = ?19, updated_at = ?20
+         WHERE id = ?21",
         params![
+            track_id,
+            display_order,
             title,
             parent_step_id,
             source_page_id,

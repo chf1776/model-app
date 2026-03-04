@@ -5,6 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAppStore } from "@/store";
 import { StepCompletionMarker } from "./StepCompletionMarker";
 import type { Step } from "@/shared/types";
 
@@ -23,6 +24,11 @@ export function StepItem({
   onToggleComplete,
   onDelete,
 }: StepItemProps) {
+  const currentSourcePages = useAppStore((s) => s.currentSourcePages);
+  const pageIdx = step.source_page_id
+    ? currentSourcePages.findIndex((p) => p.id === step.source_page_id)
+    : -1;
+
   return (
     <button
       onClick={onSelect}
@@ -45,6 +51,11 @@ export function StepItem({
       >
         {step.title}
       </span>
+      {!isActive && pageIdx >= 0 && (
+        <span className="shrink-0 text-[9px] text-text-tertiary">
+          P{pageIdx + 1}
+        </span>
+      )}
       {step.pre_paint && (
         <span className="shrink-0 rounded px-1 py-0.5 text-[9px] font-medium text-[#C4913A] bg-[#C4913A]/10">
           Pre-paint

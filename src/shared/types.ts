@@ -396,6 +396,7 @@ export interface CreateStepInput {
 
 export interface UpdateStepInput {
   id: string;
+  track_id?: string | null;
   title?: string | null;
   parent_step_id?: string | null;
   source_page_id?: string | null;

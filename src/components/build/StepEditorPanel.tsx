@@ -25,13 +25,17 @@ import {
   ADHESIVE_TYPE_LABELS,
   SOURCE_TYPE_LABELS,
 } from "@/shared/types";
+import { CropPreview } from "./CropPreview";
 
 export function StepEditorPanel() {
   const steps = useAppStore((s) => s.steps);
   const activeStepId = useAppStore((s) => s.activeStepId);
   const tracks = useAppStore((s) => s.tracks);
+  const activeProjectId = useAppStore((s) => s.activeProjectId);
   const setActiveStep = useAppStore((s) => s.setActiveStep);
+  const setActiveTrack = useAppStore((s) => s.setActiveTrack);
   const updateStepStore = useAppStore((s) => s.updateStepStore);
+  const loadTracks = useAppStore((s) => s.loadTracks);
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
@@ -50,14 +54,12 @@ export function StepEditorPanel() {
   };
 
   const handleTrackChange = async (newTrackId: string) => {
+    if (newTrackId === step.track_id) return;
     try {
-      const updated = await api.updateStep({ id: step.id });
-      // Move step to new track by deleting and recreating
-      // For now, track_id is not in UpdateStepInput, so we skip this
-      // This will be handled when track reassignment is added
-      void newTrackId;
-      void updated;
-      toast.info("Track reassignment coming soon");
+      const updated = await api.updateStep({ id: step.id, track_id: newTrackId });
+      updateStepStore(updated);
+      if (activeProjectId) await loadTracks(activeProjectId);
+      setActiveTrack(newTrackId);
     } catch (e) {
       toast.error(`Failed to move step: ${e}`);
     }
@@ -78,10 +80,8 @@ export function StepEditorPanel() {
 
       <ScrollArea className="flex-1">
         <div className="space-y-3 p-3">
-          {/* Crop preview placeholder */}
-          <div className="flex h-24 items-center justify-center rounded border border-dashed border-border bg-black/[0.02]">
-            <span className="text-[10px] text-text-tertiary">No crop region</span>
-          </div>
+          {/* Crop preview */}
+          <CropPreview step={step} />
 
           {/* Title */}
           <div className="space-y-1">

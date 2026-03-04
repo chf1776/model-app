@@ -329,6 +329,7 @@ pub struct CreateStepInput {
 #[derive(Debug, Deserialize)]
 pub struct UpdateStepInput {
     pub id: String,
+    pub track_id: Option<String>,
     pub title: Option<String>,
     pub parent_step_id: Option<String>,
     pub source_page_id: Option<String>,
