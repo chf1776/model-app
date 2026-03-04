@@ -34,6 +34,17 @@ export interface BuildSlice {
   removeStep: (id: string) => void;
   setActiveStep: (id: string | null) => void;
 
+  // Multi-select
+  selectedStepIds: string[];
+  toggleStepSelected: (id: string) => void;
+  clearSelectedSteps: () => void;
+  moveSelectedStepsToTrack: (trackId: string) => Promise<void>;
+
+  // Undo
+  undoStack: { stepId: string; trackId: string }[];
+  pushUndo: (stepId: string, trackId: string) => void;
+  undoLastCrop: () => Promise<void>;
+
   // Instruction sources
   instructionSources: InstructionSource[];
   loadInstructionSources: (projectId: string) => Promise<void>;
@@ -96,6 +107,8 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   // Steps
   steps: [],
   activeStepId: null,
+  selectedStepIds: [],
+  undoStack: [],
 
   // Instruction sources
   instructionSources: [],
@@ -127,6 +140,8 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         activeTrackId: null,
         steps: [],
         activeStepId: null,
+        selectedStepIds: [],
+        undoStack: [],
         instructionSources: [],
         ...DEFAULT_PAGE_STATE,
       });
@@ -146,6 +161,8 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       activeTrackId: null,
       steps: [],
       activeStepId: null,
+      selectedStepIds: [],
+      undoStack: [],
       canvasMode: "view" as CanvasMode,
       ...DEFAULT_PAGE_STATE,
       ...DEFAULT_VIEWER_STATE,
@@ -164,6 +181,8 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       activeTrackId: null,
       steps: [],
       activeStepId: null,
+      selectedStepIds: [],
+      undoStack: [],
       instructionSources: [],
       ...DEFAULT_PAGE_STATE,
     }),
@@ -248,6 +267,85 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     }
 
     set(update);
+  },
+
+  toggleStepSelected: (id) => {
+    set((s) => ({
+      selectedStepIds: s.selectedStepIds.includes(id)
+        ? s.selectedStepIds.filter((sid) => sid !== id)
+        : [...s.selectedStepIds, id],
+    }));
+  },
+
+  clearSelectedSteps: () => {
+    set({ selectedStepIds: [] });
+  },
+
+  moveSelectedStepsToTrack: async (trackId) => {
+    const { selectedStepIds, steps, activeProjectId } = get();
+    if (selectedStepIds.length === 0) return;
+
+    // Collect old track IDs that will need reordering
+    const oldTrackIds = new Set<string>();
+    for (const sid of selectedStepIds) {
+      const step = steps.find((s) => s.id === sid);
+      if (step && step.track_id !== trackId) {
+        oldTrackIds.add(step.track_id);
+      }
+    }
+
+    try {
+      // Move each selected step
+      for (const sid of selectedStepIds) {
+        const step = steps.find((s) => s.id === sid);
+        if (step && step.track_id !== trackId) {
+          await api.updateStep({ id: sid, track_id: trackId });
+        }
+      }
+      // Reorder old tracks to close gaps
+      for (const oldTrackId of oldTrackIds) {
+        const remainingIds = steps
+          .filter((s) => s.track_id === oldTrackId && !selectedStepIds.includes(s.id))
+          .sort((a, b) => a.display_order - b.display_order)
+          .map((s) => s.id);
+        await api.reorderSteps(oldTrackId, remainingIds);
+      }
+      if (activeProjectId) {
+        await get().loadTracks(activeProjectId);
+        await get().loadSteps(activeProjectId);
+      }
+      set({ selectedStepIds: [] });
+    } catch (e) {
+      toast.error(`Failed to move steps: ${e}`);
+    }
+  },
+
+  pushUndo: (stepId, trackId) => {
+    set((s) => ({
+      undoStack: [...s.undoStack.slice(-19), { stepId, trackId }],
+    }));
+  },
+
+  undoLastCrop: async () => {
+    const { undoStack, activeProjectId } = get();
+    if (undoStack.length === 0) return;
+
+    const last = undoStack[undoStack.length - 1];
+    set((s) => ({ undoStack: s.undoStack.slice(0, -1) }));
+
+    try {
+      await api.deleteStepAndReorder(last.stepId);
+      set((s) => ({
+        steps: s.steps.filter((st) => st.id !== last.stepId),
+        activeStepId: s.activeStepId === last.stepId ? null : s.activeStepId,
+      }));
+      if (activeProjectId) {
+        await get().loadTracks(activeProjectId);
+        await get().loadSteps(activeProjectId);
+      }
+    } catch {
+      // Step might already be deleted
+    }
   },
 
   loadInstructionSources: async (projectId) => {

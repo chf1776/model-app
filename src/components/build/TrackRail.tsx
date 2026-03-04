@@ -1,10 +1,17 @@
 import { useState, useMemo } from "react";
-import { Plus, Route } from "lucide-react";
+import { Plus, Route, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAppStore } from "@/store";
 import * as api from "@/api";
 import type { Track, Step } from "@/shared/types";
 import { TrackItem } from "./TrackItem";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AddTrackDialog,
   RenameTrackDialog,
@@ -28,6 +35,11 @@ export function TrackRail() {
   const removeStep = useAppStore((s) => s.removeStep);
   const updateStepStore = useAppStore((s) => s.updateStepStore);
   const loadTracks = useAppStore((s) => s.loadTracks);
+  const loadSteps = useAppStore((s) => s.loadSteps);
+  const selectedStepIds = useAppStore((s) => s.selectedStepIds);
+  const toggleStepSelected = useAppStore((s) => s.toggleStepSelected);
+  const clearSelectedSteps = useAppStore((s) => s.clearSelectedSteps);
+  const moveSelectedStepsToTrack = useAppStore((s) => s.moveSelectedStepsToTrack);
 
   const currentSourcePages = useAppStore((s) => s.currentSourcePages);
 
@@ -105,12 +117,24 @@ export function TrackRail() {
 
   const handleDeleteStep = async (stepId: string) => {
     try {
-      await api.deleteStep(stepId);
+      await api.deleteStepAndReorder(stepId);
       removeStep(stepId);
-      // Reload tracks to update step_count
-      if (activeProjectId) loadTracks(activeProjectId);
+      // Reload tracks and steps to update step_count and display_orders
+      if (activeProjectId) {
+        loadTracks(activeProjectId);
+        loadSteps(activeProjectId);
+      }
     } catch (e) {
       toast.error(`Failed to delete step: ${e}`);
+    }
+  };
+
+  const handleReorderSteps = async (trackId: string, orderedIds: string[]) => {
+    try {
+      await api.reorderSteps(trackId, orderedIds);
+      if (activeProjectId) loadSteps(activeProjectId);
+    } catch (e) {
+      toast.error(`Failed to reorder steps: ${e}`);
     }
   };
 
@@ -165,15 +189,56 @@ export function TrackRail() {
               onDelete={() => setDeleteTrackTarget(track)}
               steps={steps.filter((s) => s.track_id === track.id)}
               activeStepId={activeStepId}
+              selectedStepIds={selectedStepIds}
               pageIndexMap={pageIndexMap}
               onSelectStep={(id) => setActiveStep(id)}
+              onToggleStepSelect={toggleStepSelected}
               onAddStep={() => handleAddStep(track.id)}
               onDeleteStep={handleDeleteStep}
               onToggleStepComplete={handleToggleStepComplete}
+              onReorderSteps={handleReorderSteps}
             />
           ))
         )}
       </div>
+
+      {/* Multi-select bar */}
+      {selectedStepIds.length > 0 && (
+        <div className="border-t border-border bg-background px-2 py-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-medium text-text-secondary">
+              {selectedStepIds.length} selected
+            </span>
+            <div className="flex-1">
+              <Select onValueChange={moveSelectedStepsToTrack}>
+                <SelectTrigger size="sm" className="h-6 w-full text-[10px]">
+                  <SelectValue placeholder="Move to..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {tracks.map((t) => (
+                    <SelectItem key={t.id} value={t.id} className="text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: t.color }}
+                        />
+                        {t.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <button
+              onClick={clearSelectedSteps}
+              className="flex h-5 w-5 items-center justify-center rounded text-text-tertiary hover:bg-black/5"
+              title="Clear selection"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Dialogs */}
       <AddTrackDialog

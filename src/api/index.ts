@@ -231,6 +231,10 @@ export async function deleteStep(id: string): Promise<void> {
   return invoke<void>("delete_step", { id });
 }
 
+export async function deleteStepAndReorder(id: string): Promise<void> {
+  return invoke<void>("delete_step_and_reorder", { id });
+}
+
 export async function reorderSteps(
   trackId: string,
   orderedIds: string[],

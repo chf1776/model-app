@@ -13,6 +13,7 @@ import { ProcessingOverlay } from "@/components/build/ProcessingOverlay";
 import { SourceManagerPanel } from "@/components/build/SourceManagerPanel";
 import { TrackRail } from "@/components/build/TrackRail";
 import { StepEditorPanel } from "@/components/build/StepEditorPanel";
+import { KeyboardShortcutsDialog } from "@/components/build/KeyboardShortcutsDialog";
 import { useUploadPdf } from "@/components/build/useUploadPdf";
 
 export default function BuildRoute() {
@@ -30,15 +31,20 @@ export default function BuildRoute() {
   const canvasMode = useAppStore((s) => s.canvasMode);
   const setCanvasMode = useAppStore((s) => s.setCanvasMode);
   const activeTrackId = useAppStore((s) => s.activeTrackId);
+  const selectedStepIds = useAppStore((s) => s.selectedStepIds);
+  const clearSelectedSteps = useAppStore((s) => s.clearSelectedSteps);
   const currentSourcePages = useAppStore((s) => s.currentSourcePages);
   const currentPageIndex = useAppStore((s) => s.currentPageIndex);
   const steps = useAppStore((s) => s.steps);
   const addStep = useAppStore((s) => s.addStep);
   const activeProjectId = useAppStore((s) => s.activeProjectId);
   const loadTracks = useAppStore((s) => s.loadTracks);
+  const pushUndo = useAppStore((s) => s.pushUndo);
+  const undoLastCrop = useAppStore((s) => s.undoLastCrop);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [sourceManagerOpen, setSourceManagerOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   const hasSources = instructionSources.length > 0;
   const handleUploadPdf = useUploadPdf();
@@ -56,6 +62,19 @@ export default function BuildRoute() {
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement
       ) {
+        return;
+      }
+
+      // Ctrl/Cmd+Z: undo last crop
+      if (e.key === "z" && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+        e.preventDefault();
+        undoLastCrop();
+        return;
+      }
+
+      if (e.key === "?") {
+        e.preventDefault();
+        setShortcutsOpen(true);
         return;
       }
 
@@ -119,6 +138,7 @@ export default function BuildRoute() {
             })
             .then((step) => {
               addStep(step);
+              pushUndo(step.id, step.track_id);
               setActiveStep(step.id);
               if (activeProjectId) loadTracks(activeProjectId);
             })
@@ -127,7 +147,9 @@ export default function BuildRoute() {
         }
         case "Escape":
           e.preventDefault();
-          if (activeStepId) {
+          if (selectedStepIds.length > 0) {
+            clearSelectedSteps();
+          } else if (activeStepId) {
             setActiveStep(null);
           } else if (canvasMode === "crop") {
             setCanvasMode("view");
@@ -138,7 +160,9 @@ export default function BuildRoute() {
     [
       nextPage, prevPage, viewerZoom, setViewerZoom, requestFitToView, rotatePage,
       setCanvasMode, canvasMode, activeStepId, setActiveStep, activeTrackId,
-      currentSourcePages, currentPageIndex, steps, addStep, activeProjectId, loadTracks,
+      selectedStepIds, clearSelectedSteps,
+      currentSourcePages, currentPageIndex, steps, addStep, pushUndo, activeProjectId, loadTracks,
+      undoLastCrop,
     ],
   );
 
@@ -181,6 +205,7 @@ export default function BuildRoute() {
     <div className="flex h-full flex-col">
       <BuildToolbar
         onOpenSourceManager={() => setSourceManagerOpen((v) => !v)}
+        onOpenShortcuts={() => setShortcutsOpen(true)}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -205,6 +230,8 @@ export default function BuildRoute() {
 
         {activeStepId && <StepEditorPanel />}
       </div>
+
+      <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
     </div>
   );
 }

@@ -66,6 +66,7 @@ pub fn run() {
             commands::steps::create_step,
             commands::steps::update_step,
             commands::steps::delete_step,
+            commands::steps::delete_step_and_reorder,
             commands::steps::reorder_steps,
         ])
         .run(tauri::generate_context!())

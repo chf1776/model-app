@@ -1,11 +1,24 @@
 import { MoreHorizontal, Pencil, Palette, Trash2, Plus } from "lucide-react";
 import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { StepItem } from "./StepItem";
+import { SortableStepItem } from "./StepItem";
 import type { Track, Step } from "@/shared/types";
 
 interface TrackItemProps {
@@ -17,11 +30,14 @@ interface TrackItemProps {
   onDelete: () => void;
   steps: Step[];
   activeStepId: string | null;
+  selectedStepIds?: string[];
   pageIndexMap: Map<string, number>;
   onSelectStep: (id: string) => void;
+  onToggleStepSelect?: (id: string) => void;
   onAddStep: () => void;
   onDeleteStep: (id: string) => void;
   onToggleStepComplete: (step: Step) => void;
+  onReorderSteps?: (trackId: string, orderedIds: string[]) => void;
 }
 
 export function TrackItem({
@@ -33,16 +49,39 @@ export function TrackItem({
   onDelete,
   steps,
   activeStepId,
+  selectedStepIds = [],
   pageIndexMap,
   onSelectStep,
+  onToggleStepSelect,
   onAddStep,
   onDeleteStep,
   onToggleStepComplete,
+  onReorderSteps,
 }: TrackItemProps) {
   const progress =
     track.step_count > 0
       ? (track.completed_count / track.step_count) * 100
       : 0;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    }),
+  );
+
+  const stepIds = steps.map((s) => s.id);
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !onReorderSteps) return;
+
+    const oldIndex = stepIds.indexOf(active.id as string);
+    const newIndex = stepIds.indexOf(over.id as string);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const newOrder = arrayMove(stepIds, oldIndex, newIndex);
+    onReorderSteps(track.id, newOrder);
+  };
 
   return (
     <div>
@@ -108,19 +147,30 @@ export function TrackItem({
       {/* Step list (shown when track is active) */}
       {isActive && (
         <div className="border-l-[4px] bg-[#4E728208] px-2 pb-1.5" style={{ borderLeftColor: track.color }}>
-          <div className="space-y-0.5">
-            {steps.map((step) => (
-              <StepItem
-                key={step.id}
-                step={step}
-                isActive={step.id === activeStepId}
-                pageIndex={step.source_page_id ? (pageIndexMap.get(step.source_page_id) ?? -1) : -1}
-                onSelect={() => onSelectStep(step.id)}
-                onToggleComplete={() => onToggleStepComplete(step)}
-                onDelete={() => onDeleteStep(step.id)}
-              />
-            ))}
-          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={stepIds} strategy={verticalListSortingStrategy}>
+              <div className="space-y-0.5">
+                {steps.map((step) => (
+                  <SortableStepItem
+                    key={step.id}
+                    id={step.id}
+                    step={step}
+                    isActive={step.id === activeStepId}
+                    isSelected={selectedStepIds.includes(step.id)}
+                    pageIndex={step.source_page_id ? (pageIndexMap.get(step.source_page_id) ?? -1) : -1}
+                    onSelect={() => onSelectStep(step.id)}
+                    onToggleSelect={onToggleStepSelect ? () => onToggleStepSelect(step.id) : undefined}
+                    onToggleComplete={() => onToggleStepComplete(step)}
+                    onDelete={() => onDeleteStep(step.id)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
           <button
             onClick={(e) => {
               e.stopPropagation();

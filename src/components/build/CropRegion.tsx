@@ -25,6 +25,7 @@ interface CropRegionProps {
   step: Step;
   track: Track | undefined;
   isActive: boolean;
+  isSelected?: boolean;
   zoom: number;
   onClick: () => void;
   onResize: (stepId: string, effX: number, effY: number, effW: number, effH: number) => void;
@@ -39,6 +40,7 @@ export function CropRegion({
   step,
   track,
   isActive,
+  isSelected,
   zoom,
   onClick,
   onResize,
@@ -51,8 +53,8 @@ export function CropRegion({
   const trRef = useRef<Konva.Transformer>(null);
 
   const color = track?.color ?? "#999";
-  const fillColor = hexToRgba(color, isActive ? 0.08 : 0.04);
-  const strokeOpacity = isActive ? 1 : 0.3;
+  const fillColor = hexToRgba(color, isActive ? 0.08 : isSelected ? 0.12 : 0.04);
+  const strokeOpacity = isActive ? 1 : isSelected ? 0.8 : 0.3;
   const strokeColor = hexToRgba(color, strokeOpacity);
   const strokeWidth = 2 / zoom;
 

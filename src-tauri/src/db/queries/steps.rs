@@ -225,6 +225,29 @@ pub fn delete(conn: &Connection, id: &str) -> Result<(), String> {
     Ok(())
 }
 
+pub fn delete_and_reorder(conn: &Connection, id: &str) -> Result<(), String> {
+    // Get step's track_id before deleting
+    let track_id: String = conn
+        .query_row("SELECT track_id FROM steps WHERE id = ?1", params![id], |row| row.get(0))
+        .map_err(|e| e.to_string())?;
+
+    // Delete the step
+    conn.execute("DELETE FROM steps WHERE id = ?1", params![id])
+        .map_err(|e| e.to_string())?;
+
+    // Get remaining step IDs in order and normalize display_order
+    let mut stmt = conn
+        .prepare("SELECT id FROM steps WHERE track_id = ?1 ORDER BY display_order")
+        .map_err(|e| e.to_string())?;
+    let remaining_ids: Vec<String> = stmt
+        .query_map(params![track_id], |row| row.get(0))
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    reorder(conn, &track_id, remaining_ids)
+}
+
 pub fn reorder(conn: &Connection, track_id: &str, ordered_ids: Vec<String>) -> Result<(), String> {
     let ts = now();
     for (i, id) in ordered_ids.iter().enumerate() {

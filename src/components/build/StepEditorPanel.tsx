@@ -36,6 +36,7 @@ export function StepEditorPanel() {
   const setActiveTrack = useAppStore((s) => s.setActiveTrack);
   const updateStepStore = useAppStore((s) => s.updateStepStore);
   const loadTracks = useAppStore((s) => s.loadTracks);
+  const loadSteps = useAppStore((s) => s.loadSteps);
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
@@ -55,10 +56,20 @@ export function StepEditorPanel() {
 
   const handleTrackChange = async (newTrackId: string) => {
     if (newTrackId === step.track_id) return;
+    const oldTrackId = step.track_id;
     try {
       const updated = await api.updateStep({ id: step.id, track_id: newTrackId });
       updateStepStore(updated);
-      if (activeProjectId) await loadTracks(activeProjectId);
+      // Reorder old track to close gaps
+      const remainingIds = steps
+        .filter((s) => s.track_id === oldTrackId && s.id !== step.id)
+        .sort((a, b) => a.display_order - b.display_order)
+        .map((s) => s.id);
+      await api.reorderSteps(oldTrackId, remainingIds);
+      if (activeProjectId) {
+        await loadTracks(activeProjectId);
+        loadSteps(activeProjectId);
+      }
       setActiveTrack(newTrackId);
     } catch (e) {
       toast.error(`Failed to move step: ${e}`);

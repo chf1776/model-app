@@ -33,6 +33,12 @@ pub fn delete_step(db: State<'_, AppDb>, id: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn delete_step_and_reorder(db: State<'_, AppDb>, id: String) -> Result<(), String> {
+    let conn = db.conn()?;
+    crate::db::queries::steps::delete_and_reorder(&conn, &id)
+}
+
+#[tauri::command]
 pub fn reorder_steps(
     db: State<'_, AppDb>,
     track_id: String,

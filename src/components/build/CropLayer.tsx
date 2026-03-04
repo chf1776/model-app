@@ -66,6 +66,7 @@ export function CropLayer({ drawingRect, zoom }: CropLayerProps) {
   const tracks = useAppStore((s) => s.tracks);
   const activeStepId = useAppStore((s) => s.activeStepId);
   const setActiveStep = useAppStore((s) => s.setActiveStep);
+  const selectedStepIds = useAppStore((s) => s.selectedStepIds);
   const currentSourcePages = useAppStore((s) => s.currentSourcePages);
   const currentPageIndex = useAppStore((s) => s.currentPageIndex);
   const viewerPanX = useAppStore((s) => s.viewerPanX);
@@ -130,6 +131,7 @@ export function CropLayer({ drawingRect, zoom }: CropLayerProps) {
             step={step}
             track={track}
             isActive={step.id === activeStepId}
+            isSelected={selectedStepIds.includes(step.id)}
             zoom={zoom}
             onClick={() => setActiveStep(step.id)}
             onResize={handleResize}

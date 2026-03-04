@@ -90,6 +90,7 @@ export function useCropDrawing(stageRef: React.RefObject<Konva.Stage | null>) {
   const setActiveStep = useAppStore((s) => s.setActiveStep);
   const activeProjectId = useAppStore((s) => s.activeProjectId);
   const loadTracks = useAppStore((s) => s.loadTracks);
+  const pushUndo = useAppStore((s) => s.pushUndo);
   const viewerZoom = useAppStore((s) => s.viewerZoom);
   const viewerPanX = useAppStore((s) => s.viewerPanX);
   const viewerPanY = useAppStore((s) => s.viewerPanY);
@@ -200,6 +201,7 @@ export function useCropDrawing(stageRef: React.RefObject<Konva.Stage | null>) {
           crop_h: Math.round(cropH),
         });
         addStep(step);
+        pushUndo(step.id, step.track_id);
         setActiveStep(step.id);
         if (activeProjectId) loadTracks(activeProjectId);
       } catch (err) {
@@ -210,7 +212,7 @@ export function useCropDrawing(stageRef: React.RefObject<Konva.Stage | null>) {
     },
     [
       canvasMode, currentPage, activeTrackId, stageRef, steps,
-      addStep, setActiveStep, activeProjectId, loadTracks,
+      addStep, pushUndo, setActiveStep, activeProjectId, loadTracks,
       viewerZoom, viewerPanX, viewerPanY,
     ],
   );

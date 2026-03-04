@@ -1,4 +1,6 @@
 import { MoreHorizontal, Trash2 } from "lucide-react";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,8 +13,10 @@ import type { Step } from "@/shared/types";
 interface StepItemProps {
   step: Step;
   isActive: boolean;
+  isSelected?: boolean;
   pageIndex: number;
   onSelect: () => void;
+  onToggleSelect?: (e: React.MouseEvent) => void;
   onToggleComplete: () => void;
   onDelete: () => void;
 }
@@ -20,18 +24,30 @@ interface StepItemProps {
 export function StepItem({
   step,
   isActive,
+  isSelected,
   pageIndex,
   onSelect,
+  onToggleSelect,
   onToggleComplete,
   onDelete,
 }: StepItemProps) {
+  const handleClick = (e: React.MouseEvent) => {
+    if ((e.ctrlKey || e.metaKey) && onToggleSelect) {
+      onToggleSelect(e);
+    } else {
+      onSelect();
+    }
+  };
+
   return (
     <button
-      onClick={onSelect}
+      onClick={handleClick}
       className={`group flex w-full items-center gap-1.5 rounded px-1.5 py-1 text-left transition-colors ${
-        isActive
-          ? "border border-border bg-white"
-          : "border border-transparent hover:bg-black/[0.03]"
+        isSelected
+          ? "border border-accent/40 bg-accent/5"
+          : isActive
+            ? "border border-border bg-white"
+            : "border border-transparent hover:bg-black/[0.03]"
       }`}
     >
       <StepCompletionMarker
@@ -75,5 +91,32 @@ export function StepItem({
         </DropdownMenuContent>
       </DropdownMenu>
     </button>
+  );
+}
+
+interface SortableStepItemProps extends StepItemProps {
+  id: string;
+}
+
+export function SortableStepItem({ id, ...props }: SortableStepItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <StepItem {...props} />
+    </div>
   );
 }

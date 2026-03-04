@@ -1,4 +1,4 @@
-import { Upload, ZoomIn, ZoomOut, Maximize2, FileStack, RotateCw, MousePointer, Crop, RectangleHorizontal } from "lucide-react";
+import { Upload, ZoomIn, ZoomOut, Maximize2, FileStack, RotateCw, MousePointer, Crop, RectangleHorizontal, Keyboard } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -8,9 +8,10 @@ import { useUploadPdf } from "./useUploadPdf";
 
 interface BuildToolbarProps {
   onOpenSourceManager: () => void;
+  onOpenShortcuts?: () => void;
 }
 
-export function BuildToolbar({ onOpenSourceManager }: BuildToolbarProps) {
+export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildToolbarProps) {
   const project = useAppStore((s) => s.project);
   const tracks = useAppStore((s) => s.tracks);
   const activeTrackId = useAppStore((s) => s.activeTrackId);
@@ -28,6 +29,7 @@ export function BuildToolbar({ onOpenSourceManager }: BuildToolbarProps) {
   const setActiveStep = useAppStore((s) => s.setActiveStep);
   const activeProjectId = useAppStore((s) => s.activeProjectId);
   const loadTracks = useAppStore((s) => s.loadTracks);
+  const pushUndo = useAppStore((s) => s.pushUndo);
 
   const activeTrack = activeTrackId
     ? tracks.find((t) => t.id === activeTrackId) ?? null
@@ -66,6 +68,7 @@ export function BuildToolbar({ onOpenSourceManager }: BuildToolbarProps) {
         crop_h: currentPage.height,
       });
       addStep(step);
+      pushUndo(step.id, step.track_id);
       setActiveStep(step.id);
       if (activeProjectId) loadTracks(activeProjectId);
     } catch (e) {
@@ -189,6 +192,17 @@ export function BuildToolbar({ onOpenSourceManager }: BuildToolbarProps) {
 
           <Separator orientation="vertical" className="h-[14px]" />
         </>
+      )}
+
+      {/* Shortcuts button */}
+      {onOpenShortcuts && (
+        <button
+          onClick={onOpenShortcuts}
+          className="rounded p-1 text-text-tertiary hover:bg-muted hover:text-text-secondary"
+          title="Keyboard shortcuts (?)"
+        >
+          <Keyboard className="h-3.5 w-3.5" />
+        </button>
       )}
 
       {/* Upload button */}
