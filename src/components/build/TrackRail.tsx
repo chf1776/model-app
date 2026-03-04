@@ -169,7 +169,7 @@ export function TrackRail() {
 
         if (currentParent !== newParent) {
           // Nesting changed — update parent then reorder
-          await handleNestStep(activeId, targetTrackId, trackSteps, overId, newParent);
+          await handleNestStep(activeId, targetTrackId, trackSteps, overId, currentParent, newParent);
           return;
         }
       }
@@ -190,6 +190,7 @@ export function TrackRail() {
     trackId: string,
     trackSteps: Step[],
     overId: string,
+    currentParentId: string | null,
     newParentId: string | null,
   ) => {
     try {
@@ -227,18 +228,28 @@ export function TrackRail() {
         ];
         await api.reorderChildrenSteps(trackId, newParentId, newChildOrder);
       } else {
-        // Step became a root — reorder root steps
+        // Step became a root — use drop position if over a root step,
+        // otherwise fall back to after the former parent
         const rootIds = trackSteps
           .filter((s) => !s.parent_step_id && s.id !== stepId)
           .map((s) => s.id);
-        // Also include any former children that got un-nested
-        const allRootIds = [...rootIds, ...childIds];
-        const overIdx = allRootIds.indexOf(overId);
-        const insertAt = overIdx >= 0 ? overIdx + 1 : allRootIds.length;
+        const overRootIdx = rootIds.indexOf(overId);
+        let insertAt: number;
+        if (overRootIdx >= 0) {
+          // Dropped on/near a root step — insert after it
+          insertAt = overRootIdx + 1;
+        } else {
+          // Dropped on a child or self — insert after former parent
+          const formerParentIdx = currentParentId
+            ? rootIds.indexOf(currentParentId)
+            : -1;
+          insertAt =
+            formerParentIdx >= 0 ? formerParentIdx + 1 : rootIds.length;
+        }
         const newRootOrder = [
-          ...allRootIds.slice(0, insertAt),
+          ...rootIds.slice(0, insertAt),
           stepId,
-          ...allRootIds.slice(insertAt),
+          ...rootIds.slice(insertAt),
         ];
         await api.reorderSteps(trackId, newRootOrder);
       }

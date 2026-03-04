@@ -121,7 +121,7 @@ Full collection management. All three entity types, wishlists with pricing, pain
 ### Phase 2F (IN PROGRESS): Tags, References, Sub-steps, Join Points & Relations
 - ~~Tags: predefined tag library, tag picker in step editor, step_tags persistence~~ DONE
 - ~~Reference image attachments: per-step reference images, file picker, display in editor panel~~ DONE
-- Sub-steps: "Add sub-step" in step editor, nested indentation in rail, drag/reorder within parent, crop-to-create sub-step
+- ~~Sub-steps: "Add sub-step" in step editor, nested indentation in rail, drag-to-nest/un-nest, drag/reorder within parent~~ DONE
 - Track join point: set the step on another track where this subassembly merges
 - Step relations: "Blocked by" / "Blocks access to", replaces step — step picker UI in editor
 

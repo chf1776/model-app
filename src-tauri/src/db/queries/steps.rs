@@ -284,10 +284,10 @@ pub fn reorder(conn: &Connection, track_id: &str, ordered_ids: Vec<String>) -> R
         )
         .map_err(|e| e.to_string())?;
     }
-    // Auto-rename root steps with "Step N" titles (exclude sub-step titles like "Step 3.1")
+    // Auto-rename root steps with auto-generated titles (covers both "Step N" and former sub-step "Step N.M")
     conn.execute(
         "UPDATE steps SET title = 'Step ' || (display_order + 1), updated_at = ?1
-         WHERE track_id = ?2 AND parent_step_id IS NULL AND title GLOB 'Step [0-9]*' AND title NOT GLOB 'Step [0-9]*.[0-9]*'",
+         WHERE track_id = ?2 AND parent_step_id IS NULL AND title GLOB 'Step [0-9]*'",
         params![ts, track_id],
     )
     .map_err(|e| e.to_string())?;
@@ -307,7 +307,7 @@ pub fn reorder(conn: &Connection, track_id: &str, ordered_ids: Vec<String>) -> R
         let parent_num = root_order + 1;
         conn.execute(
             "UPDATE steps SET title = 'Step ' || ?1 || '.' || (display_order + 1), updated_at = ?2
-             WHERE track_id = ?3 AND parent_step_id = ?4 AND title GLOB 'Step [0-9]*.[0-9]*'",
+             WHERE track_id = ?3 AND parent_step_id = ?4 AND title GLOB 'Step [0-9]*'",
             params![parent_num, ts, track_id, root_id],
         )
         .map_err(|e| e.to_string())?;
@@ -335,7 +335,7 @@ pub fn reorder_children(conn: &Connection, track_id: &str, parent_step_id: &str,
         )
         .map_err(|e| e.to_string())?;
     }
-    // Auto-rename sub-steps with "Step N.M" titles
+    // Auto-rename sub-steps with auto-generated titles (covers both "Step N.M" and former root "Step N")
     let parent_order: i32 = conn
         .query_row(
             "SELECT display_order FROM steps WHERE id = ?1",
@@ -346,7 +346,7 @@ pub fn reorder_children(conn: &Connection, track_id: &str, parent_step_id: &str,
     let parent_num = parent_order + 1;
     conn.execute(
         "UPDATE steps SET title = 'Step ' || ?1 || '.' || (display_order + 1), updated_at = ?2
-         WHERE track_id = ?3 AND parent_step_id = ?4 AND title GLOB 'Step [0-9]*.[0-9]*'",
+         WHERE track_id = ?3 AND parent_step_id = ?4 AND title GLOB 'Step [0-9]*'",
         params![parent_num, ts, track_id, parent_step_id],
     )
     .map_err(|e| e.to_string())?;
