@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { MoreHorizontal, Pencil, Palette, Trash2, Plus } from "lucide-react";
 import { useDroppable } from "@dnd-kit/core";
 import {
@@ -11,7 +12,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SortableStepItem } from "./StepItem";
+import { DropIndicatorLine } from "./DropIndicatorLine";
 import { DROPPABLE_TRACK_PREFIX } from "./dnd-constants";
+import { flattenSteps, getProjection, type Projection } from "./tree-utils";
 import type { Track, Step } from "@/shared/types";
 
 interface TrackItemProps {
@@ -20,6 +23,8 @@ interface TrackItemProps {
   isExpanded: boolean;
   isDropTarget: boolean;
   isMultiDragging: boolean;
+  offsetLeft: number;
+  overElementId: string | null;
   onToggleExpand: (e: React.MouseEvent) => void;
   onRename: () => void;
   onChangeColor: () => void;
@@ -42,6 +47,8 @@ export function TrackItem({
   isExpanded,
   isDropTarget,
   isMultiDragging,
+  offsetLeft,
+  overElementId,
   steps,
   activeStepId,
   selectedStepIds = [],
@@ -67,26 +74,38 @@ export function TrackItem({
     disabled: !isExpanded,
   });
 
-  // Split into root steps and children map
-  const rootSteps = steps.filter((s) => !s.parent_step_id);
-  const childrenMap = new Map<string, Step[]>();
-  for (const s of steps) {
-    if (s.parent_step_id) {
-      const arr = childrenMap.get(s.parent_step_id) ?? [];
-      arr.push(s);
-      childrenMap.set(s.parent_step_id, arr);
-    }
-  }
+  // Build step lookup
+  const stepsById = useMemo(() => {
+    const map = new Map<string, Step>();
+    for (const s of steps) map.set(s.id, s);
+    return map;
+  }, [steps]);
 
-  // Flat list of all step IDs for SortableContext (roots + children interleaved)
-  const stepIds: string[] = [];
-  for (const root of rootSteps) {
-    stepIds.push(root.id);
-    const children = childrenMap.get(root.id);
-    if (children) {
-      for (const child of children) stepIds.push(child.id);
+  // Is the active drag in this track?
+  const isDragInThisTrack =
+    activeDragId !== null && stepsById.has(activeDragId);
+
+  // Flatten steps for SortableContext and projection
+  const flat = useMemo(
+    () => flattenSteps(steps, activeDragId),
+    [steps, activeDragId],
+  );
+  const flatIds = useMemo(() => flat.map((f) => f.id), [flat]);
+
+  // Compute projection when a single step is being dragged within this track
+  const projection: Projection | null = useMemo(() => {
+    if (
+      !activeDragId ||
+      !isDragInThisTrack ||
+      isMultiDragging ||
+      !overElementId
+    ) {
+      return null;
     }
-  }
+    // Only compute if the over element is in this track's flat list
+    if (!flatIds.includes(overElementId)) return null;
+    return getProjection(flat, activeDragId, overElementId, offsetLeft);
+  }, [activeDragId, isDragInThisTrack, isMultiDragging, overElementId, flat, flatIds, offsetLeft]);
 
   return (
     <div>
@@ -162,18 +181,25 @@ export function TrackItem({
           }`}
           style={{ borderLeftColor: track.color }}
         >
-          <SortableContext items={stepIds} strategy={verticalListSortingStrategy}>
+          <SortableContext items={flatIds} strategy={verticalListSortingStrategy}>
             <div className="space-y-0.5">
               {steps.length === 0 ? (
                 <p className="py-2 text-center text-[10px] text-text-tertiary">
                   Drop steps here
                 </p>
               ) : (
-                rootSteps.map((step) => {
+                flat.map((flatItem) => {
+                  const step = stepsById.get(flatItem.id);
+                  if (!step) return null;
+
                   const isThisSelected = selectedStepIds.includes(step.id);
                   const isGhost =
                     isMultiDragging && isThisSelected && step.id !== activeDragId;
-                  const children = childrenMap.get(step.id) ?? [];
+                  const isBeingDragged = step.id === activeDragId;
+
+                  // Use projected depth for the item being dragged
+                  const projectedDepth =
+                    isBeingDragged && projection ? projection.depth : undefined;
 
                   return (
                     <div key={step.id}>
@@ -183,7 +209,8 @@ export function TrackItem({
                         isActive={step.id === activeStepId}
                         isSelected={isThisSelected}
                         isGhostDuringDrag={isGhost}
-                        depth={0}
+                        depth={flatItem.depth}
+                        projectedDepth={projectedDepth}
                         pageIndex={
                           step.source_page_id
                             ? (pageIndexMap.get(step.source_page_id) ?? -1)
@@ -192,32 +219,18 @@ export function TrackItem({
                         onClick={(e) => onStepClick(step.id, e)}
                         onToggleComplete={() => onToggleStepComplete(step)}
                         onDelete={() => onDeleteStep(step.id)}
-                        onAddSubStep={() => onAddSubStep(step.id)}
+                        onAddSubStep={
+                          flatItem.depth === 0
+                            ? () => onAddSubStep(step.id)
+                            : undefined
+                        }
                       />
-                      {children.map((child) => {
-                        const isChildSelected = selectedStepIds.includes(child.id);
-                        const isChildGhost =
-                          isMultiDragging && isChildSelected && child.id !== activeDragId;
-                        return (
-                          <SortableStepItem
-                            key={child.id}
-                            id={child.id}
-                            step={child}
-                            isActive={child.id === activeStepId}
-                            isSelected={isChildSelected}
-                            isGhostDuringDrag={isChildGhost}
-                            depth={1}
-                            pageIndex={
-                              child.source_page_id
-                                ? (pageIndexMap.get(child.source_page_id) ?? -1)
-                                : -1
-                            }
-                            onClick={(e) => onStepClick(child.id, e)}
-                            onToggleComplete={() => onToggleStepComplete(child)}
-                            onDelete={() => onDeleteStep(child.id)}
-                          />
-                        );
-                      })}
+                      {/* Drop indicator line after the over element */}
+                      {overElementId === step.id &&
+                        !isBeingDragged &&
+                        projection && (
+                          <DropIndicatorLine depth={projection.depth} />
+                        )}
                     </div>
                   );
                 })

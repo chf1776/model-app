@@ -316,6 +316,16 @@ pub fn reorder(conn: &Connection, track_id: &str, ordered_ids: Vec<String>) -> R
     Ok(())
 }
 
+pub fn set_parent(conn: &Connection, id: &str, parent_step_id: Option<&str>) -> Result<Step, String> {
+    let ts = now();
+    conn.execute(
+        "UPDATE steps SET parent_step_id = ?1, updated_at = ?2 WHERE id = ?3",
+        params![parent_step_id, ts, id],
+    )
+    .map_err(|e| e.to_string())?;
+    get_by_id(conn, id)
+}
+
 pub fn reorder_children(conn: &Connection, track_id: &str, parent_step_id: &str, ordered_ids: Vec<String>) -> Result<(), String> {
     let ts = now();
     for (i, id) in ordered_ids.iter().enumerate() {

@@ -68,6 +68,8 @@ pub fn run() {
             commands::steps::delete_step,
             commands::steps::delete_step_and_reorder,
             commands::steps::reorder_steps,
+            commands::steps::set_step_parent,
+            commands::steps::reorder_children_steps,
             commands::tags::list_tags,
             commands::tags::list_step_tags,
             commands::tags::set_step_tags,

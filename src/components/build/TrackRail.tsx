@@ -11,6 +11,7 @@ import {
   type DragStartEvent,
   type DragOverEvent,
   type DragEndEvent,
+  type DragMoveEvent,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import { useAppStore } from "@/store";
@@ -19,6 +20,7 @@ import type { Step, Track } from "@/shared/types";
 import { TrackItem } from "./TrackItem";
 import { StepItem } from "./StepItem";
 import { parseDroppableTrackId } from "./dnd-constants";
+import { flattenSteps, getProjection } from "./tree-utils";
 import {
   AddTrackDialog,
   RenameTrackDialog,
@@ -94,6 +96,8 @@ export function TrackRail() {
   const sensors = useSensors(useSensor(PointerSensor, POINTER_SENSOR_CONFIG));
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [overTrackId, setOverTrackId] = useState<string | null>(null);
+  const [overElementId, setOverElementId] = useState<string | null>(null);
+  const [offsetLeft, setOffsetLeft] = useState(0);
 
   const isMultiDragging =
     activeDragId !== null &&
@@ -118,17 +122,27 @@ export function TrackRail() {
       clearSelectedSteps();
     }
     setActiveDragId(dragId);
+    setOffsetLeft(0);
+    setOverElementId(null);
+  };
+
+  const handleDragMove = (event: DragMoveEvent) => {
+    setOffsetLeft(event.delta.x);
   };
 
   const handleDragOver = (event: DragOverEvent) => {
     const overId = event.over?.id as string | undefined;
     setOverTrackId(overId ? findTargetTrackId(overId) : null);
+    setOverElementId(overId ?? null);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
+    const dragDeltaX = offsetLeft;
     setActiveDragId(null);
     setOverTrackId(null);
+    setOverElementId(null);
+    setOffsetLeft(0);
     if (!over) return;
 
     const activeId = active.id as string;
@@ -145,12 +159,96 @@ export function TrackRail() {
     );
 
     if (allInTarget) {
-      // Same-track reorder
+      // Same-track: check for nesting (single-step drags only)
+      if (!isMultiDragging && stepsToMove.length === 1) {
+        const trackSteps = stepsByTrack.get(targetTrackId) ?? [];
+        const flat = flattenSteps(trackSteps, activeId);
+        const projection = getProjection(flat, activeId, overId, dragDeltaX);
+        const currentParent = sourceStep.parent_step_id ?? null;
+        const newParent = projection.parentId;
+
+        if (currentParent !== newParent) {
+          // Nesting changed — update parent then reorder
+          await handleNestStep(activeId, targetTrackId, trackSteps, overId, newParent);
+          return;
+        }
+      }
+
+      // Plain reorder (no nesting change)
       if (activeId === overId) return;
       handleReorderSteps(targetTrackId, stepsToMove, overId, activeId);
     } else {
-      // Cross-track move
+      // Cross-track move — always lands as root (depth 0)
       await handleCrossTrackDrop(stepsToMove, targetTrackId, overId);
+    }
+  };
+
+  // ---- Nest / un-nest a step ----
+
+  const handleNestStep = async (
+    stepId: string,
+    trackId: string,
+    trackSteps: Step[],
+    overId: string,
+    newParentId: string | null,
+  ) => {
+    try {
+      // 1. Update the step's parent
+      const updated = await api.setStepParent(stepId, newParentId);
+      updateStepStore(updated);
+
+      // 2. Collect children that travel with a dragged root step
+      const childIds = trackSteps
+        .filter((s) => s.parent_step_id === stepId)
+        .map((s) => s.id);
+
+      // 3. If the step moved to a parent, also reparent its children
+      if (newParentId && childIds.length > 0) {
+        // Children of a nested step must be un-nested (max depth 1)
+        const updates = await Promise.all(
+          childIds.map((cid) => api.setStepParent(cid, null)),
+        );
+        for (const cu of updates) updateStepStore(cu);
+      }
+
+      // 4. Reorder the scope the step landed in
+      if (newParentId) {
+        // Step became a child — reorder children of the new parent
+        const siblingIds = trackSteps
+          .filter((s) => s.parent_step_id === newParentId && s.id !== stepId)
+          .map((s) => s.id);
+        // Insert after the over-item's position among siblings, or at end
+        const overIdx = siblingIds.indexOf(overId);
+        const insertAt = overIdx >= 0 ? overIdx + 1 : siblingIds.length;
+        const newChildOrder = [
+          ...siblingIds.slice(0, insertAt),
+          stepId,
+          ...siblingIds.slice(insertAt),
+        ];
+        await api.reorderChildrenSteps(trackId, newParentId, newChildOrder);
+      } else {
+        // Step became a root — reorder root steps
+        const rootIds = trackSteps
+          .filter((s) => !s.parent_step_id && s.id !== stepId)
+          .map((s) => s.id);
+        // Also include any former children that got un-nested
+        const allRootIds = [...rootIds, ...childIds];
+        const overIdx = allRootIds.indexOf(overId);
+        const insertAt = overIdx >= 0 ? overIdx + 1 : allRootIds.length;
+        const newRootOrder = [
+          ...allRootIds.slice(0, insertAt),
+          stepId,
+          ...allRootIds.slice(insertAt),
+        ];
+        await api.reorderSteps(trackId, newRootOrder);
+      }
+
+    } catch (e) {
+      toast.error(`Failed to nest step: ${e}`);
+    } finally {
+      if (activeProjectId) {
+        await Promise.all([loadTracks(activeProjectId), loadSteps(activeProjectId)]);
+      }
     }
   };
 
@@ -274,12 +372,10 @@ export function TrackRail() {
         }),
       ]);
 
-      if (activeProjectId) {
-        await Promise.all([loadTracks(activeProjectId), loadSteps(activeProjectId)]);
-      }
       clearSelectedSteps();
     } catch (e) {
       toast.error(`Failed to move steps: ${e}`);
+    } finally {
       if (activeProjectId) {
         await Promise.all([loadTracks(activeProjectId), loadSteps(activeProjectId)]);
       }
@@ -467,6 +563,7 @@ export function TrackRail() {
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragStart={handleDragStart}
+            onDragMove={handleDragMove}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
           >
@@ -478,6 +575,8 @@ export function TrackRail() {
                 isExpanded={expandedTrackIds.includes(track.id)}
                 isDropTarget={overTrackId === track.id}
                 isMultiDragging={isMultiDragging}
+                offsetLeft={offsetLeft}
+                overElementId={overElementId}
                 onToggleExpand={(e) =>
                   e.metaKey || e.ctrlKey
                     ? setExpandedTrack(track.id)

@@ -99,9 +99,10 @@ export function StepItem({
 interface SortableStepItemProps extends StepItemProps {
   id: string;
   isGhostDuringDrag?: boolean;
+  projectedDepth?: number;
 }
 
-export function SortableStepItem({ id, isGhostDuringDrag, ...props }: SortableStepItemProps) {
+export function SortableStepItem({ id, isGhostDuringDrag, projectedDepth, ...props }: SortableStepItemProps) {
   const {
     attributes,
     listeners,
@@ -120,7 +121,7 @@ export function SortableStepItem({ id, isGhostDuringDrag, ...props }: SortableSt
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <StepItem {...props} />
+      <StepItem {...props} depth={projectedDepth ?? props.depth} />
     </div>
   );
 }

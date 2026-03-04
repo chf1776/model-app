@@ -47,3 +47,24 @@ pub fn reorder_steps(
     let conn = db.conn()?;
     crate::db::queries::steps::reorder(&conn, &track_id, ordered_ids)
 }
+
+#[tauri::command]
+pub fn set_step_parent(
+    db: State<'_, AppDb>,
+    id: String,
+    parent_step_id: Option<String>,
+) -> Result<Step, String> {
+    let conn = db.conn()?;
+    crate::db::queries::steps::set_parent(&conn, &id, parent_step_id.as_deref())
+}
+
+#[tauri::command]
+pub fn reorder_children_steps(
+    db: State<'_, AppDb>,
+    track_id: String,
+    parent_step_id: String,
+    ordered_ids: Vec<String>,
+) -> Result<(), String> {
+    let conn = db.conn()?;
+    crate::db::queries::steps::reorder_children(&conn, &track_id, &parent_step_id, ordered_ids)
+}

@@ -244,6 +244,25 @@ export async function reorderSteps(
   return invoke<void>("reorder_steps", { trackId, orderedIds });
 }
 
+export async function setStepParent(
+  id: string,
+  parentStepId: string | null,
+): Promise<Step> {
+  return invoke<Step>("set_step_parent", { id, parentStepId });
+}
+
+export async function reorderChildrenSteps(
+  trackId: string,
+  parentStepId: string,
+  orderedIds: string[],
+): Promise<void> {
+  return invoke<void>("reorder_children_steps", {
+    trackId,
+    parentStepId,
+    orderedIds,
+  });
+}
+
 // ── Tags ────────────────────────────────────────────────────────────────────
 
 export async function listTags(): Promise<Tag[]> {
