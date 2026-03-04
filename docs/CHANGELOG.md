@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Phase 2F: Tags & Reference Image Attachments
+- **Step tags**: Predefined tag library (Dry Fit, Paint First, Filler Needed, Masking, Decals, Clear Coat, Weathering, Rigging, Fragile, Optional) with tag picker popover in step editor panel
+- **Tag persistence**: Full backend CRUD — `tags` and `step_tags` tables with ensure-or-create semantics, Tauri commands, TypeScript API wrappers, and Zustand store integration
+- **Reference image attachments**: Per-step reference images (photos, screenshots, diagrams) with native file picker (png/jpg/jpeg/webp), file copy to stash directory, and database tracking
+- **Reference image thumbnails**: 2-column grid of 50px-tall thumbnails in the step editor panel with click-to-expand larger view
+- **Reference image captions**: Click-to-edit inline captions under each thumbnail, saved on blur or Enter
+- **Reference image deletion**: Hover-to-reveal X button removes image from database and stash
+- **Reference images backend**: Full Rust data layer — queries, commands with file stash integration, TypeScript types, API wrappers, and Zustand store with targeted add/update/remove actions
+
 #### Phase 2E-continued: Cross-Track Drag-and-Drop & Track Expansion
 - **Cross-track drag-and-drop**: Drag steps between tracks directly in the rail — single steps or multi-selected groups. Steps insert at the drop position in the target track with automatic reordering of both source and target tracks
 - **Multi-track expansion**: Multiple tracks can now show their step lists simultaneously. Click a track header to toggle its expansion; Cmd+click to expand exclusively (collapsing all others)
