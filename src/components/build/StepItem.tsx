@@ -51,7 +51,7 @@ export function StepItem({
       >
         {step.title}
       </span>
-      {!isActive && pageIdx >= 0 && (
+      {pageIdx >= 0 && (
         <span className="shrink-0 text-[9px] text-text-tertiary">
           P{pageIdx + 1}
         </span>

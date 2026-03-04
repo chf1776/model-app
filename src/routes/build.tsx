@@ -186,7 +186,7 @@ export default function BuildRoute() {
       <div className="flex flex-1 overflow-hidden">
         <TrackRail />
 
-        <div className="relative flex-1 bg-[#E8E4DF]">
+        <div className="relative min-w-0 flex-1 bg-[#E8E4DF]">
           {isProcessingPdf && <ProcessingOverlay />}
 
           {sourceManagerOpen && (
