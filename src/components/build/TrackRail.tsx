@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { Plus, Route } from "lucide-react";
+import { Plus, Route, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import {
   DndContext,
@@ -38,6 +38,8 @@ export function TrackRail() {
   const setActiveTrack = useAppStore((s) => s.setActiveTrack);
   const setExpandedTrack = useAppStore((s) => s.setExpandedTrack);
   const toggleTrackExpanded = useAppStore((s) => s.toggleTrackExpanded);
+  const expandAllTracks = useAppStore((s) => s.expandAllTracks);
+  const collapseAllTracks = useAppStore((s) => s.collapseAllTracks);
   const addTrack = useAppStore((s) => s.addTrack);
   const updateTrackStore = useAppStore((s) => s.updateTrackStore);
   const removeTrack = useAppStore((s) => s.removeTrack);
@@ -391,13 +393,41 @@ export function TrackRail() {
         <span className="text-[11px] font-semibold tracking-wide text-text-tertiary uppercase">
           Tracks
         </span>
-        <button
-          onClick={() => setAddOpen(true)}
-          className="flex h-5 w-5 items-center justify-center rounded text-text-tertiary hover:bg-black/5 hover:text-text-secondary"
-          title="Add track"
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </button>
+        <div className="flex items-center gap-0.5">
+          {tracks.length > 0 && (
+            <>
+              <button
+                onClick={expandAllTracks}
+                className={`flex h-5 w-5 items-center justify-center rounded ${
+                  expandedTrackIds.length === tracks.length
+                    ? "bg-black/10 text-text-secondary"
+                    : "text-text-tertiary hover:bg-black/5 hover:text-text-secondary"
+                }`}
+                title="Expand all"
+              >
+                <ChevronsDownUp className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={collapseAllTracks}
+                className={`flex h-5 w-5 items-center justify-center rounded ${
+                  expandedTrackIds.length === 0
+                    ? "bg-black/10 text-text-secondary"
+                    : "text-text-tertiary hover:bg-black/5 hover:text-text-secondary"
+                }`}
+                title="Collapse all"
+              >
+                <ChevronsUpDown className="h-3.5 w-3.5" />
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => setAddOpen(true)}
+            className="flex h-5 w-5 items-center justify-center rounded text-text-tertiary hover:bg-black/5 hover:text-text-secondary"
+            title="Add track"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* Track list */}

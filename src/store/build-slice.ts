@@ -27,6 +27,8 @@ export interface BuildSlice {
   setActiveTrack: (id: string | null) => void;
   setExpandedTrack: (id: string) => void;
   toggleTrackExpanded: (id: string) => void;
+  expandAllTracks: () => void;
+  collapseAllTracks: () => void;
 
   // Steps
   steps: Step[];
@@ -243,6 +245,16 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         expandedTrackIds: [...s.expandedTrackIds, id],
       };
     });
+  },
+
+  expandAllTracks: () => {
+    set((s) => ({
+      expandedTrackIds: s.tracks.map((t) => t.id),
+    }));
+  },
+
+  collapseAllTracks: () => {
+    set({ expandedTrackIds: [] });
   },
 
   loadSteps: async (projectId) => {
