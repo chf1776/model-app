@@ -32,7 +32,7 @@ export function TrackItem({
   return (
     <button
       onClick={onSelect}
-      className={`group flex w-full items-start gap-2 border-l-[3px] px-2.5 py-2 text-left transition-colors ${
+      className={`group flex w-full items-start gap-2 border-l-[4px] px-2.5 py-2 text-left transition-colors ${
         isActive
           ? "bg-[#4E728214]"
           : "hover:bg-[#4E72820A]"
