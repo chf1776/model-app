@@ -83,6 +83,7 @@ export function useCropDrawing(stageRef: React.RefObject<Konva.Stage | null>) {
 
   const canvasMode = useAppStore((s) => s.canvasMode);
   const activeTrackId = useAppStore((s) => s.activeTrackId);
+  const activeStepId = useAppStore((s) => s.activeStepId);
   const currentSourcePages = useAppStore((s) => s.currentSourcePages);
   const currentPageIndex = useAppStore((s) => s.currentPageIndex);
   const steps = useAppStore((s) => s.steps);
@@ -185,15 +186,33 @@ export function useCropDrawing(stageRef: React.RefObject<Konva.Stage | null>) {
       // Validate minimum size
       if (cropW < MIN_CROP_SIZE || cropH < MIN_CROP_SIZE) return;
 
-      // Count existing steps for this track to auto-name
+      // Determine if we should create a sub-step under the active step
+      const activeStep = activeStepId ? steps.find((s) => s.id === activeStepId) : null;
       const trackSteps = steps.filter((s) => s.track_id === activeTrackId);
-      const title = `Step ${trackSteps.length + 1}`;
+      const createAsSubStep =
+        activeStep && !activeStep.parent_step_id && activeStep.track_id === activeTrackId;
+
+      let title: string;
+      let parentStepId: string | undefined;
+
+      if (createAsSubStep) {
+        // Create sub-step under the active root step
+        parentStepId = activeStep.id;
+        const childCount = trackSteps.filter((s) => s.parent_step_id === activeStep.id).length;
+        const parentNum = activeStep.display_order + 1;
+        title = `Step ${parentNum}.${childCount + 1}`;
+      } else {
+        // Create a new root step
+        const rootCount = trackSteps.filter((s) => !s.parent_step_id).length;
+        title = `Step ${rootCount + 1}`;
+      }
 
       isCreating.current = true;
       try {
         const step = await api.createStep({
           track_id: activeTrackId,
           title,
+          parent_step_id: parentStepId,
           source_page_id: currentPage.id,
           crop_x: Math.round(cropX),
           crop_y: Math.round(cropY),
@@ -211,7 +230,7 @@ export function useCropDrawing(stageRef: React.RefObject<Konva.Stage | null>) {
       }
     },
     [
-      canvasMode, currentPage, activeTrackId, stageRef, steps,
+      canvasMode, currentPage, activeTrackId, activeStepId, stageRef, steps,
       addStep, pushUndo, setActiveStep, activeProjectId, loadTracks,
       viewerZoom, viewerPanX, viewerPanY,
     ],

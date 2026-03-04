@@ -94,23 +94,33 @@ pub fn insert(conn: &Connection, input: CreateStepInput) -> Result<Step, String>
     let source_type = input.source_type.unwrap_or_else(|| "base_kit".to_string());
     let pre_paint = input.pre_paint.unwrap_or(false);
 
-    let max_order: i32 = conn
-        .query_row(
-            "SELECT COALESCE(MAX(display_order), -1) FROM steps WHERE track_id = ?1",
+    // Scope display_order by track + parent (root steps and sub-steps are ordered independently)
+    let max_order: i32 = if input.parent_step_id.is_some() {
+        conn.query_row(
+            "SELECT COALESCE(MAX(display_order), -1) FROM steps WHERE track_id = ?1 AND parent_step_id = ?2",
+            params![input.track_id, input.parent_step_id],
+            |row| row.get(0),
+        )
+        .unwrap_or(-1)
+    } else {
+        conn.query_row(
+            "SELECT COALESCE(MAX(display_order), -1) FROM steps WHERE track_id = ?1 AND parent_step_id IS NULL",
             params![input.track_id],
             |row| row.get(0),
         )
-        .unwrap_or(-1);
+        .unwrap_or(-1)
+    };
 
     conn.execute(
-        "INSERT INTO steps (id, track_id, title, display_order, source_page_id,
+        "INSERT INTO steps (id, track_id, parent_step_id, title, display_order, source_page_id,
                             crop_x, crop_y, crop_w, crop_h, is_full_page, source_type,
                             source_name, adhesive_type, drying_time_min, pre_paint,
                             quantity, notes, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)",
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)",
         params![
             id,
             input.track_id,
+            input.parent_step_id,
             input.title,
             max_order + 1,
             input.source_page_id,
@@ -226,24 +236,43 @@ pub fn delete(conn: &Connection, id: &str) -> Result<(), String> {
 }
 
 pub fn delete_and_reorder(conn: &Connection, id: &str) -> Result<(), String> {
-    // Get step's track_id before deleting
-    let track_id: String = conn
-        .query_row("SELECT track_id FROM steps WHERE id = ?1", params![id], |row| row.get(0))
+    // Get step's track_id and parent_step_id before deleting
+    let (track_id, parent_step_id): (String, Option<String>) = conn
+        .query_row(
+            "SELECT track_id, parent_step_id FROM steps WHERE id = ?1",
+            params![id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
         .map_err(|e| e.to_string())?;
 
+    // CASCADE will delete children if this is a parent step
     delete(conn, id)?;
 
-    // Get remaining step IDs in order and normalize display_order
-    let mut stmt = conn
-        .prepare("SELECT id FROM steps WHERE track_id = ?1 ORDER BY display_order")
-        .map_err(|e| e.to_string())?;
-    let remaining_ids: Vec<String> = stmt
-        .query_map(params![track_id], |row| row.get(0))
-        .map_err(|e| e.to_string())?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| e.to_string())?;
+    if parent_step_id.is_some() {
+        // Deleted a sub-step: renumber siblings within the same parent
+        let mut stmt = conn
+            .prepare("SELECT id FROM steps WHERE track_id = ?1 AND parent_step_id = ?2 ORDER BY display_order")
+            .map_err(|e| e.to_string())?;
+        let sibling_ids: Vec<String> = stmt
+            .query_map(params![track_id, parent_step_id], |row| row.get(0))
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+        reorder_children(conn, &track_id, parent_step_id.as_deref().unwrap(), sibling_ids)?;
+    } else {
+        // Deleted a root step (children auto-cascaded): renumber remaining roots
+        let mut stmt = conn
+            .prepare("SELECT id FROM steps WHERE track_id = ?1 AND parent_step_id IS NULL ORDER BY display_order")
+            .map_err(|e| e.to_string())?;
+        let remaining_ids: Vec<String> = stmt
+            .query_map(params![track_id], |row| row.get(0))
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+        reorder(conn, &track_id, remaining_ids)?;
+    }
 
-    reorder(conn, &track_id, remaining_ids)
+    Ok(())
 }
 
 pub fn reorder(conn: &Connection, track_id: &str, ordered_ids: Vec<String>) -> Result<(), String> {
@@ -255,11 +284,60 @@ pub fn reorder(conn: &Connection, track_id: &str, ordered_ids: Vec<String>) -> R
         )
         .map_err(|e| e.to_string())?;
     }
-    // Auto-rename steps with "Step N" titles to match new order
+    // Auto-rename root steps with "Step N" titles (exclude sub-step titles like "Step 3.1")
     conn.execute(
         "UPDATE steps SET title = 'Step ' || (display_order + 1), updated_at = ?1
-         WHERE track_id = ?2 AND title GLOB 'Step [0-9]*'",
+         WHERE track_id = ?2 AND parent_step_id IS NULL AND title GLOB 'Step [0-9]*' AND title NOT GLOB 'Step [0-9]*.[0-9]*'",
         params![ts, track_id],
+    )
+    .map_err(|e| e.to_string())?;
+
+    // Also renumber sub-step titles for each root step that was reordered
+    // Get all root steps that have auto-named children
+    let mut root_stmt = conn
+        .prepare("SELECT id, display_order FROM steps WHERE track_id = ?1 AND parent_step_id IS NULL ORDER BY display_order")
+        .map_err(|e| e.to_string())?;
+    let roots: Vec<(String, i32)> = root_stmt
+        .query_map(params![track_id], |row| Ok((row.get(0)?, row.get(1)?)))
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    for (root_id, root_order) in roots {
+        let parent_num = root_order + 1;
+        conn.execute(
+            "UPDATE steps SET title = 'Step ' || ?1 || '.' || (display_order + 1), updated_at = ?2
+             WHERE track_id = ?3 AND parent_step_id = ?4 AND title GLOB 'Step [0-9]*.[0-9]*'",
+            params![parent_num, ts, track_id, root_id],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}
+
+pub fn reorder_children(conn: &Connection, track_id: &str, parent_step_id: &str, ordered_ids: Vec<String>) -> Result<(), String> {
+    let ts = now();
+    for (i, id) in ordered_ids.iter().enumerate() {
+        conn.execute(
+            "UPDATE steps SET display_order = ?1, updated_at = ?2 WHERE id = ?3 AND track_id = ?4",
+            params![i as i32, ts, id, track_id],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+    // Auto-rename sub-steps with "Step N.M" titles
+    let parent_order: i32 = conn
+        .query_row(
+            "SELECT display_order FROM steps WHERE id = ?1",
+            params![parent_step_id],
+            |row| row.get(0),
+        )
+        .unwrap_or(0);
+    let parent_num = parent_order + 1;
+    conn.execute(
+        "UPDATE steps SET title = 'Step ' || ?1 || '.' || (display_order + 1), updated_at = ?2
+         WHERE track_id = ?3 AND parent_step_id = ?4 AND title GLOB 'Step [0-9]*.[0-9]*'",
+        params![parent_num, ts, track_id, parent_step_id],
     )
     .map_err(|e| e.to_string())?;
     Ok(())

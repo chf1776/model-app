@@ -400,6 +400,7 @@ export interface Step {
 export interface CreateStepInput {
   track_id: string;
   title: string;
+  parent_step_id?: string | null;
   source_page_id?: string | null;
   crop_x?: number | null;
   crop_y?: number | null;

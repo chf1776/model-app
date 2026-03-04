@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, ChevronRight, Plus, ImageIcon } from "lucide-react";
+import { X, ChevronRight, Plus, ImageIcon, ListTree } from "lucide-react";
 import { toast } from "sonner";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
@@ -43,6 +43,7 @@ export function StepEditorPanel() {
   const setActiveStep = useAppStore((s) => s.setActiveStep);
   const setActiveTrack = useAppStore((s) => s.setActiveTrack);
   const updateStepStore = useAppStore((s) => s.updateStepStore);
+  const addStep = useAppStore((s) => s.addStep);
   const loadTracks = useAppStore((s) => s.loadTracks);
   const loadSteps = useAppStore((s) => s.loadSteps);
   const stepTags = useAppStore((s) => s.stepTags);
@@ -81,6 +82,10 @@ export function StepEditorPanel() {
   const currentTagNames = new Set(currentTags.map((t) => t.name));
 
   const currentTrack = tracks.find((t) => t.id === step.track_id);
+  const parentStep = step.parent_step_id
+    ? steps.find((s) => s.id === step.parent_step_id) ?? null
+    : null;
+  const isRootStep = !step.parent_step_id;
 
   const handleUpdate = async (fields: Record<string, unknown>) => {
     try {
@@ -132,6 +137,25 @@ export function StepEditorPanel() {
     setEditingCaptionId(null);
   };
 
+  const handleAddSubStep = async () => {
+    if (!isRootStep) return;
+    const childCount = steps.filter((s) => s.parent_step_id === step.id).length;
+    const parentNum = step.display_order + 1;
+    const title = `Step ${parentNum}.${childCount + 1}`;
+    try {
+      const newStep = await api.createStep({
+        track_id: step.track_id,
+        title,
+        parent_step_id: step.id,
+      });
+      addStep(newStep);
+      setActiveStep(newStep.id);
+      if (activeProjectId) loadTracks(activeProjectId);
+    } catch (e) {
+      toast.error(`Failed to create sub-step: ${e}`);
+    }
+  };
+
   const handleTrackChange = async (newTrackId: string) => {
     if (newTrackId === step.track_id) return;
     const oldTrackId = step.track_id;
@@ -169,6 +193,28 @@ export function StepEditorPanel() {
 
       <ScrollArea className="flex-1">
         <div className="space-y-3 p-3">
+          {/* Parent breadcrumb for sub-steps */}
+          {parentStep && (
+            <button
+              onClick={() => setActiveStep(parentStep.id)}
+              className="flex items-center gap-1 text-[10px] text-accent hover:underline"
+            >
+              <ChevronRight className="h-2.5 w-2.5 rotate-180" />
+              Parent: {parentStep.title}
+            </button>
+          )}
+
+          {/* Add sub-step button for root steps */}
+          {isRootStep && (
+            <button
+              onClick={handleAddSubStep}
+              className="flex w-full items-center justify-center gap-1 rounded border border-dashed border-border py-1.5 text-[10px] text-text-tertiary hover:border-text-secondary hover:text-text-secondary"
+            >
+              <ListTree className="h-3 w-3" />
+              Add sub-step
+            </button>
+          )}
+
           {/* Crop preview */}
           <CropPreview step={step} />
 

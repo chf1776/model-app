@@ -336,7 +336,8 @@ export function TrackRail() {
 
   const handleAddStep = async (trackId: string) => {
     const trackSteps = stepsByTrack.get(trackId) ?? [];
-    const title = `Step ${trackSteps.length + 1}`;
+    const rootCount = trackSteps.filter((s) => !s.parent_step_id).length;
+    const title = `Step ${rootCount + 1}`;
     try {
       const step = await api.createStep({ track_id: trackId, title });
       addStep(step);
@@ -344,6 +345,28 @@ export function TrackRail() {
       if (activeProjectId) loadTracks(activeProjectId);
     } catch (e) {
       toast.error(`Failed to create step: ${e}`);
+    }
+  };
+
+  const handleAddSubStep = async (parentStepId: string) => {
+    const parent = stepsById.get(parentStepId);
+    if (!parent) return;
+    const trackSteps = stepsByTrack.get(parent.track_id) ?? [];
+    const childCount = trackSteps.filter((s) => s.parent_step_id === parentStepId).length;
+    // Derive parent number from parent's display_order
+    const parentNum = parent.display_order + 1;
+    const title = `Step ${parentNum}.${childCount + 1}`;
+    try {
+      const step = await api.createStep({
+        track_id: parent.track_id,
+        title,
+        parent_step_id: parentStepId,
+      });
+      addStep(step);
+      setActiveStep(step.id);
+      if (activeProjectId) loadTracks(activeProjectId);
+    } catch (e) {
+      toast.error(`Failed to create sub-step: ${e}`);
     }
   };
 
@@ -470,6 +493,7 @@ export function TrackRail() {
                 pageIndexMap={pageIndexMap}
                 onStepClick={handleStepClick}
                 onAddStep={() => handleAddStep(track.id)}
+                onAddSubStep={handleAddSubStep}
                 onDeleteStep={handleDeleteStep}
                 onToggleStepComplete={handleToggleStepComplete}
               />

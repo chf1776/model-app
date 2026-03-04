@@ -320,6 +320,7 @@ pub struct Step {
 pub struct CreateStepInput {
     pub track_id: String,
     pub title: String,
+    pub parent_step_id: Option<String>,
     pub source_page_id: Option<String>,
     pub crop_x: Option<f64>,
     pub crop_y: Option<f64>,

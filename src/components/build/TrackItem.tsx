@@ -31,6 +31,7 @@ interface TrackItemProps {
   pageIndexMap: Map<string, number>;
   onStepClick: (id: string, e: React.MouseEvent) => void;
   onAddStep: () => void;
+  onAddSubStep: (parentStepId: string) => void;
   onDeleteStep: (id: string) => void;
   onToggleStepComplete: (step: Step) => void;
 }
@@ -52,6 +53,7 @@ export function TrackItem({
   onDelete,
   onStepClick,
   onAddStep,
+  onAddSubStep,
   onDeleteStep,
   onToggleStepComplete,
 }: TrackItemProps) {
@@ -65,7 +67,26 @@ export function TrackItem({
     disabled: !isExpanded,
   });
 
-  const stepIds = steps.map((s) => s.id);
+  // Split into root steps and children map
+  const rootSteps = steps.filter((s) => !s.parent_step_id);
+  const childrenMap = new Map<string, Step[]>();
+  for (const s of steps) {
+    if (s.parent_step_id) {
+      const arr = childrenMap.get(s.parent_step_id) ?? [];
+      arr.push(s);
+      childrenMap.set(s.parent_step_id, arr);
+    }
+  }
+
+  // Flat list of all step IDs for SortableContext (roots + children interleaved)
+  const stepIds: string[] = [];
+  for (const root of rootSteps) {
+    stepIds.push(root.id);
+    const children = childrenMap.get(root.id);
+    if (children) {
+      for (const child of children) stepIds.push(child.id);
+    }
+  }
 
   return (
     <div>
@@ -148,28 +169,56 @@ export function TrackItem({
                   Drop steps here
                 </p>
               ) : (
-                steps.map((step) => {
+                rootSteps.map((step) => {
                   const isThisSelected = selectedStepIds.includes(step.id);
                   const isGhost =
                     isMultiDragging && isThisSelected && step.id !== activeDragId;
+                  const children = childrenMap.get(step.id) ?? [];
 
                   return (
-                    <SortableStepItem
-                      key={step.id}
-                      id={step.id}
-                      step={step}
-                      isActive={step.id === activeStepId}
-                      isSelected={isThisSelected}
-                      isGhostDuringDrag={isGhost}
-                      pageIndex={
-                        step.source_page_id
-                          ? (pageIndexMap.get(step.source_page_id) ?? -1)
-                          : -1
-                      }
-                      onClick={(e) => onStepClick(step.id, e)}
-                      onToggleComplete={() => onToggleStepComplete(step)}
-                      onDelete={() => onDeleteStep(step.id)}
-                    />
+                    <div key={step.id}>
+                      <SortableStepItem
+                        id={step.id}
+                        step={step}
+                        isActive={step.id === activeStepId}
+                        isSelected={isThisSelected}
+                        isGhostDuringDrag={isGhost}
+                        depth={0}
+                        pageIndex={
+                          step.source_page_id
+                            ? (pageIndexMap.get(step.source_page_id) ?? -1)
+                            : -1
+                        }
+                        onClick={(e) => onStepClick(step.id, e)}
+                        onToggleComplete={() => onToggleStepComplete(step)}
+                        onDelete={() => onDeleteStep(step.id)}
+                        onAddSubStep={() => onAddSubStep(step.id)}
+                      />
+                      {children.map((child) => {
+                        const isChildSelected = selectedStepIds.includes(child.id);
+                        const isChildGhost =
+                          isMultiDragging && isChildSelected && child.id !== activeDragId;
+                        return (
+                          <SortableStepItem
+                            key={child.id}
+                            id={child.id}
+                            step={child}
+                            isActive={child.id === activeStepId}
+                            isSelected={isChildSelected}
+                            isGhostDuringDrag={isChildGhost}
+                            depth={1}
+                            pageIndex={
+                              child.source_page_id
+                                ? (pageIndexMap.get(child.source_page_id) ?? -1)
+                                : -1
+                            }
+                            onClick={(e) => onStepClick(child.id, e)}
+                            onToggleComplete={() => onToggleStepComplete(child)}
+                            onDelete={() => onDeleteStep(child.id)}
+                          />
+                        );
+                      })}
+                    </div>
                   );
                 })
               )}

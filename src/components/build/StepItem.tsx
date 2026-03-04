@@ -1,4 +1,4 @@
-import { MoreHorizontal, Trash2 } from "lucide-react";
+import { MoreHorizontal, Trash2, ListTree } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -15,9 +15,11 @@ interface StepItemProps {
   isActive: boolean;
   isSelected: boolean;
   pageIndex: number;
+  depth?: number;
   onClick?: (e: React.MouseEvent) => void;
   onToggleComplete: () => void;
   onDelete: () => void;
+  onAddSubStep?: () => void;
 }
 
 export function StepItem({
@@ -25,14 +27,16 @@ export function StepItem({
   isActive,
   isSelected,
   pageIndex,
+  depth = 0,
   onClick,
   onToggleComplete,
   onDelete,
+  onAddSubStep,
 }: StepItemProps) {
   return (
     <button
       onClick={onClick}
-      className={`group flex w-full items-center gap-1.5 rounded px-1.5 py-1 text-left transition-colors ${
+      className={`group flex w-full items-center gap-1.5 rounded px-1.5 py-1 text-left transition-colors ${depth === 1 ? "pl-5 " : ""}${
         isActive && isSelected
           ? "border border-accent/40 bg-accent/10"
           : isSelected
@@ -72,7 +76,13 @@ export function StepItem({
         >
           <MoreHorizontal className="h-3 w-3 text-text-tertiary" />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-32">
+        <DropdownMenuContent align="end" className="w-36">
+          {depth === 0 && onAddSubStep && (
+            <DropdownMenuItem onClick={onAddSubStep} className="text-xs">
+              <ListTree className="mr-2 h-3 w-3" />
+              Add sub-step
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             onClick={onDelete}
             className="text-xs text-red-600 focus:text-red-600"
