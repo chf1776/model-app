@@ -247,7 +247,7 @@ export async function reorderSteps(
 // ── Tags ────────────────────────────────────────────────────────────────────
 
 export async function listTags(): Promise<Tag[]> {
-  return invoke<Tag[]>("list_tags", {});
+  return invoke<Tag[]>("list_tags");
 }
 
 export async function listStepTags(stepId: string): Promise<Tag[]> {

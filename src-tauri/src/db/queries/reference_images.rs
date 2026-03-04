@@ -3,7 +3,7 @@ use crate::util::now;
 use rusqlite::{params, Connection};
 use uuid::Uuid;
 
-fn map_row(row: &rusqlite::Row) -> rusqlite::Result<ReferenceImage> {
+fn map_reference_image(row: &rusqlite::Row) -> rusqlite::Result<ReferenceImage> {
     Ok(ReferenceImage {
         id: row.get(0)?,
         step_id: row.get(1)?,
@@ -24,7 +24,7 @@ pub fn list_for_step(conn: &Connection, step_id: &str) -> Result<Vec<ReferenceIm
         .map_err(|e| e.to_string())?;
 
     let rows = stmt
-        .query_map(params![step_id], |row| map_row(row))
+        .query_map(params![step_id], |row| map_reference_image(row))
         .map_err(|e| e.to_string())?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;
@@ -36,7 +36,7 @@ pub fn get_by_id(conn: &Connection, id: &str) -> Result<ReferenceImage, String> 
     conn.query_row(
         &format!("SELECT {SELECT_COLS} FROM reference_images WHERE id = ?1"),
         params![id],
-        |row| map_row(row),
+        |row| map_reference_image(row),
     )
     .map_err(|e| e.to_string())
 }

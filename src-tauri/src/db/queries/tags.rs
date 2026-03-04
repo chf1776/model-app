@@ -73,7 +73,6 @@ pub fn set_step_tags(conn: &Connection, step_id: &str, tag_names: Vec<String>) -
     conn.execute("DELETE FROM step_tags WHERE step_id = ?1", [step_id])
         .map_err(|e| e.to_string())?;
 
-    let mut tags = Vec::new();
     for name in tag_names {
         let tag = ensure_tag(conn, &name)?;
         conn.execute(
@@ -81,8 +80,7 @@ pub fn set_step_tags(conn: &Connection, step_id: &str, tag_names: Vec<String>) -
             rusqlite::params![step_id, tag.id],
         )
         .map_err(|e| e.to_string())?;
-        tags.push(tag);
     }
-    tags.sort_by(|a, b| a.name.cmp(&b.name));
-    Ok(tags)
+
+    list_for_step(conn, step_id)
 }
