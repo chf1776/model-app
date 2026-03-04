@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import type { Project, InstructionSource, InstructionPage, Track, Step } from "@/shared/types";
+import type { Project, InstructionSource, InstructionPage, Track, Step, Tag, ReferenceImage } from "@/shared/types";
 import type { AppStore } from "./index";
 import * as api from "@/api";
 import { toast } from "sonner";
@@ -46,6 +46,18 @@ export interface BuildSlice {
   toggleStepInSelection: (id: string) => void;
   shiftSelectSteps: (id: string) => void;
   clearSelectedSteps: () => void;
+
+  // Tags
+  stepTags: Record<string, Tag[]>;
+  loadStepTags: (stepId: string) => Promise<void>;
+  setStepTags: (stepId: string, tagNames: string[]) => Promise<void>;
+
+  // Reference images
+  stepReferenceImages: Record<string, ReferenceImage[]>;
+  loadStepReferenceImages: (stepId: string) => Promise<void>;
+  addReferenceImageStore: (img: ReferenceImage) => void;
+  updateReferenceImageStore: (img: ReferenceImage) => void;
+  removeReferenceImageStore: (stepId: string, id: string) => void;
 
   // Undo
   undoStack: string[];
@@ -102,6 +114,8 @@ const DEFAULT_BUILD_STATE = {
   selectedStepIds: [] as string[],
   selectionAnchorId: null as string | null,
   undoStack: [] as string[],
+  stepTags: {} as Record<string, Tag[]>,
+  stepReferenceImages: {} as Record<string, ReferenceImage[]>,
 };
 
 const DEFAULT_VIEWER_STATE = {
@@ -384,6 +398,50 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     } catch (e) {
       toast.error(`Undo failed: ${e}`);
     }
+  },
+
+  loadStepTags: async (stepId) => {
+    const tags = await api.listStepTags(stepId);
+    set((s) => ({ stepTags: { ...s.stepTags, [stepId]: tags } }));
+  },
+
+  setStepTags: async (stepId, tagNames) => {
+    const tags = await api.setStepTags(stepId, tagNames);
+    set((s) => ({ stepTags: { ...s.stepTags, [stepId]: tags } }));
+  },
+
+  loadStepReferenceImages: async (stepId) => {
+    const images = await api.listReferenceImages(stepId);
+    set((s) => ({ stepReferenceImages: { ...s.stepReferenceImages, [stepId]: images } }));
+  },
+
+  addReferenceImageStore: (img) => {
+    set((s) => ({
+      stepReferenceImages: {
+        ...s.stepReferenceImages,
+        [img.step_id]: [...(s.stepReferenceImages[img.step_id] ?? []), img],
+      },
+    }));
+  },
+
+  updateReferenceImageStore: (img) => {
+    set((s) => ({
+      stepReferenceImages: {
+        ...s.stepReferenceImages,
+        [img.step_id]: (s.stepReferenceImages[img.step_id] ?? []).map((i) =>
+          i.id === img.id ? img : i,
+        ),
+      },
+    }));
+  },
+
+  removeReferenceImageStore: (stepId, id) => {
+    set((s) => ({
+      stepReferenceImages: {
+        ...s.stepReferenceImages,
+        [stepId]: (s.stepReferenceImages[stepId] ?? []).filter((i) => i.id !== id),
+      },
+    }));
   },
 
   loadInstructionSources: async (projectId) => {

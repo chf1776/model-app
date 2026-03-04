@@ -325,6 +325,27 @@ export const TRACK_COLORS = [
   { value: "#8B5E6B", label: "Mauve" },
 ] as const;
 
+// ── Tags ────────────────────────────────────────────────────────────────────
+
+export interface Tag {
+  id: string;
+  name: string;
+  created_at: number;
+}
+
+export const PREDEFINED_TAGS = [
+  "Dry Fit",
+  "Paint First",
+  "Filler Needed",
+  "Masking",
+  "Decals",
+  "Clear Coat",
+  "Weathering",
+  "Rigging",
+  "Fragile",
+  "Optional",
+] as const;
+
 // ── Steps ───────────────────────────────────────────────────────────────────
 
 export type SourceType = "base_kit" | "photo_etch" | "resin_3d" | "aftermarket" | "custom_scratch";
@@ -413,6 +434,17 @@ export interface UpdateStepInput {
   quantity?: number | null;
   is_completed?: boolean | null;
   notes?: string | null;
+}
+
+// ── Reference Images ─────────────────────────────────────────────────────────
+
+export interface ReferenceImage {
+  id: string;
+  step_id: string;
+  file_path: string;
+  caption: string | null;
+  display_order: number;
+  created_at: number;
 }
 
 // ── Instruction Sources ──────────────────────────────────────────────────────

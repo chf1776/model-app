@@ -118,13 +118,15 @@ Full collection management. All three entity types, wishlists with pricing, pain
 - Undo last crop (Cmd+Z)
 - Keyboard shortcut help dialog (?)
 
-### Additional Phase 2 features (later sub-phases)
-- Image cleanup: paint-over mask per step stored as a layer; source image never modified
+### Phase 2F: Tags, References, Join Points & Relations
+- Tags: predefined tag library, tag picker in step editor, step_tags persistence
+- Reference image attachments: per-step reference images, file picker, display in editor panel
 - Track join point: set the step on another track where this subassembly merges
-- Sub-steps: created via "Add sub-step" in step editor
-- Step relations: "Blocked by" / "Blocks access to", replaces step
-- Reference image attachments
-- Tags (from predefined tag library)
+- Step relations: "Blocked by" / "Blocks access to", replaces step — step picker UI in editor
+
+### Deferred to Phase 4+
+- Sub-steps: parent/child steps with nested rail display, auto-completion (full UX in Phase 4 Building mode)
+- Image cleanup: paint-over mask per step stored as a layer; source image never modified (full UX in Phase 4 Building mode)
 
 ### Deliverable
 You can import a full instruction manual, crop every step, and organize the build into tracks. The project is structured and ready for Building mode.

@@ -5,6 +5,8 @@ pub mod media;
 pub mod paints;
 pub mod palette_entries;
 pub mod projects;
+pub mod reference_images;
 pub mod settings;
 pub mod steps;
+pub mod tags;
 pub mod tracks;

@@ -1,6 +1,8 @@
-import { useState } from "react";
-import { X, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, ChevronRight, Plus, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { useAppStore } from "@/store";
 import * as api from "@/api";
 import { Input } from "@/components/ui/input";
@@ -20,10 +22,16 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import type { AdhesiveType, SourceType } from "@/shared/types";
 import {
   ADHESIVE_TYPE_LABELS,
   SOURCE_TYPE_LABELS,
+  PREDEFINED_TAGS,
 } from "@/shared/types";
 import { CropPreview } from "./CropPreview";
 
@@ -37,11 +45,40 @@ export function StepEditorPanel() {
   const updateStepStore = useAppStore((s) => s.updateStepStore);
   const loadTracks = useAppStore((s) => s.loadTracks);
   const loadSteps = useAppStore((s) => s.loadSteps);
+  const stepTags = useAppStore((s) => s.stepTags);
+  const loadStepTags = useAppStore((s) => s.loadStepTags);
+  const setStepTagsAction = useAppStore((s) => s.setStepTags);
+  const stepReferenceImages = useAppStore((s) => s.stepReferenceImages);
+  const loadStepReferenceImages = useAppStore((s) => s.loadStepReferenceImages);
+  const addReferenceImageStore = useAppStore((s) => s.addReferenceImageStore);
+  const updateReferenceImageStore = useAppStore((s) => s.updateReferenceImageStore);
+  const removeReferenceImageStore = useAppStore((s) => s.removeReferenceImageStore);
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
+  const [editingCaptionId, setEditingCaptionId] = useState<string | null>(null);
+  const [expandedImageId, setExpandedImageId] = useState<string | null>(null);
 
   const step = steps.find((s) => s.id === activeStepId);
+
+  // Load data and reset UI when step changes
+  useEffect(() => {
+    if (step) {
+      if (!stepTags[step.id]) loadStepTags(step.id);
+      if (!stepReferenceImages[step.id]) loadStepReferenceImages(step.id);
+    }
+    setExpandedImageId(null);
+    setEditingCaptionId(null);
+  }, [step?.id]);
+
   if (!step) return null;
+
+  const referenceImages = stepReferenceImages[step.id] ?? [];
+  const expandedImage = expandedImageId
+    ? referenceImages.find((i) => i.id === expandedImageId) ?? null
+    : null;
+  const currentTags = stepTags[step.id] ?? [];
+  const currentTagNames = new Set(currentTags.map((t) => t.name));
 
   const currentTrack = tracks.find((t) => t.id === step.track_id);
 
@@ -52,6 +89,47 @@ export function StepEditorPanel() {
     } catch (e) {
       toast.error(`Failed to update step: ${e}`);
     }
+  };
+
+  const handleToggleTag = async (tagName: string) => {
+    const next = currentTagNames.has(tagName)
+      ? currentTags.filter((t) => t.name !== tagName).map((t) => t.name)
+      : [...currentTags.map((t) => t.name), tagName];
+    await setStepTagsAction(step.id, next);
+  };
+
+  const handleAddReference = async () => {
+    const selected = await openFileDialog({
+      multiple: false,
+      filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg", "webp"] }],
+    });
+    if (!selected) return;
+    try {
+      const img = await api.addReferenceImage(step.id, selected, null);
+      addReferenceImageStore(img);
+    } catch (e) {
+      toast.error(`Failed to add reference image: ${e}`);
+    }
+  };
+
+  const handleDeleteReference = async (id: string) => {
+    try {
+      await api.deleteReferenceImage(id);
+      removeReferenceImageStore(step.id, id);
+      if (expandedImageId === id) setExpandedImageId(null);
+    } catch (e) {
+      toast.error(`Failed to delete reference image: ${e}`);
+    }
+  };
+
+  const handleSaveCaption = async (id: string, caption: string) => {
+    try {
+      const updated = await api.updateReferenceImageCaption(id, caption || null);
+      updateReferenceImageStore(updated);
+    } catch (e) {
+      toast.error(`Failed to update caption: ${e}`);
+    }
+    setEditingCaptionId(null);
   };
 
   const handleTrackChange = async (newTrackId: string) => {
@@ -174,6 +252,135 @@ export function StepEditorPanel() {
               checked={step.pre_paint}
               onCheckedChange={(checked) => handleUpdate({ pre_paint: checked })}
             />
+          </div>
+
+          {/* Tags */}
+          <div className="space-y-1">
+            <Label className="text-[10px] text-text-tertiary">Tags</Label>
+            <div className="flex flex-wrap items-center gap-1">
+              {currentTags.map((tag) => (
+                <button
+                  key={tag.id}
+                  onClick={() => handleToggleTag(tag.name)}
+                  className="inline-flex items-center gap-0.5 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent hover:bg-accent/20"
+                >
+                  {tag.name}
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              ))}
+              <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <button className="inline-flex items-center gap-0.5 rounded-full border border-dashed border-border px-1.5 py-0.5 text-[10px] text-text-tertiary hover:border-text-secondary hover:text-text-secondary">
+                    <Plus className="h-2.5 w-2.5" />
+                    tag
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-44 p-1.5">
+                  <div className="space-y-0.5">
+                    {PREDEFINED_TAGS.map((tagName) => {
+                      const isActive = currentTagNames.has(tagName);
+                      return (
+                        <button
+                          key={tagName}
+                          onClick={() => handleToggleTag(tagName)}
+                          className={`flex w-full items-center rounded px-2 py-1 text-[11px] ${
+                            isActive
+                              ? "bg-accent/10 font-medium text-accent"
+                              : "text-text-secondary hover:bg-black/[0.03]"
+                          }`}
+                        >
+                          {tagName}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+
+          {/* References */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label className="text-[10px] text-text-tertiary">References</Label>
+              <button
+                onClick={handleAddReference}
+                className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[10px] text-accent hover:bg-accent/10"
+              >
+                <Plus className="h-2.5 w-2.5" />
+                Add
+              </button>
+            </div>
+            {referenceImages.length > 0 && (
+              <div className="grid grid-cols-2 gap-1.5">
+                {referenceImages.map((img) => (
+                  <div key={img.id} className="group relative">
+                    <button
+                      onClick={() =>
+                        setExpandedImageId(expandedImageId === img.id ? null : img.id)
+                      }
+                      className="block w-full overflow-hidden rounded border border-border hover:border-accent/40"
+                    >
+                      <img
+                        src={convertFileSrc(img.file_path)}
+                        alt={img.caption ?? "Reference"}
+                        className="h-[50px] w-full object-cover"
+                      />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteReference(img.id)}
+                      className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white group-hover:flex"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                    {editingCaptionId === img.id ? (
+                      <input
+                        autoFocus
+                        defaultValue={img.caption ?? ""}
+                        onBlur={(e) => handleSaveCaption(img.id, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSaveCaption(img.id, e.currentTarget.value);
+                          if (e.key === "Escape") setEditingCaptionId(null);
+                        }}
+                        className="mt-0.5 w-full rounded border border-border bg-white px-1 py-0.5 text-[9px] text-text-secondary outline-none focus:border-accent"
+                      />
+                    ) : (
+                      <button
+                        onClick={() => setEditingCaptionId(img.id)}
+                        className="mt-0.5 block w-full truncate text-left text-[9px] text-text-tertiary hover:text-text-secondary"
+                      >
+                        {img.caption || "Add caption..."}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            {referenceImages.length === 0 && (
+              <button
+                onClick={handleAddReference}
+                className="flex w-full items-center justify-center gap-1.5 rounded border border-dashed border-border py-3 text-[10px] text-text-tertiary hover:border-text-secondary hover:text-text-secondary"
+              >
+                <ImageIcon className="h-3.5 w-3.5" />
+                Add reference image
+              </button>
+            )}
+            {/* Expanded view */}
+            {expandedImage && (
+              <div className="relative overflow-hidden rounded border border-border">
+                <img
+                  src={convertFileSrc(expandedImage.file_path)}
+                  alt="Expanded reference"
+                  className="w-full"
+                />
+                <button
+                  onClick={() => setExpandedImageId(null)}
+                  className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Source type */}

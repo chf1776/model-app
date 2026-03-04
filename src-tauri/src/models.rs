@@ -277,6 +277,15 @@ pub struct UpdateTrackInput {
     pub color: Option<String>,
 }
 
+// ── Tag ─────────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Tag {
+    pub id: String,
+    pub name: String,
+    pub created_at: i64,
+}
+
 // ── Step ────────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -346,6 +355,18 @@ pub struct UpdateStepInput {
     pub quantity: Option<i32>,
     pub is_completed: Option<bool>,
     pub notes: Option<String>,
+}
+
+// ── Reference Image ─────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReferenceImage {
+    pub id: String,
+    pub step_id: String,
+    pub file_path: String,
+    pub caption: Option<String>,
+    pub display_order: i32,
+    pub created_at: i64,
 }
 
 // ── Project UI State ────────────────────────────────────────────────────────

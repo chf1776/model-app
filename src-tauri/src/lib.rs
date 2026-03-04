@@ -68,6 +68,13 @@ pub fn run() {
             commands::steps::delete_step,
             commands::steps::delete_step_and_reorder,
             commands::steps::reorder_steps,
+            commands::tags::list_tags,
+            commands::tags::list_step_tags,
+            commands::tags::set_step_tags,
+            commands::reference_images::list_reference_images,
+            commands::reference_images::add_reference_image,
+            commands::reference_images::update_reference_image_caption,
+            commands::reference_images::delete_reference_image,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

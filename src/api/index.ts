@@ -19,6 +19,8 @@ import type {
   Step,
   CreateStepInput,
   UpdateStepInput,
+  Tag,
+  ReferenceImage,
   InstructionSource,
   InstructionPage,
   ProjectUiState,
@@ -240,6 +242,52 @@ export async function reorderSteps(
   orderedIds: string[],
 ): Promise<void> {
   return invoke<void>("reorder_steps", { trackId, orderedIds });
+}
+
+// ── Tags ────────────────────────────────────────────────────────────────────
+
+export async function listTags(): Promise<Tag[]> {
+  return invoke<Tag[]>("list_tags", {});
+}
+
+export async function listStepTags(stepId: string): Promise<Tag[]> {
+  return invoke<Tag[]>("list_step_tags", { stepId });
+}
+
+export async function setStepTags(
+  stepId: string,
+  tagNames: string[],
+): Promise<Tag[]> {
+  return invoke<Tag[]>("set_step_tags", { stepId, tagNames });
+}
+
+// ── Reference Images ─────────────────────────────────────────────────────────
+
+export async function listReferenceImages(stepId: string): Promise<ReferenceImage[]> {
+  return invoke<ReferenceImage[]>("list_reference_images", { stepId });
+}
+
+export async function addReferenceImage(
+  stepId: string,
+  sourcePath: string,
+  caption?: string | null,
+): Promise<ReferenceImage> {
+  return invoke<ReferenceImage>("add_reference_image", {
+    stepId,
+    sourcePath,
+    caption: caption ?? null,
+  });
+}
+
+export async function updateReferenceImageCaption(
+  id: string,
+  caption: string | null,
+): Promise<ReferenceImage> {
+  return invoke<ReferenceImage>("update_reference_image_caption", { id, caption });
+}
+
+export async function deleteReferenceImage(id: string): Promise<void> {
+  return invoke<void>("delete_reference_image", { id });
 }
 
 // ── Instructions ─────────────────────────────────────────────────────────────
