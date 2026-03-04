@@ -41,8 +41,8 @@ export interface BuildSlice {
   moveSelectedStepsToTrack: (trackId: string) => Promise<void>;
 
   // Undo
-  undoStack: { stepId: string; trackId: string }[];
-  pushUndo: (stepId: string, trackId: string) => void;
+  undoStack: string[];
+  pushUndo: (stepId: string) => void;
   undoLastCrop: () => Promise<void>;
 
   // Instruction sources
@@ -295,21 +295,25 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     }
 
     try {
-      // Move each selected step
-      for (const sid of selectedStepIds) {
-        const step = steps.find((s) => s.id === sid);
-        if (step && step.track_id !== trackId) {
-          await api.updateStep({ id: sid, track_id: trackId });
-        }
-      }
-      // Reorder old tracks to close gaps
-      for (const oldTrackId of oldTrackIds) {
-        const remainingIds = steps
-          .filter((s) => s.track_id === oldTrackId && !selectedStepIds.includes(s.id))
-          .sort((a, b) => a.display_order - b.display_order)
-          .map((s) => s.id);
-        await api.reorderSteps(oldTrackId, remainingIds);
-      }
+      // Move all selected steps in parallel
+      await Promise.all(
+        selectedStepIds
+          .filter((sid) => {
+            const step = steps.find((s) => s.id === sid);
+            return step && step.track_id !== trackId;
+          })
+          .map((sid) => api.updateStep({ id: sid, track_id: trackId })),
+      );
+      // Reorder old tracks to close gaps in parallel
+      await Promise.all(
+        [...oldTrackIds].map((oldTrackId) => {
+          const remainingIds = steps
+            .filter((s) => s.track_id === oldTrackId && !selectedStepIds.includes(s.id))
+            .sort((a, b) => a.display_order - b.display_order)
+            .map((s) => s.id);
+          return api.reorderSteps(oldTrackId, remainingIds);
+        }),
+      );
       if (activeProjectId) {
         await get().loadTracks(activeProjectId);
         await get().loadSteps(activeProjectId);
@@ -320,9 +324,9 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     }
   },
 
-  pushUndo: (stepId, trackId) => {
+  pushUndo: (stepId) => {
     set((s) => ({
-      undoStack: [...s.undoStack.slice(-19), { stepId, trackId }],
+      undoStack: [...s.undoStack.slice(-19), stepId],
     }));
   },
 
@@ -330,21 +334,18 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     const { undoStack, activeProjectId } = get();
     if (undoStack.length === 0) return;
 
-    const last = undoStack[undoStack.length - 1];
+    const stepId = undoStack[undoStack.length - 1];
     set((s) => ({ undoStack: s.undoStack.slice(0, -1) }));
 
     try {
-      await api.deleteStepAndReorder(last.stepId);
-      set((s) => ({
-        steps: s.steps.filter((st) => st.id !== last.stepId),
-        activeStepId: s.activeStepId === last.stepId ? null : s.activeStepId,
-      }));
+      await api.deleteStepAndReorder(stepId);
+      get().removeStep(stepId);
       if (activeProjectId) {
         await get().loadTracks(activeProjectId);
         await get().loadSteps(activeProjectId);
       }
-    } catch {
-      // Step might already be deleted
+    } catch (e) {
+      toast.error(`Undo failed: ${e}`);
     }
   },
 

@@ -231,9 +231,7 @@ pub fn delete_and_reorder(conn: &Connection, id: &str) -> Result<(), String> {
         .query_row("SELECT track_id FROM steps WHERE id = ?1", params![id], |row| row.get(0))
         .map_err(|e| e.to_string())?;
 
-    // Delete the step
-    conn.execute("DELETE FROM steps WHERE id = ?1", params![id])
-        .map_err(|e| e.to_string())?;
+    delete(conn, id)?;
 
     // Get remaining step IDs in order and normalize display_order
     let mut stmt = conn

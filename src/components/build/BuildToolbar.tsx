@@ -68,7 +68,7 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
         crop_h: currentPage.height,
       });
       addStep(step);
-      pushUndo(step.id, step.track_id);
+      pushUndo(step.id);
       setActiveStep(step.id);
       if (activeProjectId) loadTracks(activeProjectId);
     } catch (e) {

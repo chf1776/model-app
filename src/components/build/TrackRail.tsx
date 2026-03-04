@@ -118,7 +118,6 @@ export function TrackRail() {
   const handleDeleteStep = async (stepId: string) => {
     try {
       await api.deleteStepAndReorder(stepId);
-      removeStep(stepId);
       // Reload tracks and steps to update step_count and display_orders
       if (activeProjectId) {
         loadTracks(activeProjectId);

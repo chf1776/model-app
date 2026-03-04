@@ -201,7 +201,7 @@ export function useCropDrawing(stageRef: React.RefObject<Konva.Stage | null>) {
           crop_h: Math.round(cropH),
         });
         addStep(step);
-        pushUndo(step.id, step.track_id);
+        pushUndo(step.id);
         setActiveStep(step.id);
         if (activeProjectId) loadTracks(activeProjectId);
       } catch (err) {

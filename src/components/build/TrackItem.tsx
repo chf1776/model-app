@@ -21,6 +21,10 @@ import {
 import { SortableStepItem } from "./StepItem";
 import type { Track, Step } from "@/shared/types";
 
+const POINTER_SENSOR_CONFIG = {
+  activationConstraint: { distance: 5 },
+};
+
 interface TrackItemProps {
   track: Track;
   isActive: boolean;
@@ -64,9 +68,7 @@ export function TrackItem({
       : 0;
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 5 },
-    }),
+    useSensor(PointerSensor, POINTER_SENSOR_CONFIG),
   );
 
   const stepIds = steps.map((s) => s.id);

@@ -38,6 +38,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+const modKey = navigator.platform.includes("Mac") ? "\u2318" : "Ctrl";
+
 export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcutsDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -63,8 +65,8 @@ export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcut
           </Section>
 
           <Section title="Editing">
-            <ShortcutRow keys={<><Kbd>{navigator.platform.includes("Mac") ? "\u2318" : "Ctrl"}</Kbd> <Kbd>Z</Kbd></>} label="Undo last crop" />
-            <ShortcutRow keys={<><Kbd>{navigator.platform.includes("Mac") ? "\u2318" : "Ctrl"}</Kbd> click</>} label="Multi-select steps" />
+            <ShortcutRow keys={<><Kbd>{modKey}</Kbd> <Kbd>Z</Kbd></>} label="Undo last crop" />
+            <ShortcutRow keys={<><Kbd>{modKey}</Kbd> click</>} label="Multi-select steps" />
             <ShortcutRow keys={<Kbd>?</Kbd>} label="Show shortcuts" />
           </Section>
         </div>
