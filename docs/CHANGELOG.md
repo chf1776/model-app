@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Auto-rename on nest/un-nest**: Steps with auto-generated titles (e.g. "Step 3", "Step 2.1") are automatically renamed to match their new context when nesting changes
 - **Position-aware un-nesting**: Un-nesting a sub-step places it after the drop target when dropped on a root step, or after the former parent when dropped in place
 - **Parent collapse during drag**: Dragging a root step that has children collapses them into the parent — children travel with the drag and reappear at the new position
+- **Drag projection performance**: O(1) step lookup for projection guard, eliminated redundant linear scan in `getProjection`, skip unnecessary track reload on nest/un-nest
 - **Backend**: `set_step_parent` command for explicit parent set/clear, `reorder_children_steps` command for scoped child reordering
 - **Step tags**: Predefined tag library (Dry Fit, Paint First, Filler Needed, Masking, Decals, Clear Coat, Weathering, Rigging, Fragile, Optional) with tag picker popover in step editor panel
 - **Tag persistence**: Full backend CRUD — `tags` and `step_tags` tables with ensure-or-create semantics, Tauri commands, TypeScript API wrappers, and Zustand store integration

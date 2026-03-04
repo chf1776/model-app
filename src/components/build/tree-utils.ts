@@ -66,9 +66,9 @@ export function getProjection(
     return { depth: 0, parentId: null };
   }
 
-  // Simulate the move
+  // Simulate the move — arrayMove places the element at overIndex
   const projected = arrayMove(flatItems, activeIndex, overIndex);
-  const newIndex = projected.findIndex((item) => item.id === activeId);
+  const newIndex = overIndex;
 
   const currentDepth = flatItems[activeIndex].depth;
   const dragDepth = Math.round(deltaX / indentWidth);

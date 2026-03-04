@@ -102,10 +102,10 @@ export function TrackItem({
     ) {
       return null;
     }
-    // Only compute if the over element is in this track's flat list
-    if (!flatIds.includes(overElementId)) return null;
+    // Only compute if the over element is in this track
+    if (!stepsById.has(overElementId)) return null;
     return getProjection(flat, activeDragId, overElementId, offsetLeft);
-  }, [activeDragId, isDragInThisTrack, isMultiDragging, overElementId, flat, flatIds, offsetLeft]);
+  }, [activeDragId, isDragInThisTrack, isMultiDragging, overElementId, flat, stepsById, offsetLeft]);
 
   return (
     <div>

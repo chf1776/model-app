@@ -258,7 +258,7 @@ export function TrackRail() {
       toast.error(`Failed to nest step: ${e}`);
     } finally {
       if (activeProjectId) {
-        await Promise.all([loadTracks(activeProjectId), loadSteps(activeProjectId)]);
+        await loadSteps(activeProjectId);
       }
     }
   };
