@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Plus, Route } from "lucide-react";
 import { toast } from "sonner";
 import { useAppStore } from "@/store";
@@ -28,6 +28,14 @@ export function TrackRail() {
   const removeStep = useAppStore((s) => s.removeStep);
   const updateStepStore = useAppStore((s) => s.updateStepStore);
   const loadTracks = useAppStore((s) => s.loadTracks);
+
+  const currentSourcePages = useAppStore((s) => s.currentSourcePages);
+
+  const pageIndexMap = useMemo(() => {
+    const map = new Map<string, number>();
+    currentSourcePages.forEach((p, i) => map.set(p.id, i));
+    return map;
+  }, [currentSourcePages]);
 
   const [addOpen, setAddOpen] = useState(false);
   const [renameTrack, setRenameTrack] = useState<Track | null>(null);
@@ -157,6 +165,7 @@ export function TrackRail() {
               onDelete={() => setDeleteTrackTarget(track)}
               steps={steps.filter((s) => s.track_id === track.id)}
               activeStepId={activeStepId}
+              pageIndexMap={pageIndexMap}
               onSelectStep={(id) => setActiveStep(id)}
               onAddStep={() => handleAddStep(track.id)}
               onDeleteStep={handleDeleteStep}

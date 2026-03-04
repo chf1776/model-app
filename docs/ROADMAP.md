@@ -104,9 +104,11 @@ Full collection management. All three entity types, wishlists with pricing, pain
 - Inverse coordinate conversion (effective-space → image-space) for all rotation angles
 - Zoom-independent handle sizing
 
-### Phase 2D-remaining: Selection, Editing & Polish
-- Crop preview in step editor panel
-- Bidirectional rail↔canvas sync, track reassignment
+### Phase 2D-remaining (COMPLETE): Selection, Editing & Polish
+- Track reassignment via editor dropdown (step moves to end of destination track, counts refresh)
+- Bidirectional rail↔canvas sync (step selection navigates to page + expands track)
+- Crop preview in step editor panel (canvas-rendered thumbnail, skeleton, page badge, click-to-navigate)
+- Page number badges on steps in rail (P1, P3, etc.)
 - Navigate-to-page from rail
 
 ### Phase 2E: Bulk Operations & Reorder

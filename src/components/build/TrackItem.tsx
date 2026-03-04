@@ -17,6 +17,7 @@ interface TrackItemProps {
   onDelete: () => void;
   steps: Step[];
   activeStepId: string | null;
+  pageIndexMap: Map<string, number>;
   onSelectStep: (id: string) => void;
   onAddStep: () => void;
   onDeleteStep: (id: string) => void;
@@ -32,6 +33,7 @@ export function TrackItem({
   onDelete,
   steps,
   activeStepId,
+  pageIndexMap,
   onSelectStep,
   onAddStep,
   onDeleteStep,
@@ -112,6 +114,7 @@ export function TrackItem({
                 key={step.id}
                 step={step}
                 isActive={step.id === activeStepId}
+                pageIndex={step.source_page_id ? (pageIndexMap.get(step.source_page_id) ?? -1) : -1}
                 onSelect={() => onSelectStep(step.id)}
                 onToggleComplete={() => onToggleStepComplete(step)}
                 onDelete={() => onDeleteStep(step.id)}

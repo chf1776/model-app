@@ -227,23 +227,27 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   },
 
   setActiveStep: (id) => {
-    set({ activeStepId: id });
-    if (!id) return;
-    const state = get();
-    const step = state.steps.find((s) => s.id === id);
-    if (!step) return;
-    // Expand the step's track in the rail
-    if (step.track_id !== state.activeTrackId) {
-      set({ activeTrackId: step.track_id });
+    const update: Record<string, unknown> = { activeStepId: id };
+
+    if (id) {
+      const state = get();
+      const step = state.steps.find((s) => s.id === id);
+      if (step) {
+        if (step.track_id !== state.activeTrackId) {
+          update.activeTrackId = step.track_id;
+        }
+        if (step.source_page_id) {
+          const pageIdx = state.currentSourcePages.findIndex(
+            (p) => p.id === step.source_page_id,
+          );
+          if (pageIdx >= 0 && pageIdx !== state.currentPageIndex) {
+            update.currentPageIndex = pageIdx;
+          }
+        }
+      }
     }
-    // Navigate to the step's page
-    if (!step.source_page_id) return;
-    const pageIdx = state.currentSourcePages.findIndex(
-      (p) => p.id === step.source_page_id,
-    );
-    if (pageIdx >= 0 && pageIdx !== state.currentPageIndex) {
-      set({ currentPageIndex: pageIdx });
-    }
+
+    set(update);
   },
 
   loadInstructionSources: async (projectId) => {

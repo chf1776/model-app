@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useAppStore } from "@/store";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,26 +18,34 @@ export function CropPreview({ step }: CropPreviewProps) {
   const [loading, setLoading] = useState(true);
   const [hasImage, setHasImage] = useState(false);
 
-  const page = currentSourcePages.find((p) => p.id === step.source_page_id);
   const hasCrop =
     step.crop_x != null &&
     step.crop_y != null &&
     step.crop_w != null &&
     step.crop_h != null;
 
-  const pageIndex = page
-    ? currentSourcePages.findIndex((p) => p.id === page.id)
+  const pageIndex = step.source_page_id
+    ? currentSourcePages.findIndex((p) => p.id === step.source_page_id)
     : -1;
+  const page = pageIndex >= 0 ? currentSourcePages[pageIndex] : undefined;
 
-  const draw = useCallback(() => {
-    if (!page || !hasCrop || !canvasRef.current) return;
+  useEffect(() => {
+    if (!page || !hasCrop) {
+      setLoading(false);
+      setHasImage(false);
+      return;
+    }
+    setLoading(true);
 
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
+    let aborted = false;
     const img = new Image();
+
     img.onload = () => {
+      if (aborted || !canvasRef.current) return;
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
       setLoading(false);
       setHasImage(true);
 
@@ -79,26 +87,20 @@ export function CropPreview({ step }: CropPreviewProps) {
       );
       ctx.restore();
     };
+
     img.onerror = () => {
+      if (aborted) return;
       setLoading(false);
       setHasImage(false);
     };
+
     img.src = convertFileSrc(page.file_path);
+
+    return () => {
+      aborted = true;
+      img.src = "";
+    };
   }, [page, hasCrop, step.crop_x, step.crop_y, step.crop_w, step.crop_h]);
-
-  useEffect(() => {
-    if (!page || !hasCrop) {
-      setLoading(false);
-      setHasImage(false);
-      return;
-    }
-    setLoading(true);
-    draw();
-  }, [page, hasCrop, draw]);
-
-  const handleClick = () => {
-    setActiveStep(step.id);
-  };
 
   if (!hasCrop || !page) {
     return (
@@ -110,7 +112,7 @@ export function CropPreview({ step }: CropPreviewProps) {
 
   return (
     <div
-      onClick={handleClick}
+      onClick={() => setActiveStep(step.id)}
       className="relative flex h-24 cursor-pointer items-center justify-center rounded border border-border bg-black/[0.02] overflow-hidden"
     >
       {loading && <Skeleton className="absolute inset-0" />}

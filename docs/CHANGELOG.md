@@ -20,6 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **useCropDrawing hook**: State machine for crop drawing with stage-to-image coordinate conversion supporting all rotation angles (0/90/180/270)
 - **Canvas mode state**: `canvasMode` in build-slice with guard preventing crop mode without an active track
 
+#### Phase 2D-remaining: Selection, Editing & Polish
+- **Track reassignment**: Change a step's track via the editor dropdown — step moves to end of destination track, step counts refresh on both tracks, destination track auto-expands in the rail
+- **Bidirectional rail↔canvas sync**: Clicking a step in the rail navigates the canvas to its page and highlights the crop region; clicking a crop region on the canvas expands the step's track and selects it
+- **Crop preview**: Canvas-rendered thumbnail of the step's cropped+rotated region in the editor panel, with skeleton loading state, "Page N" badge, and click-to-navigate
+- **Page number badges**: Steps with crop regions show a subtle "P3" badge in the rail indicating which instruction page they reference
+- **Step editor panel**: Widened from 220px to 260px for better readability; canvas container fixed with `min-w-0` to prevent editor panel clipping
+
 #### Phase 2D: Crop Region Resize & Reposition
 - **Resize handles**: Selected crop regions show 8 Konva Transformer handles (corners + edges) for precise resizing
 - **Drag to reposition**: Selected crop regions are draggable to adjust position on the instruction page
