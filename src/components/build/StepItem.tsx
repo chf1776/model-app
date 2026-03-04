@@ -13,10 +13,9 @@ import type { Step } from "@/shared/types";
 interface StepItemProps {
   step: Step;
   isActive: boolean;
-  isSelected?: boolean;
+  isSelected: boolean;
   pageIndex: number;
-  onSelect: () => void;
-  onToggleSelect?: (e: React.MouseEvent) => void;
+  onClick?: (e: React.MouseEvent) => void;
   onToggleComplete: () => void;
   onDelete: () => void;
 }
@@ -26,28 +25,21 @@ export function StepItem({
   isActive,
   isSelected,
   pageIndex,
-  onSelect,
-  onToggleSelect,
+  onClick,
   onToggleComplete,
   onDelete,
 }: StepItemProps) {
-  const handleClick = (e: React.MouseEvent) => {
-    if ((e.ctrlKey || e.metaKey) && onToggleSelect) {
-      onToggleSelect(e);
-    } else {
-      onSelect();
-    }
-  };
-
   return (
     <button
-      onClick={handleClick}
+      onClick={onClick}
       className={`group flex w-full items-center gap-1.5 rounded px-1.5 py-1 text-left transition-colors ${
-        isSelected
-          ? "border border-accent/40 bg-accent/5"
-          : isActive
-            ? "border border-border bg-white"
-            : "border border-transparent hover:bg-black/[0.03]"
+        isActive && isSelected
+          ? "border border-accent/40 bg-accent/10"
+          : isSelected
+            ? "border border-accent/40 bg-accent/5"
+            : isActive
+              ? "border border-border bg-white"
+              : "border border-transparent hover:bg-black/[0.03]"
       }`}
     >
       <StepCompletionMarker
@@ -96,9 +88,10 @@ export function StepItem({
 
 interface SortableStepItemProps extends StepItemProps {
   id: string;
+  isGhostDuringDrag?: boolean;
 }
 
-export function SortableStepItem({ id, ...props }: SortableStepItemProps) {
+export function SortableStepItem({ id, isGhostDuringDrag, ...props }: SortableStepItemProps) {
   const {
     attributes,
     listeners,
@@ -108,10 +101,11 @@ export function SortableStepItem({ id, ...props }: SortableStepItemProps) {
     isDragging,
   } = useSortable({ id });
 
-  const style = {
+  const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    ...(isDragging ? { opacity: 0.4 } : {}),
+    ...(isGhostDuringDrag ? { opacity: 0.25 } : {}),
   };
 
   return (

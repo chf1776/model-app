@@ -1,17 +1,24 @@
-import { useState, useMemo } from "react";
-import { Plus, Route, X } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import { Plus, Route } from "lucide-react";
 import { toast } from "sonner";
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragStartEvent,
+  type DragOverEvent,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { arrayMove } from "@dnd-kit/sortable";
 import { useAppStore } from "@/store";
 import * as api from "@/api";
-import type { Track, Step } from "@/shared/types";
+import type { Step, Track } from "@/shared/types";
 import { TrackItem } from "./TrackItem";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { StepItem } from "./StepItem";
+import { parseDroppableTrackId } from "./dnd-constants";
 import {
   AddTrackDialog,
   RenameTrackDialog,
@@ -19,11 +26,18 @@ import {
   DeleteTrackDialog,
 } from "./TrackDialogs";
 
+const POINTER_SENSOR_CONFIG = {
+  activationConstraint: { distance: 5 },
+};
+
 export function TrackRail() {
   const tracks = useAppStore((s) => s.tracks);
   const activeTrackId = useAppStore((s) => s.activeTrackId);
+  const expandedTrackIds = useAppStore((s) => s.expandedTrackIds);
   const activeProjectId = useAppStore((s) => s.activeProjectId);
   const setActiveTrack = useAppStore((s) => s.setActiveTrack);
+  const setExpandedTrack = useAppStore((s) => s.setExpandedTrack);
+  const toggleTrackExpanded = useAppStore((s) => s.toggleTrackExpanded);
   const addTrack = useAppStore((s) => s.addTrack);
   const updateTrackStore = useAppStore((s) => s.updateTrackStore);
   const removeTrack = useAppStore((s) => s.removeTrack);
@@ -37,9 +51,10 @@ export function TrackRail() {
   const loadTracks = useAppStore((s) => s.loadTracks);
   const loadSteps = useAppStore((s) => s.loadSteps);
   const selectedStepIds = useAppStore((s) => s.selectedStepIds);
-  const toggleStepSelected = useAppStore((s) => s.toggleStepSelected);
+  const selectStep = useAppStore((s) => s.selectStep);
+  const toggleStepInSelection = useAppStore((s) => s.toggleStepInSelection);
+  const shiftSelectSteps = useAppStore((s) => s.shiftSelectSteps);
   const clearSelectedSteps = useAppStore((s) => s.clearSelectedSteps);
-  const moveSelectedStepsToTrack = useAppStore((s) => s.moveSelectedStepsToTrack);
 
   const currentSourcePages = useAppStore((s) => s.currentSourcePages);
 
@@ -49,10 +64,227 @@ export function TrackRail() {
     return map;
   }, [currentSourcePages]);
 
+  // Memoize step lookups
+  const { stepsByTrack, stepsById } = useMemo(() => {
+    const byTrack = new Map<string, Step[]>();
+    const byId = new Map<string, Step>();
+    for (const step of steps) {
+      byId.set(step.id, step);
+      const list = byTrack.get(step.track_id);
+      if (list) {
+        list.push(step);
+      } else {
+        byTrack.set(step.track_id, [step]);
+      }
+    }
+    for (const list of byTrack.values()) {
+      list.sort((a, b) => a.display_order - b.display_order);
+    }
+    return { stepsByTrack: byTrack, stepsById: byId };
+  }, [steps]);
+
   const [addOpen, setAddOpen] = useState(false);
   const [renameTrack, setRenameTrack] = useState<Track | null>(null);
   const [colorTrack, setColorTrack] = useState<Track | null>(null);
   const [deleteTrackTarget, setDeleteTrackTarget] = useState<Track | null>(null);
+
+  // Drag state
+  const sensors = useSensors(useSensor(PointerSensor, POINTER_SENSOR_CONFIG));
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [overTrackId, setOverTrackId] = useState<string | null>(null);
+
+  const isMultiDragging =
+    activeDragId !== null &&
+    selectedStepIds.includes(activeDragId) &&
+    selectedStepIds.length > 1;
+
+  // Find which track an element belongs to (step or droppable-track-*)
+  const findTargetTrackId = useCallback(
+    (overId: string): string | null => {
+      const parsed = parseDroppableTrackId(overId);
+      if (parsed) return parsed;
+      return stepsById.get(overId)?.track_id ?? null;
+    },
+    [stepsById],
+  );
+
+  // ---- Drag handlers ----
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const dragId = event.active.id as string;
+    if (!selectedStepIds.includes(dragId)) {
+      clearSelectedSteps();
+    }
+    setActiveDragId(dragId);
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const overId = event.over?.id as string | undefined;
+    setOverTrackId(overId ? findTargetTrackId(overId) : null);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveDragId(null);
+    setOverTrackId(null);
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+    const stepsToMove = isMultiDragging ? selectedStepIds : [activeId];
+
+    const sourceStep = stepsById.get(activeId);
+    const targetTrackId = findTargetTrackId(overId);
+    if (!sourceStep || !targetTrackId) return;
+
+    // Check if all steps are already in the target track
+    const allInTarget = stepsToMove.every(
+      (sid) => stepsById.get(sid)?.track_id === targetTrackId,
+    );
+
+    if (allInTarget) {
+      // Same-track reorder
+      if (activeId === overId) return;
+      handleReorderSteps(targetTrackId, stepsToMove, overId, activeId);
+    } else {
+      // Cross-track move
+      await handleCrossTrackDrop(stepsToMove, targetTrackId, overId);
+    }
+  };
+
+  // ---- Reorder within same track ----
+
+  const handleReorderSteps = (
+    trackId: string,
+    movedIds: string[],
+    overId: string,
+    activeId: string,
+  ) => {
+    const trackSteps = stepsByTrack.get(trackId) ?? [];
+    const stepIds = trackSteps.map((s) => s.id);
+
+    let newOrder: string[];
+    if (movedIds.length > 1) {
+      // Multi-drag reorder
+      const unselected = stepIds.filter((id) => !movedIds.includes(id));
+      const overIndexInUnselected = unselected.indexOf(overId);
+      const selectedInOrder = stepIds.filter((id) => movedIds.includes(id));
+
+      if (overIndexInUnselected === -1) return;
+
+      const activeOriginalIndex = stepIds.indexOf(activeId);
+      const overOriginalIndex = stepIds.indexOf(overId);
+      const insertIndex =
+        activeOriginalIndex > overOriginalIndex
+          ? overIndexInUnselected
+          : overIndexInUnselected + 1;
+
+      newOrder = [
+        ...unselected.slice(0, insertIndex),
+        ...selectedInOrder,
+        ...unselected.slice(insertIndex),
+      ];
+    } else {
+      const oldIndex = stepIds.indexOf(activeId);
+      const newIndex = stepIds.indexOf(overId);
+      if (oldIndex === -1 || newIndex === -1) return;
+      newOrder = arrayMove(stepIds, oldIndex, newIndex);
+    }
+
+    // Optimistic update
+    const otherSteps = steps.filter((s) => s.track_id !== trackId);
+    const reordered = newOrder
+      .map((id, i) => {
+        const s = stepsById.get(id);
+        return s ? { ...s, display_order: i } : null;
+      })
+      .filter(Boolean) as Step[];
+    useAppStore.setState({ steps: [...otherSteps, ...reordered] });
+
+    api
+      .reorderSteps(trackId, newOrder)
+      .then(() => {
+        if (activeProjectId) loadSteps(activeProjectId);
+      })
+      .catch((e) => {
+        toast.error(`Failed to reorder steps: ${e}`);
+        if (activeProjectId) loadSteps(activeProjectId);
+      });
+  };
+
+  // ---- Cross-track drop ----
+
+  const handleCrossTrackDrop = async (
+    stepIds: string[],
+    targetTrackId: string,
+    overElementId: string,
+  ) => {
+    const targetSteps = stepsByTrack.get(targetTrackId) ?? [];
+
+    // Determine insertion index in target track
+    let insertIndex = targetSteps.length; // default: append
+    if (!parseDroppableTrackId(overElementId)) {
+      const overIdx = targetSteps.findIndex((s) => s.id === overElementId);
+      if (overIdx >= 0) insertIndex = overIdx;
+    }
+
+    // Collect source tracks that will need reordering
+    const sourceTrackIds = new Set<string>();
+    const stepsNeedingMove: string[] = [];
+    for (const sid of stepIds) {
+      const s = stepsById.get(sid);
+      if (s && s.track_id !== targetTrackId) {
+        sourceTrackIds.add(s.track_id);
+        stepsNeedingMove.push(sid);
+      }
+    }
+
+    try {
+      // Move steps to target track
+      await Promise.all(
+        stepsNeedingMove.map((sid) =>
+          api.updateStep({ id: sid, track_id: targetTrackId }),
+        ),
+      );
+
+      // Build new order for target track: existing steps + inserted moved steps
+      const existingTargetIds = targetSteps.map((s) => s.id).filter((id) => !stepIds.includes(id));
+      const movedInOrder = steps
+        .filter((s) => stepIds.includes(s.id))
+        .sort((a, b) => a.display_order - b.display_order)
+        .map((s) => s.id);
+
+      const newTargetOrder = [
+        ...existingTargetIds.slice(0, insertIndex),
+        ...movedInOrder,
+        ...existingTargetIds.slice(insertIndex),
+      ];
+
+      // Reorder target and close gaps in source tracks in parallel
+      await Promise.all([
+        api.reorderSteps(targetTrackId, newTargetOrder),
+        ...[...sourceTrackIds].map((srcId) => {
+          const remainingIds = steps
+            .filter((s) => s.track_id === srcId && !stepIds.includes(s.id))
+            .sort((a, b) => a.display_order - b.display_order)
+            .map((s) => s.id);
+          return api.reorderSteps(srcId, remainingIds);
+        }),
+      ]);
+
+      if (activeProjectId) {
+        await Promise.all([loadTracks(activeProjectId), loadSteps(activeProjectId)]);
+      }
+      clearSelectedSteps();
+    } catch (e) {
+      toast.error(`Failed to move steps: ${e}`);
+      if (activeProjectId) {
+        await Promise.all([loadTracks(activeProjectId), loadSteps(activeProjectId)]);
+      }
+    }
+  };
+
+  // ---- Track CRUD handlers ----
 
   const handleAdd = async (name: string, color?: string) => {
     if (!activeProjectId) return;
@@ -91,7 +323,6 @@ export function TrackRail() {
     try {
       await api.deleteTrack(id);
       removeTrack(id);
-      // Remove steps belonging to this track
       const trackSteps = steps.filter((s) => s.track_id === id);
       for (const s of trackSteps) {
         removeStep(s.id);
@@ -102,13 +333,12 @@ export function TrackRail() {
   };
 
   const handleAddStep = async (trackId: string) => {
-    const trackSteps = steps.filter((s) => s.track_id === trackId);
+    const trackSteps = stepsByTrack.get(trackId) ?? [];
     const title = `Step ${trackSteps.length + 1}`;
     try {
       const step = await api.createStep({ track_id: trackId, title });
       addStep(step);
       setActiveStep(step.id);
-      // Reload tracks to update step_count
       if (activeProjectId) loadTracks(activeProjectId);
     } catch (e) {
       toast.error(`Failed to create step: ${e}`);
@@ -117,24 +347,20 @@ export function TrackRail() {
 
   const handleDeleteStep = async (stepId: string) => {
     try {
+      removeStep(stepId);
       await api.deleteStepAndReorder(stepId);
-      // Reload tracks and steps to update step_count and display_orders
       if (activeProjectId) {
-        loadTracks(activeProjectId);
-        loadSteps(activeProjectId);
+        await Promise.all([loadTracks(activeProjectId), loadSteps(activeProjectId)]);
       }
     } catch (e) {
       toast.error(`Failed to delete step: ${e}`);
     }
   };
 
-  const handleReorderSteps = async (trackId: string, orderedIds: string[]) => {
-    try {
-      await api.reorderSteps(trackId, orderedIds);
-      if (activeProjectId) loadSteps(activeProjectId);
-    } catch (e) {
-      toast.error(`Failed to reorder steps: ${e}`);
-    }
+  const handleStepClick = (id: string, e: React.MouseEvent) => {
+    if (e.shiftKey) shiftSelectSteps(id);
+    else if (e.metaKey || e.ctrlKey) toggleStepInSelection(id);
+    else selectStep(id);
   };
 
   const handleToggleStepComplete = async (step: Step) => {
@@ -144,12 +370,19 @@ export function TrackRail() {
         is_completed: !step.is_completed,
       });
       updateStepStore(updated);
-      // Reload tracks to update completed_count
       if (activeProjectId) loadTracks(activeProjectId);
     } catch (e) {
       toast.error(`Failed to update step: ${e}`);
     }
   };
+
+  // Drag overlay preview
+  const dragSteps = useMemo(() => {
+    if (!activeDragId) return [];
+    return isMultiDragging
+      ? steps.filter((s) => selectedStepIds.includes(s.id))
+      : steps.filter((s) => s.id === activeDragId);
+  }, [activeDragId, isMultiDragging, steps, selectedStepIds]);
 
   return (
     <div className="flex w-[200px] shrink-0 flex-col border-r border-border bg-sidebar">
@@ -177,67 +410,60 @@ export function TrackRail() {
             </p>
           </div>
         ) : (
-          tracks.map((track) => (
-            <TrackItem
-              key={track.id}
-              track={track}
-              isActive={track.id === activeTrackId}
-              onSelect={() => setActiveTrack(track.id)}
-              onRename={() => setRenameTrack(track)}
-              onChangeColor={() => setColorTrack(track)}
-              onDelete={() => setDeleteTrackTarget(track)}
-              steps={steps.filter((s) => s.track_id === track.id)}
-              activeStepId={activeStepId}
-              selectedStepIds={selectedStepIds}
-              pageIndexMap={pageIndexMap}
-              onSelectStep={(id) => setActiveStep(id)}
-              onToggleStepSelect={toggleStepSelected}
-              onAddStep={() => handleAddStep(track.id)}
-              onDeleteStep={handleDeleteStep}
-              onToggleStepComplete={handleToggleStepComplete}
-              onReorderSteps={handleReorderSteps}
-            />
-          ))
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+          >
+            {tracks.map((track) => (
+              <TrackItem
+                key={track.id}
+                track={track}
+                isActive={track.id === activeTrackId}
+                isExpanded={expandedTrackIds.includes(track.id)}
+                isDropTarget={overTrackId === track.id}
+                isMultiDragging={isMultiDragging}
+                onToggleExpand={(e) =>
+                  e.metaKey || e.ctrlKey
+                    ? setExpandedTrack(track.id)
+                    : toggleTrackExpanded(track.id)
+                }
+                onRename={() => setRenameTrack(track)}
+                onChangeColor={() => setColorTrack(track)}
+                onDelete={() => setDeleteTrackTarget(track)}
+                steps={stepsByTrack.get(track.id) ?? []}
+                activeStepId={activeStepId}
+                selectedStepIds={selectedStepIds}
+                activeDragId={activeDragId}
+                pageIndexMap={pageIndexMap}
+                onStepClick={handleStepClick}
+                onAddStep={() => handleAddStep(track.id)}
+                onDeleteStep={handleDeleteStep}
+                onToggleStepComplete={handleToggleStepComplete}
+              />
+            ))}
+            <DragOverlay dropAnimation={null}>
+              {activeDragId && dragSteps.length > 0 && (
+                <div className="space-y-0.5 rounded shadow-md">
+                  {dragSteps.map((s) => (
+                    <StepItem
+                      key={s.id}
+                      step={s}
+                      isActive={false}
+                      isSelected={isMultiDragging}
+                      pageIndex={-1}
+                      onToggleComplete={() => {}}
+                      onDelete={() => {}}
+                    />
+                  ))}
+                </div>
+              )}
+            </DragOverlay>
+          </DndContext>
         )}
       </div>
-
-      {/* Multi-select bar */}
-      {selectedStepIds.length > 0 && (
-        <div className="border-t border-border bg-background px-2 py-1.5">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-medium text-text-secondary">
-              {selectedStepIds.length} selected
-            </span>
-            <div className="flex-1">
-              <Select onValueChange={moveSelectedStepsToTrack}>
-                <SelectTrigger size="sm" className="h-6 w-full text-[10px]">
-                  <SelectValue placeholder="Move to..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {tracks.map((t) => (
-                    <SelectItem key={t.id} value={t.id} className="text-xs">
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className="h-2 w-2 shrink-0 rounded-full"
-                          style={{ backgroundColor: t.color }}
-                        />
-                        {t.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <button
-              onClick={clearSelectedSteps}
-              className="flex h-5 w-5 items-center justify-center rounded text-text-tertiary hover:bg-black/5"
-              title="Clear selection"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Dialogs */}
       <AddTrackDialog

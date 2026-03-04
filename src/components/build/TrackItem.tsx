@@ -1,16 +1,8 @@
 import { MoreHorizontal, Pencil, Palette, Trash2, Plus } from "lucide-react";
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
+import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
-  arrayMove,
 } from "@dnd-kit/sortable";
 import {
   DropdownMenu,
@@ -19,80 +11,72 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SortableStepItem } from "./StepItem";
+import { DROPPABLE_TRACK_PREFIX } from "./dnd-constants";
 import type { Track, Step } from "@/shared/types";
-
-const POINTER_SENSOR_CONFIG = {
-  activationConstraint: { distance: 5 },
-};
 
 interface TrackItemProps {
   track: Track;
   isActive: boolean;
-  onSelect: () => void;
+  isExpanded: boolean;
+  isDropTarget: boolean;
+  isMultiDragging: boolean;
+  onToggleExpand: (e: React.MouseEvent) => void;
   onRename: () => void;
   onChangeColor: () => void;
   onDelete: () => void;
   steps: Step[];
   activeStepId: string | null;
   selectedStepIds?: string[];
+  activeDragId: string | null;
   pageIndexMap: Map<string, number>;
-  onSelectStep: (id: string) => void;
-  onToggleStepSelect?: (id: string) => void;
+  onStepClick: (id: string, e: React.MouseEvent) => void;
   onAddStep: () => void;
   onDeleteStep: (id: string) => void;
   onToggleStepComplete: (step: Step) => void;
-  onReorderSteps?: (trackId: string, orderedIds: string[]) => void;
 }
 
 export function TrackItem({
   track,
   isActive,
-  onSelect,
-  onRename,
-  onChangeColor,
-  onDelete,
+  isExpanded,
+  isDropTarget,
+  isMultiDragging,
   steps,
   activeStepId,
   selectedStepIds = [],
+  activeDragId,
   pageIndexMap,
-  onSelectStep,
-  onToggleStepSelect,
+  onToggleExpand,
+  onRename,
+  onChangeColor,
+  onDelete,
+  onStepClick,
   onAddStep,
   onDeleteStep,
   onToggleStepComplete,
-  onReorderSteps,
 }: TrackItemProps) {
   const progress =
     track.step_count > 0
       ? (track.completed_count / track.step_count) * 100
       : 0;
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, POINTER_SENSOR_CONFIG),
-  );
+  const { setNodeRef } = useDroppable({
+    id: `${DROPPABLE_TRACK_PREFIX}${track.id}`,
+    disabled: !isExpanded,
+  });
 
   const stepIds = steps.map((s) => s.id);
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id || !onReorderSteps) return;
-
-    const oldIndex = stepIds.indexOf(active.id as string);
-    const newIndex = stepIds.indexOf(over.id as string);
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    const newOrder = arrayMove(stepIds, oldIndex, newIndex);
-    onReorderSteps(track.id, newOrder);
-  };
 
   return (
     <div>
       <button
-        onClick={onSelect}
+        onClick={(e) => onToggleExpand(e)}
         className={`group flex w-full items-start gap-2 border-l-[4px] px-2.5 py-2 text-left transition-colors ${
           isActive
             ? "bg-[#4E728214]"
-            : "hover:bg-[#4E72820A]"
+            : isExpanded
+              ? "bg-[#4E72820A]"
+              : "hover:bg-[#4E72820A]"
         }`}
         style={{ borderLeftColor: track.color }}
       >
@@ -146,33 +130,51 @@ export function TrackItem({
         </div>
       </button>
 
-      {/* Step list (shown when track is active) */}
-      {isActive && (
-        <div className="border-l-[4px] bg-[#4E728208] px-2 pb-1.5" style={{ borderLeftColor: track.color }}>
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext items={stepIds} strategy={verticalListSortingStrategy}>
-              <div className="space-y-0.5">
-                {steps.map((step) => (
-                  <SortableStepItem
-                    key={step.id}
-                    id={step.id}
-                    step={step}
-                    isActive={step.id === activeStepId}
-                    isSelected={selectedStepIds.includes(step.id)}
-                    pageIndex={step.source_page_id ? (pageIndexMap.get(step.source_page_id) ?? -1) : -1}
-                    onSelect={() => onSelectStep(step.id)}
-                    onToggleSelect={onToggleStepSelect ? () => onToggleStepSelect(step.id) : undefined}
-                    onToggleComplete={() => onToggleStepComplete(step)}
-                    onDelete={() => onDeleteStep(step.id)}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
+      {/* Step list (shown when track is expanded) */}
+      {isExpanded && (
+        <div
+          ref={setNodeRef}
+          className={`border-l-[4px] px-2 pb-1.5 transition-colors ${
+            isDropTarget
+              ? "bg-accent/10"
+              : "bg-[#4E728208]"
+          }`}
+          style={{ borderLeftColor: track.color }}
+        >
+          <SortableContext items={stepIds} strategy={verticalListSortingStrategy}>
+            <div className="space-y-0.5">
+              {steps.length === 0 ? (
+                <p className="py-2 text-center text-[10px] text-text-tertiary">
+                  Drop steps here
+                </p>
+              ) : (
+                steps.map((step) => {
+                  const isThisSelected = selectedStepIds.includes(step.id);
+                  const isGhost =
+                    isMultiDragging && isThisSelected && step.id !== activeDragId;
+
+                  return (
+                    <SortableStepItem
+                      key={step.id}
+                      id={step.id}
+                      step={step}
+                      isActive={step.id === activeStepId}
+                      isSelected={isThisSelected}
+                      isGhostDuringDrag={isGhost}
+                      pageIndex={
+                        step.source_page_id
+                          ? (pageIndexMap.get(step.source_page_id) ?? -1)
+                          : -1
+                      }
+                      onClick={(e) => onStepClick(step.id, e)}
+                      onToggleComplete={() => onToggleStepComplete(step)}
+                      onDelete={() => onDeleteStep(step.id)}
+                    />
+                  );
+                })
+              )}
+            </div>
+          </SortableContext>
           <button
             onClick={(e) => {
               e.stopPropagation();

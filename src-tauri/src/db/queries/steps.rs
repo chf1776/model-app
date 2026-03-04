@@ -255,5 +255,12 @@ pub fn reorder(conn: &Connection, track_id: &str, ordered_ids: Vec<String>) -> R
         )
         .map_err(|e| e.to_string())?;
     }
+    // Auto-rename steps with "Step N" titles to match new order
+    conn.execute(
+        "UPDATE steps SET title = 'Step ' || (display_order + 1), updated_at = ?1
+         WHERE track_id = ?2 AND title GLOB 'Step [0-9]*'",
+        params![ts, track_id],
+    )
+    .map_err(|e| e.to_string())?;
     Ok(())
 }

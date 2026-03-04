@@ -19,11 +19,14 @@ export interface BuildSlice {
   // Tracks
   tracks: Track[];
   activeTrackId: string | null;
+  expandedTrackIds: string[];
   loadTracks: (projectId: string) => Promise<void>;
   addTrack: (track: Track) => void;
   updateTrackStore: (track: Track) => void;
   removeTrack: (id: string) => void;
   setActiveTrack: (id: string | null) => void;
+  setExpandedTrack: (id: string) => void;
+  toggleTrackExpanded: (id: string) => void;
 
   // Steps
   steps: Step[];
@@ -36,9 +39,11 @@ export interface BuildSlice {
 
   // Multi-select
   selectedStepIds: string[];
-  toggleStepSelected: (id: string) => void;
+  selectionAnchorId: string | null;
+  selectStep: (id: string) => void;
+  toggleStepInSelection: (id: string) => void;
+  shiftSelectSteps: (id: string) => void;
   clearSelectedSteps: () => void;
-  moveSelectedStepsToTrack: (trackId: string) => Promise<void>;
 
   // Undo
   undoStack: string[];
@@ -86,6 +91,17 @@ const DEFAULT_PAGE_STATE = {
   currentPageIndex: 0,
 };
 
+const DEFAULT_BUILD_STATE = {
+  tracks: [] as Track[],
+  activeTrackId: null as string | null,
+  expandedTrackIds: [] as string[],
+  steps: [] as Step[],
+  activeStepId: null as string | null,
+  selectedStepIds: [] as string[],
+  selectionAnchorId: null as string | null,
+  undoStack: [] as string[],
+};
+
 const DEFAULT_VIEWER_STATE = {
   viewerZoom: 1,
   viewerPanX: 0,
@@ -100,15 +116,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   project: null,
   projects: [],
 
-  // Tracks
-  tracks: [],
-  activeTrackId: null,
-
-  // Steps
-  steps: [],
-  activeStepId: null,
-  selectedStepIds: [],
-  undoStack: [],
+  ...DEFAULT_BUILD_STATE,
 
   // Instruction sources
   instructionSources: [],
@@ -136,12 +144,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       set({
         activeProjectId: null,
         project: null,
-        tracks: [],
-        activeTrackId: null,
-        steps: [],
-        activeStepId: null,
-        selectedStepIds: [],
-        undoStack: [],
+        ...DEFAULT_BUILD_STATE,
         instructionSources: [],
         ...DEFAULT_PAGE_STATE,
       });
@@ -157,12 +160,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     set({
       activeProjectId: id,
       project,
-      tracks: [],
-      activeTrackId: null,
-      steps: [],
-      activeStepId: null,
-      selectedStepIds: [],
-      undoStack: [],
+      ...DEFAULT_BUILD_STATE,
       canvasMode: "view" as CanvasMode,
       ...DEFAULT_PAGE_STATE,
       ...DEFAULT_VIEWER_STATE,
@@ -177,12 +175,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     set({
       activeProjectId: null,
       project: null,
-      tracks: [],
-      activeTrackId: null,
-      steps: [],
-      activeStepId: null,
-      selectedStepIds: [],
-      undoStack: [],
+      ...DEFAULT_BUILD_STATE,
       instructionSources: [],
       ...DEFAULT_PAGE_STATE,
     }),
@@ -216,11 +209,40 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     set((s) => ({
       tracks: s.tracks.filter((t) => t.id !== id),
       activeTrackId: s.activeTrackId === id ? null : s.activeTrackId,
+      expandedTrackIds: s.expandedTrackIds.filter((eid) => eid !== id),
     }));
   },
 
   setActiveTrack: (id) => {
-    set({ activeTrackId: id });
+    if (id) {
+      set((s) => ({
+        activeTrackId: id,
+        expandedTrackIds: s.expandedTrackIds.includes(id)
+          ? s.expandedTrackIds
+          : [...s.expandedTrackIds, id],
+      }));
+    } else {
+      set({ activeTrackId: null });
+    }
+  },
+
+  setExpandedTrack: (id) => {
+    set({ activeTrackId: id, expandedTrackIds: [id] });
+  },
+
+  toggleTrackExpanded: (id) => {
+    set((s) => {
+      const isExpanded = s.expandedTrackIds.includes(id);
+      if (isExpanded) {
+        return {
+          expandedTrackIds: s.expandedTrackIds.filter((eid) => eid !== id),
+        };
+      }
+      return {
+        activeTrackId: id,
+        expandedTrackIds: [...s.expandedTrackIds, id],
+      };
+    });
   },
 
   loadSteps: async (projectId) => {
@@ -242,18 +264,22 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     set((s) => ({
       steps: s.steps.filter((st) => st.id !== id),
       activeStepId: s.activeStepId === id ? null : s.activeStepId,
+      selectedStepIds: s.selectedStepIds.filter((sid) => sid !== id),
+      selectionAnchorId: s.selectionAnchorId === id ? null : s.selectionAnchorId,
     }));
   },
 
   setActiveStep: (id) => {
-    const update: Record<string, unknown> = { activeStepId: id };
-
     if (id) {
       const state = get();
       const step = state.steps.find((s) => s.id === id);
       if (step) {
+        const update: Record<string, unknown> = { activeStepId: id };
         if (step.track_id !== state.activeTrackId) {
           update.activeTrackId = step.track_id;
+        }
+        if (!state.expandedTrackIds.includes(step.track_id)) {
+          update.expandedTrackIds = [...state.expandedTrackIds, step.track_id];
         }
         if (step.source_page_id) {
           const pageIdx = state.currentSourcePages.findIndex(
@@ -263,65 +289,65 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
             update.currentPageIndex = pageIdx;
           }
         }
+        set(update);
+      } else {
+        set({ activeStepId: id });
       }
+    } else {
+      set({ activeStepId: null });
     }
-
-    set(update);
   },
 
-  toggleStepSelected: (id) => {
-    set((s) => ({
-      selectedStepIds: s.selectedStepIds.includes(id)
-        ? s.selectedStepIds.filter((sid) => sid !== id)
-        : [...s.selectedStepIds, id],
-    }));
+  selectStep: (id) => {
+    set({ selectedStepIds: [], selectionAnchorId: id });
+    get().setActiveStep(id);
+  },
+
+  toggleStepInSelection: (id) => {
+    const { selectedStepIds, activeStepId } = get();
+    let next: string[];
+    if (selectedStepIds.length === 0 && activeStepId && activeStepId !== id) {
+      // First Cmd+click: seed with previously active step + clicked step
+      next = [activeStepId, id];
+    } else if (selectedStepIds.includes(id)) {
+      next = selectedStepIds.filter((sid) => sid !== id);
+    } else {
+      next = [...selectedStepIds, id];
+    }
+    set({ selectedStepIds: next, selectionAnchorId: id, activeStepId: id });
+  },
+
+  shiftSelectSteps: (id) => {
+    const { selectionAnchorId, steps } = get();
+    const anchor = selectionAnchorId;
+    if (!anchor) {
+      // No anchor — treat as plain click
+      get().selectStep(id);
+      return;
+    }
+    // Find both steps and ensure they share a track
+    const anchorStep = steps.find((s) => s.id === anchor);
+    const targetStep = steps.find((s) => s.id === id);
+    if (!anchorStep || !targetStep || anchorStep.track_id !== targetStep.track_id) {
+      // Different tracks or missing — treat as plain click
+      get().selectStep(id);
+      return;
+    }
+    // Get ordered steps for this track
+    const trackSteps = steps
+      .filter((s) => s.track_id === anchorStep.track_id)
+      .sort((a, b) => a.display_order - b.display_order);
+    const anchorIdx = trackSteps.findIndex((s) => s.id === anchor);
+    const targetIdx = trackSteps.findIndex((s) => s.id === id);
+    const lo = Math.min(anchorIdx, targetIdx);
+    const hi = Math.max(anchorIdx, targetIdx);
+    const rangeIds = trackSteps.slice(lo, hi + 1).map((s) => s.id);
+    set({ selectedStepIds: rangeIds, activeStepId: id });
+    // Anchor stays unchanged
   },
 
   clearSelectedSteps: () => {
-    set({ selectedStepIds: [] });
-  },
-
-  moveSelectedStepsToTrack: async (trackId) => {
-    const { selectedStepIds, steps, activeProjectId } = get();
-    if (selectedStepIds.length === 0) return;
-
-    // Collect old track IDs that will need reordering
-    const oldTrackIds = new Set<string>();
-    for (const sid of selectedStepIds) {
-      const step = steps.find((s) => s.id === sid);
-      if (step && step.track_id !== trackId) {
-        oldTrackIds.add(step.track_id);
-      }
-    }
-
-    try {
-      // Move all selected steps in parallel
-      await Promise.all(
-        selectedStepIds
-          .filter((sid) => {
-            const step = steps.find((s) => s.id === sid);
-            return step && step.track_id !== trackId;
-          })
-          .map((sid) => api.updateStep({ id: sid, track_id: trackId })),
-      );
-      // Reorder old tracks to close gaps in parallel
-      await Promise.all(
-        [...oldTrackIds].map((oldTrackId) => {
-          const remainingIds = steps
-            .filter((s) => s.track_id === oldTrackId && !selectedStepIds.includes(s.id))
-            .sort((a, b) => a.display_order - b.display_order)
-            .map((s) => s.id);
-          return api.reorderSteps(oldTrackId, remainingIds);
-        }),
-      );
-      if (activeProjectId) {
-        await get().loadTracks(activeProjectId);
-        await get().loadSteps(activeProjectId);
-      }
-      set({ selectedStepIds: [] });
-    } catch (e) {
-      toast.error(`Failed to move steps: ${e}`);
-    }
+    set({ selectedStepIds: [], selectionAnchorId: null });
   },
 
   pushUndo: (stepId) => {
@@ -341,8 +367,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       await api.deleteStepAndReorder(stepId);
       get().removeStep(stepId);
       if (activeProjectId) {
-        await get().loadTracks(activeProjectId);
-        await get().loadSteps(activeProjectId);
+        await Promise.all([get().loadTracks(activeProjectId), get().loadSteps(activeProjectId)]);
       }
     } catch (e) {
       toast.error(`Undo failed: ${e}`);
