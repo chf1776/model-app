@@ -15,7 +15,7 @@
 | State | Zustand | Frontend only; slices per domain |
 | Routing | React Router v7 | Three top-level routes + settings |
 | Canvas | Konva + react-konva | Instruction image viewer and annotation layer |
-| PDF rendering | pdfium (via pdfium-render crate) | Rasterization in backend, results sent to frontend. pdfium chosen over pdf-rs for broad real-world PDF compatibility (scanned manuals, Japanese manufacturer formats, password-protected files). |
+| PDF rendering | MuPDF (via mupdf crate) | Rasterization in backend, results sent to frontend. MuPDF chosen over pdf-rs for broad real-world PDF compatibility (scanned manuals, Japanese manufacturer formats, password-protected files). Builds from C source via cargo (requires CMake). |
 | Database | SQLite via rusqlite | Backend process only |
 | Package manager | npm (frontend) + cargo (backend) | |
 
@@ -48,7 +48,7 @@ model-app/
 │   │   └── services/
 │   │       ├── files.rs          # File management, path helpers, thumbnails
 │   │       ├── scalemates.rs    # Scalemates URL scraping (paste-only, no search)
-│   │       ├── pdf.rs            # PDF rasterization (pdfium)
+│   │       ├── pdf.rs            # PDF rasterization (MuPDF)
 │   │       ├── paint_catalog.rs # Load and search bundled paint catalogue JSON
 │   │       └── export.rs         # Build log export (HTML / PDF / ZIP)
 │   ├── catalogue/               # Bundled paint catalogue data (generated from Arcturus5404 repo)
@@ -680,7 +680,7 @@ Users attach PDFs and images (instruction manuals, reference sheets) to kits via
 When `create_project` is called with a `kit_id`:
 1. Query `kit_files WHERE kit_id = ?` to get all attached files
 2. For each file, create an `instruction_sources` row linked to the new project (file path carried over, `page_count = 0`)
-3. PDF page rasterization is **not** performed at import time — that happens in Phase 2 setup mode when the user enters the build workspace and pdfium processes the pages on demand
+3. PDF page rasterization is performed at project creation time with a processing overlay. MuPDF renders each page to PNG at the configured DPI.
 
 ### "Start Project" card action (Phase 1A)
 Shelf kit cards expose a direct "Start Project" button. Clicking it opens the Create Project dialog with that kit pre-selected, so the user doesn't need to search for it. The kit's attached files are auto-imported as described above.
@@ -769,7 +769,7 @@ refinery = { version = "0.8", features = ["rusqlite"] }  # DB migrations
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 uuid = { version = "1", features = ["v4"] }
-pdfium-render = "0.8"                                  # PDF rasterization (instruction manuals)
+mupdf = "0.6"                                          # PDF rasterization (instruction manuals, builds from C source)
 libheif-rs = "1"                                       # HEIC → JPEG conversion (iPhone photos)
 typst = "0.12"                                         # Build log PDF export (template-based typesetting)
 ```
@@ -809,11 +809,11 @@ Coordinates are normalized (0–1 relative to the step image dimensions) so they
 ### Instruction images (PDF rasterization)
 
 - **Where**: Rust backend, `src-tauri/src/services/pdf.rs`
-- **Library**: pdfium (via `pdfium-render` crate). Chosen over `pdf-rs` for broad compatibility with real-world instruction PDFs: scanned manuals, Japanese manufacturer formats, vector art, image-only wrappers, and password-protected files.
-- **Flow**: user selects PDF → frontend sends path via invoke → Rust reads file → renders each page to PNG via pdfium → writes `instructions/<source-id>/page-NNN.png` → returns page metadata to frontend
+- **Library**: MuPDF (via `mupdf` crate v0.6). Chosen over `pdf-rs` for broad compatibility with real-world instruction PDFs: scanned manuals, Japanese manufacturer formats, vector art, image-only wrappers, and password-protected files. Builds MuPDF from C source via cargo (requires CMake).
+- **Flow**: user selects PDF → frontend sends path via invoke → Rust reads file → renders each page to PNG via MuPDF → writes `instructions/<source-id>/page-NNN.png` → returns page metadata to frontend
 - **Format**: PNG — lossless, universal tool support, no quality decisions
 - **DPI**: 150 (default, user-configurable in Settings: 72 / 150 / 300). At 300 DPI, an A4 page = 2480×3508 px — sharp when zoomed
-- **Step crops**: stored as normalized coordinates (0–1); full-resolution crop rendered on first display from the stored page PNG
+- **Step crops**: stored as pixel coordinates in image-space (pre-rotation). Converted to effective-space (post-rotation) for canvas rendering via `imageToEffective`, and back via `effectiveToImage` for resize/reposition persistence.
 
 ### Build photos and reference images
 

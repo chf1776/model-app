@@ -890,7 +890,7 @@ At 1470px, this gives: 180 + 1070 + 220 = 1470px. Canvas gets the lion's share.
 
 **Active region (selected):**
 - Border: full opacity (not 30%)
-- Corner resize handles: 8×8px squares, white fill, 2px border in track color, cursor nwse-resize. Four corners.
+- Resize handles: 8×8px squares (inverse-zoom-scaled), white fill, 1px border in track color. Eight handles (4 corners + 4 edges) via Konva Transformer. Draggable body for repositioning. Label hidden when active to avoid drift during drag.
 - Clicking a region makes it active and loads it in step editor.
 
 **Bulk selection:**
