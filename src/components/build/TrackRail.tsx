@@ -94,6 +94,19 @@ export function TrackRail() {
   const [deleteTrackTarget, setDeleteTrackTarget] = useState<Track | null>(null);
   const [joinPointTrack, setJoinPointTrack] = useState<Track | null>(null);
 
+  // Map each step ID to the tracks whose join_point targets it
+  const incomingJoinPoints = useMemo(() => {
+    const map = new Map<string, Track[]>();
+    for (const t of tracks) {
+      if (t.join_point_step_id) {
+        const list = map.get(t.join_point_step_id);
+        if (list) list.push(t);
+        else map.set(t.join_point_step_id, [t]);
+      }
+    }
+    return map;
+  }, [tracks]);
+
   // Drag state
   const sensors = useSensors(useSensor(PointerSensor, POINTER_SENSOR_CONFIG));
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -636,6 +649,7 @@ export function TrackRail() {
                 onAddSubStep={handleAddSubStep}
                 onDeleteStep={handleDeleteStep}
                 onToggleStepComplete={handleToggleStepComplete}
+                incomingJoinPoints={incomingJoinPoints}
               />
             ))}
             <DragOverlay dropAnimation={null}>

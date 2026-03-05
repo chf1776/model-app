@@ -42,6 +42,7 @@ interface TrackItemProps {
   onAddSubStep: (parentStepId: string) => void;
   onDeleteStep: (id: string) => void;
   onToggleStepComplete: (step: Step) => void;
+  incomingJoinPoints?: Map<string, Track[]>;
 }
 
 export function TrackItem({
@@ -69,6 +70,7 @@ export function TrackItem({
   onAddSubStep,
   onDeleteStep,
   onToggleStepComplete,
+  incomingJoinPoints,
 }: TrackItemProps) {
   const progress =
     track.step_count > 0
@@ -244,6 +246,7 @@ export function TrackItem({
                             ? () => onAddSubStep(step.id)
                             : undefined
                         }
+                        joiningTracks={incomingJoinPoints?.get(step.id)}
                       />
                       {/* Drop indicator line after the over element */}
                       {overElementId === step.id &&

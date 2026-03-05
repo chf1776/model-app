@@ -1,4 +1,4 @@
-import { MoreHorizontal, Trash2, ListTree } from "lucide-react";
+import { MoreHorizontal, Trash2, ListTree, GitMerge } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { StepCompletionMarker } from "./StepCompletionMarker";
-import type { Step } from "@/shared/types";
+import type { Step, Track } from "@/shared/types";
 
 interface StepItemProps {
   step: Step;
@@ -20,6 +20,7 @@ interface StepItemProps {
   onToggleComplete: () => void;
   onDelete: () => void;
   onAddSubStep?: () => void;
+  joiningTracks?: Track[];
 }
 
 export function StepItem({
@@ -32,6 +33,7 @@ export function StepItem({
   onToggleComplete,
   onDelete,
   onAddSubStep,
+  joiningTracks,
 }: StepItemProps) {
   return (
     <button
@@ -69,6 +71,21 @@ export function StepItem({
           Pre-paint
         </span>
       )}
+      {joiningTracks && joiningTracks.length > 0 && (
+        <span className="flex shrink-0 items-center gap-0.5 rounded px-1 py-0.5 text-[9px] font-medium text-accent bg-accent/10">
+          <GitMerge className="h-2.5 w-2.5" />
+          {joiningTracks.map((t, i) => (
+            <span key={t.id} className="flex items-center gap-0.5">
+              {i > 0 && <span>,</span>}
+              <span
+                className="inline-block h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: t.color }}
+              />
+              <span className="truncate max-w-[48px]">{t.name}</span>
+            </span>
+          ))}
+        </span>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger
           onClick={(e) => e.stopPropagation()}
@@ -100,9 +117,10 @@ interface SortableStepItemProps extends StepItemProps {
   id: string;
   isGhostDuringDrag?: boolean;
   projectedDepth?: number;
+  joiningTracks?: Track[];
 }
 
-export function SortableStepItem({ id, isGhostDuringDrag, projectedDepth, ...props }: SortableStepItemProps) {
+export function SortableStepItem({ id, isGhostDuringDrag, projectedDepth, joiningTracks, ...props }: SortableStepItemProps) {
   const {
     attributes,
     listeners,
@@ -121,7 +139,7 @@ export function SortableStepItem({ id, isGhostDuringDrag, projectedDepth, ...pro
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <StepItem {...props} depth={projectedDepth ?? props.depth} />
+      <StepItem {...props} depth={projectedDepth ?? props.depth} joiningTracks={joiningTracks} />
     </div>
   );
 }
