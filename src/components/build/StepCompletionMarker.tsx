@@ -27,14 +27,13 @@ export function StepCompletionMarker({
         e.stopPropagation();
         onClick();
       }}
-      className={`relative flex h-[${SIZE}px] w-[${SIZE}px] shrink-0 items-center justify-center rounded-full transition-colors ${
+      className={`relative flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full transition-colors ${
         completed
           ? "bg-accent"
           : hasProgress
             ? "border-transparent"
             : "border-[1.5px] border-border hover:border-accent/50"
       }`}
-      style={{ width: SIZE, height: SIZE }}
     >
       {/* Progress ring SVG (behind the circle) */}
       {!completed && hasProgress && (
@@ -65,7 +64,7 @@ export function StepCompletionMarker({
             strokeLinecap="round"
             strokeDasharray={CIRCUMFERENCE}
             strokeDashoffset={CIRCUMFERENCE * (1 - progress)}
-            className={isFull ? "text-[#5A9A5F]" : "text-accent"}
+            className={isFull ? "text-success" : "text-accent"}
             transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
           />
         </svg>

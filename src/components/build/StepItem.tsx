@@ -82,7 +82,7 @@ export function StepItem({
       {step.quantity != null && step.quantity > 1 && (
         <span className={`shrink-0 text-[9px] font-medium ${
           step.quantity_current >= step.quantity
-            ? "text-[#5A9A5F]"
+            ? "text-success"
             : "text-text-tertiary"
         }`}>
           {step.quantity_current}/{step.quantity}

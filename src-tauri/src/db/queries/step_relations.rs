@@ -36,20 +36,35 @@ pub fn set_step_relations(
     step_id: &str,
     relations: Vec<(String, String)>, // (target_step_id, relation_type)
 ) -> Result<Vec<StepRelation>, String> {
-    conn.execute(
-        "DELETE FROM step_relations WHERE from_step_id = ?1",
-        params![step_id],
-    )
-    .map_err(|e| e.to_string())?;
+    conn.execute_batch("BEGIN").map_err(|e| e.to_string())?;
 
-    for (target_step_id, relation_type) in relations {
-        let id = Uuid::new_v4().to_string();
+    let result = (|| {
         conn.execute(
-            "INSERT OR IGNORE INTO step_relations (id, from_step_id, to_step_id, relation_type)
-             VALUES (?1, ?2, ?3, ?4)",
-            params![id, step_id, target_step_id, relation_type],
+            "DELETE FROM step_relations WHERE from_step_id = ?1",
+            params![step_id],
         )
         .map_err(|e| e.to_string())?;
+
+        for (target_step_id, relation_type) in relations {
+            let id = Uuid::new_v4().to_string();
+            conn.execute(
+                "INSERT OR IGNORE INTO step_relations (id, from_step_id, to_step_id, relation_type)
+                 VALUES (?1, ?2, ?3, ?4)",
+                params![id, step_id, target_step_id, relation_type],
+            )
+            .map_err(|e| e.to_string())?;
+        }
+        Ok(())
+    })();
+
+    match result {
+        Ok(()) => {
+            conn.execute_batch("COMMIT").map_err(|e| e.to_string())?;
+        }
+        Err(e) => {
+            let _ = conn.execute_batch("ROLLBACK");
+            return Err(e);
+        }
     }
 
     list_for_step(conn, step_id)

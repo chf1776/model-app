@@ -71,6 +71,7 @@ export function StepEditorPanel() {
   useEffect(() => {
     if (step) {
       if (!stepTags[step.id]) loadStepTags(step.id);
+      // Always reload relations (no cache check) because they can change from either side
       loadStepRelations(step.id);
       if (!stepReferenceImages[step.id]) loadStepReferenceImages(step.id);
     }
@@ -340,7 +341,7 @@ export function StepEditorPanel() {
                 </button>
                 <span className={`min-w-[2.5rem] text-center text-xs font-semibold ${
                   step.quantity_current >= step.quantity
-                    ? "text-[#5A9A5F]"
+                    ? "text-success"
                     : "text-text-primary"
                 }`}>
                   {step.quantity_current} / {step.quantity}
