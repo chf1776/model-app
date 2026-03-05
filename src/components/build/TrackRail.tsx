@@ -546,9 +546,8 @@ export function TrackRail() {
       });
       updateStepStore(updated);
       if (activeProjectId) {
-        await loadTracks(activeProjectId);
-        // Reload all steps to pick up propagated parent completion changes
-        loadSteps(activeProjectId);
+        // Reload tracks and steps in parallel to pick up propagated parent completion
+        await Promise.all([loadTracks(activeProjectId), loadSteps(activeProjectId)]);
       }
     } catch (e) {
       toast.error(`Failed to update step: ${e}`);

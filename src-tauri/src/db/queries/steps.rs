@@ -232,11 +232,8 @@ pub fn update(conn: &Connection, input: UpdateStepInput) -> Result<Step, String>
     .map_err(|e| e.to_string())?;
 
     // Propagate parent completion if completion status changed and step has a parent
-    if completion_changed {
-        let step = get_by_id(conn, &step_id)?;
-        if step.parent_step_id.is_some() {
-            propagate_completion(conn, &step_id)?;
-        }
+    if completion_changed && parent_step_id.is_some() {
+        propagate_completion(conn, &step_id)?;
     }
 
     get_by_id(conn, &step_id)
