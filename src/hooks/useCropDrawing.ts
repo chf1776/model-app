@@ -83,11 +83,12 @@ export function useCropDrawing(stageRef: React.RefObject<Konva.Stage | null>) {
 
   const canvasMode = useAppStore((s) => s.canvasMode);
   const activeTrackId = useAppStore((s) => s.activeTrackId);
-
+  const activeStepId = useAppStore((s) => s.activeStepId);
   const currentSourcePages = useAppStore((s) => s.currentSourcePages);
   const currentPageIndex = useAppStore((s) => s.currentPageIndex);
   const steps = useAppStore((s) => s.steps);
   const addStep = useAppStore((s) => s.addStep);
+  const updateStepStore = useAppStore((s) => s.updateStepStore);
   const setActiveStep = useAppStore((s) => s.setActiveStep);
   const activeProjectId = useAppStore((s) => s.activeProjectId);
   const loadTracks = useAppStore((s) => s.loadTracks);
@@ -186,34 +187,53 @@ export function useCropDrawing(stageRef: React.RefObject<Konva.Stage | null>) {
       // Validate minimum size
       if (cropW < MIN_CROP_SIZE || cropH < MIN_CROP_SIZE) return;
 
-      const trackSteps = steps.filter((s) => s.track_id === activeTrackId);
-      const rootCount = trackSteps.filter((s) => !s.parent_step_id).length;
-      const title = `Step ${rootCount + 1}`;
+      const cropData = {
+        source_page_id: currentPage.id,
+        crop_x: Math.round(cropX),
+        crop_y: Math.round(cropY),
+        crop_w: Math.round(cropW),
+        crop_h: Math.round(cropH),
+      };
+
+      // If the active step has no crop, update it instead of creating a new one
+      const activeStep = activeStepId
+        ? steps.find((s) => s.id === activeStepId)
+        : null;
+      const shouldUpdate =
+        activeStep &&
+        activeStep.track_id === activeTrackId &&
+        activeStep.crop_x == null;
 
       isCreating.current = true;
       try {
-        const step = await api.createStep({
-          track_id: activeTrackId,
-          title,
-          source_page_id: currentPage.id,
-          crop_x: Math.round(cropX),
-          crop_y: Math.round(cropY),
-          crop_w: Math.round(cropW),
-          crop_h: Math.round(cropH),
-        });
-        addStep(step);
-        pushUndo(step.id);
-        setActiveStep(step.id);
+        if (shouldUpdate) {
+          const updated = await api.updateStep({
+            id: activeStep.id,
+            ...cropData,
+          });
+          updateStepStore(updated);
+        } else {
+          const trackSteps = steps.filter((s) => s.track_id === activeTrackId);
+          const rootCount = trackSteps.filter((s) => !s.parent_step_id).length;
+          const step = await api.createStep({
+            track_id: activeTrackId,
+            title: `Step ${rootCount + 1}`,
+            ...cropData,
+          });
+          addStep(step);
+          pushUndo(step.id);
+          setActiveStep(step.id);
+        }
         if (activeProjectId) loadTracks(activeProjectId);
       } catch (err) {
-        toast.error(`Failed to create step: ${err}`);
+        toast.error(`Failed to ${shouldUpdate ? "update" : "create"} step: ${err}`);
       } finally {
         isCreating.current = false;
       }
     },
     [
-      canvasMode, currentPage, activeTrackId, stageRef, steps,
-      addStep, pushUndo, setActiveStep, activeProjectId, loadTracks,
+      canvasMode, currentPage, activeTrackId, activeStepId, stageRef, steps,
+      addStep, updateStepStore, pushUndo, setActiveStep, activeProjectId, loadTracks,
       viewerZoom, viewerPanX, viewerPanY,
     ],
   );

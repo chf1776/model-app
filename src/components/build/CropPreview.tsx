@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from "react";
+import { Crop } from "lucide-react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useAppStore } from "@/store";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,6 +15,7 @@ interface CropPreviewProps {
 export function CropPreview({ step }: CropPreviewProps) {
   const currentSourcePages = useAppStore((s) => s.currentSourcePages);
   const setActiveStep = useAppStore((s) => s.setActiveStep);
+  const setCanvasMode = useAppStore((s) => s.setCanvasMode);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [loading, setLoading] = useState(true);
   const [hasImage, setHasImage] = useState(false);
@@ -102,11 +104,24 @@ export function CropPreview({ step }: CropPreviewProps) {
     };
   }, [page, hasCrop, step.crop_x, step.crop_y, step.crop_w, step.crop_h]);
 
+  const hasPages = currentSourcePages.length > 0;
+
   if (!hasCrop || !page) {
     return (
-      <div className="flex h-24 items-center justify-center rounded border border-dashed border-border bg-black/[0.02]">
-        <span className="text-[10px] text-text-tertiary">No crop region</span>
-      </div>
+      <button
+        onClick={() => setCanvasMode("crop")}
+        disabled={!hasPages}
+        className={`flex h-24 w-full flex-col items-center justify-center gap-1.5 rounded border border-dashed border-border bg-black/[0.02] ${
+          hasPages
+            ? "cursor-pointer hover:border-accent/40 hover:bg-accent/5"
+            : "cursor-default opacity-50"
+        }`}
+      >
+        <Crop className="h-4 w-4 text-text-tertiary" />
+        <span className="text-[10px] text-text-tertiary">
+          {hasPages ? "Click to crop from page" : "No pages loaded"}
+        </span>
+      </button>
     );
   }
 
