@@ -89,6 +89,18 @@ export function TrackItem({
     return map;
   }, [steps]);
 
+  // Child progress for parent steps: [completed, total]
+  const childProgressMap = useMemo(() => {
+    const map = new Map<string, [number, number]>();
+    for (const s of steps) {
+      if (s.parent_step_id) {
+        const prev = map.get(s.parent_step_id) ?? [0, 0];
+        map.set(s.parent_step_id, [prev[0] + (s.is_completed ? 1 : 0), prev[1] + 1]);
+      }
+    }
+    return map;
+  }, [steps]);
+
   // Is the active drag in this track?
   const isDragInThisTrack =
     activeDragId !== null && stepsById.has(activeDragId);
@@ -243,6 +255,7 @@ export function TrackItem({
                         isGhostDuringDrag={isGhost}
                         depth={flatItem.depth}
                         projectedDepth={projectedDepth}
+                        childProgress={childProgressMap.get(step.id)}
                         pageIndex={
                           step.source_page_id
                             ? (pageIndexMap.get(step.source_page_id) ?? -1)

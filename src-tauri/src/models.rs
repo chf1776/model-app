@@ -354,9 +354,20 @@ pub struct UpdateStepInput {
     pub drying_time_min: Option<i32>,
     pub pre_paint: Option<bool>,
     pub quantity: Option<i32>,
+    pub quantity_current: Option<i32>,
     pub is_completed: Option<bool>,
-    pub replaces_step_id: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_optional_nullable")]
+    pub replaces_step_id: Option<Option<String>>,
     pub notes: Option<String>,
+}
+
+/// Deserialize a field that can be absent (None), null (Some(None)), or a value (Some(Some(v))).
+fn deserialize_optional_nullable<'de, D, T>(deserializer: D) -> Result<Option<Option<T>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: serde::Deserialize<'de>,
+{
+    Ok(Some(Option::deserialize(deserializer)?))
 }
 
 // ── Step Relation ────────────────────────────────────────────────────────────

@@ -71,7 +71,7 @@ export function StepEditorPanel() {
   useEffect(() => {
     if (step) {
       if (!stepTags[step.id]) loadStepTags(step.id);
-      if (!stepRelations[step.id]) loadStepRelations(step.id);
+      loadStepRelations(step.id);
       if (!stepReferenceImages[step.id]) loadStepReferenceImages(step.id);
     }
     setExpandedImageId(null);
@@ -164,6 +164,8 @@ export function StepEditorPanel() {
       ...otherIds.map((id) => ({ target_step_id: id, relation_type: otherType })),
     ];
     await setStepRelationsAction(step.id, relations);
+    // Invalidate the target step's cached relations so it reflects the change
+    loadStepRelations(targetStepId);
   };
 
   /** Toggle a relation on another step that points back to this step. */
@@ -317,6 +319,46 @@ export function StepEditorPanel() {
               className="h-7 text-xs"
             />
           </div>
+
+          {/* Quantity counter (visible when quantity > 1) */}
+          {step.quantity != null && step.quantity > 1 && (
+            <div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-1.5">
+              <span className="text-[10px] text-text-secondary">
+                Progress
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const next = Math.max(0, step.quantity_current - 1);
+                    updateStepStore({ ...step, quantity_current: next });
+                    handleUpdate({ quantity_current: next });
+                  }}
+                  disabled={step.quantity_current <= 0}
+                  className="flex h-5 w-5 items-center justify-center rounded-full border border-border text-[11px] text-text-secondary hover:bg-white disabled:opacity-30"
+                >
+                  −
+                </button>
+                <span className={`min-w-[2.5rem] text-center text-xs font-semibold ${
+                  step.quantity_current >= step.quantity
+                    ? "text-[#5A9A5F]"
+                    : "text-text-primary"
+                }`}>
+                  {step.quantity_current} / {step.quantity}
+                </span>
+                <button
+                  onClick={() => {
+                    const next = Math.min(step.quantity!, step.quantity_current + 1);
+                    updateStepStore({ ...step, quantity_current: next });
+                    handleUpdate({ quantity_current: next });
+                  }}
+                  disabled={step.quantity_current >= step.quantity}
+                  className="flex h-5 w-5 items-center justify-center rounded-full border border-border text-[11px] text-text-secondary hover:bg-white disabled:opacity-30"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Track + Adhesive row */}
           <div className="grid grid-cols-2 gap-2">

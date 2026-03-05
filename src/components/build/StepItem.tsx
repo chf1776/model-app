@@ -16,6 +16,8 @@ interface StepItemProps {
   isSelected: boolean;
   pageIndex: number;
   depth?: number;
+  /** Sub-step progress for parent steps: [completed, total] */
+  childProgress?: [number, number];
   onClick?: (e: React.MouseEvent) => void;
   onToggleComplete: () => void;
   onDelete: () => void;
@@ -28,6 +30,7 @@ export function StepItem({
   isSelected,
   pageIndex,
   depth = 0,
+  childProgress,
   onClick,
   onToggleComplete,
   onDelete,
@@ -48,6 +51,13 @@ export function StepItem({
     >
       <StepCompletionMarker
         completed={step.is_completed}
+        progress={
+          childProgress
+            ? childProgress[1] > 0 ? childProgress[0] / childProgress[1] : 0
+            : step.quantity && step.quantity > 1
+              ? step.quantity_current / step.quantity
+              : undefined
+        }
         onClick={onToggleComplete}
       />
       <span
@@ -67,6 +77,15 @@ export function StepItem({
       {step.pre_paint && (
         <span className="shrink-0 rounded px-1 py-0.5 text-[9px] font-medium text-[#C4913A] bg-[#C4913A]/10">
           Pre-paint
+        </span>
+      )}
+      {step.quantity != null && step.quantity > 1 && (
+        <span className={`shrink-0 text-[9px] font-medium ${
+          step.quantity_current >= step.quantity
+            ? "text-[#5A9A5F]"
+            : "text-text-tertiary"
+        }`}>
+          {step.quantity_current}/{step.quantity}
         </span>
       )}
       <DropdownMenu>

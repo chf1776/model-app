@@ -433,6 +433,7 @@ export interface UpdateStepInput {
   drying_time_min?: number | null;
   pre_paint?: boolean | null;
   quantity?: number | null;
+  quantity_current?: number | null;
   is_completed?: boolean | null;
   replaces_step_id?: string | null;
   notes?: string | null;
