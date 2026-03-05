@@ -78,6 +78,8 @@ pub fn run() {
             commands::reference_images::add_reference_image,
             commands::reference_images::update_reference_image_caption,
             commands::reference_images::delete_reference_image,
+            commands::step_relations::list_step_relations,
+            commands::step_relations::set_step_relations,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Phase 2H: Step Relations & Sub-step Auto-completion
+- **Step relations**: "Blocked by" and "Blocks access to" relation types between steps, with step picker UI in the editor panel grouped by track with search filtering
+- **Replaces step**: Set a single step that this step replaces via `replaces_step_id`, with picker UI in the editor panel
+- **Step relation persistence**: Full Rust backend (queries, commands) for the `step_relations` table that already existed in the schema
+- **Sub-step auto-completion**: When all sub-steps of a parent are completed, the parent is automatically marked complete; uncompleting any sub-step uncompletes the parent
+- **Auto-complete setting**: Global "Auto-complete parent steps" toggle in Settings > Build section (default: enabled)
+- **Completion propagation**: TrackRail reloads all steps after toggling completion to reflect propagated parent state changes
+
 #### Phase 2G: Join Point Indicators & Crop-to-Step
 - **Incoming join point markers**: Target tracks now show an inline divider at the join point step with the source track's color bar and name, making both ends of a join visible
 - **Outgoing join point markers**: Source tracks show a directional marker at the end of their step list with an arrow and the target track's color bar

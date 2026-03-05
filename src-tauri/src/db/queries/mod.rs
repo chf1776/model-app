@@ -9,6 +9,7 @@ pub mod project_ui_state;
 pub mod projects;
 pub mod reference_images;
 pub mod settings;
+pub mod step_relations;
 pub mod steps;
 pub mod tags;
 pub mod tracks;

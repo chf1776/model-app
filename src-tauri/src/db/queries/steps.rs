@@ -180,6 +180,7 @@ pub fn update(conn: &Connection, input: UpdateStepInput) -> Result<Step, String>
     let pre_paint = input.pre_paint.unwrap_or(existing.pre_paint);
     let quantity = input.quantity.or(existing.quantity);
     let is_completed = input.is_completed.unwrap_or(existing.is_completed);
+    let replaces_step_id = input.replaces_step_id.or(existing.replaces_step_id);
     let notes = input.notes.or(existing.notes);
 
     // Set completed_at when marking complete
@@ -191,6 +192,9 @@ pub fn update(conn: &Connection, input: UpdateStepInput) -> Result<Step, String>
         existing.completed_at
     };
 
+    let completion_changed = is_completed != existing.is_completed;
+    let step_id = input.id;
+
     conn.execute(
         "UPDATE steps SET track_id = ?1, display_order = ?2, title = ?3,
                 parent_step_id = ?4, source_page_id = ?5,
@@ -198,8 +202,8 @@ pub fn update(conn: &Connection, input: UpdateStepInput) -> Result<Step, String>
                 is_full_page = ?10, source_type = ?11, source_name = ?12,
                 adhesive_type = ?13, drying_time_min = ?14, pre_paint = ?15,
                 quantity = ?16, is_completed = ?17, completed_at = ?18,
-                notes = ?19, updated_at = ?20
-         WHERE id = ?21",
+                replaces_step_id = ?19, notes = ?20, updated_at = ?21
+         WHERE id = ?22",
         params![
             track_id,
             display_order,
@@ -219,14 +223,23 @@ pub fn update(conn: &Connection, input: UpdateStepInput) -> Result<Step, String>
             quantity,
             is_completed,
             completed_at,
+            replaces_step_id,
             notes,
             ts,
-            input.id,
+            step_id,
         ],
     )
     .map_err(|e| e.to_string())?;
 
-    get_by_id(conn, &input.id)
+    // Propagate parent completion if completion status changed and step has a parent
+    if completion_changed {
+        let step = get_by_id(conn, &step_id)?;
+        if step.parent_step_id.is_some() {
+            propagate_completion(conn, &step_id)?;
+        }
+    }
+
+    get_by_id(conn, &step_id)
 }
 
 pub fn delete(conn: &Connection, id: &str) -> Result<(), String> {
@@ -324,6 +337,55 @@ pub fn set_parent(conn: &Connection, id: &str, parent_step_id: Option<&str>) -> 
     )
     .map_err(|e| e.to_string())?;
     get_by_id(conn, id)
+}
+
+/// If auto_complete_parent is enabled, propagate completion from sub-steps to parent.
+/// When all sub-steps are completed, the parent is auto-completed.
+/// When any sub-step is uncompleted, the parent is uncompleted.
+fn propagate_completion(conn: &Connection, step_id: &str) -> Result<(), String> {
+    // Check the setting (default: enabled)
+    let auto_complete = super::settings::get(conn, "auto_complete_parent")
+        .unwrap_or_else(|_| "true".to_string());
+    if auto_complete != "true" {
+        return Ok(());
+    }
+
+    let step = get_by_id(conn, step_id)?;
+    let parent_id = match &step.parent_step_id {
+        Some(pid) => pid.clone(),
+        None => return Ok(()),
+    };
+
+    // Count total and completed siblings (including this step)
+    let (total, completed): (i32, i32) = conn
+        .query_row(
+            "SELECT COUNT(*), SUM(CASE WHEN is_completed THEN 1 ELSE 0 END)
+             FROM steps WHERE parent_step_id = ?1",
+            params![parent_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .map_err(|e| e.to_string())?;
+
+    let parent = get_by_id(conn, &parent_id)?;
+    let ts = now();
+
+    if total == completed && !parent.is_completed {
+        // All children complete → mark parent complete
+        conn.execute(
+            "UPDATE steps SET is_completed = 1, completed_at = ?1, updated_at = ?2 WHERE id = ?3",
+            params![ts, ts, parent_id],
+        )
+        .map_err(|e| e.to_string())?;
+    } else if total != completed && parent.is_completed {
+        // Not all children complete → uncomplete parent
+        conn.execute(
+            "UPDATE steps SET is_completed = 0, completed_at = NULL, updated_at = ?1 WHERE id = ?2",
+            params![ts, parent_id],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
 }
 
 pub fn reorder_children(conn: &Connection, track_id: &str, parent_step_id: &str, ordered_ids: Vec<String>) -> Result<(), String> {

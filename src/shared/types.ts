@@ -434,7 +434,19 @@ export interface UpdateStepInput {
   pre_paint?: boolean | null;
   quantity?: number | null;
   is_completed?: boolean | null;
+  replaces_step_id?: string | null;
   notes?: string | null;
+}
+
+// ── Step Relations ──────────────────────────────────────────────────────────
+
+export type StepRelationType = "blocked_by" | "blocks_access_to";
+
+export interface StepRelation {
+  id: string;
+  from_step_id: string;
+  to_step_id: string;
+  relation_type: StepRelationType;
 }
 
 // ── Reference Images ─────────────────────────────────────────────────────────

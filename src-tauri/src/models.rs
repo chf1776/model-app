@@ -355,7 +355,18 @@ pub struct UpdateStepInput {
     pub pre_paint: Option<bool>,
     pub quantity: Option<i32>,
     pub is_completed: Option<bool>,
+    pub replaces_step_id: Option<String>,
     pub notes: Option<String>,
+}
+
+// ── Step Relation ────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StepRelation {
+    pub id: String,
+    pub from_step_id: String,
+    pub to_step_id: String,
+    pub relation_type: String,
 }
 
 // ── Reference Image ─────────────────────────────────────────────────────────

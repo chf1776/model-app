@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import type { Project, InstructionSource, InstructionPage, Track, Step, Tag, ReferenceImage } from "@/shared/types";
+import type { Project, InstructionSource, InstructionPage, Track, Step, Tag, StepRelation, ReferenceImage } from "@/shared/types";
 import type { AppStore } from "./index";
 import * as api from "@/api";
 import { toast } from "sonner";
@@ -51,6 +51,11 @@ export interface BuildSlice {
   stepTags: Record<string, Tag[]>;
   loadStepTags: (stepId: string) => Promise<void>;
   setStepTags: (stepId: string, tagNames: string[]) => Promise<void>;
+
+  // Step relations
+  stepRelations: Record<string, StepRelation[]>;
+  loadStepRelations: (stepId: string) => Promise<void>;
+  setStepRelations: (stepId: string, relations: { target_step_id: string; relation_type: string }[]) => Promise<void>;
 
   // Reference images
   stepReferenceImages: Record<string, ReferenceImage[]>;
@@ -115,6 +120,7 @@ const DEFAULT_BUILD_STATE = {
   selectionAnchorId: null as string | null,
   undoStack: [] as string[],
   stepTags: {} as Record<string, Tag[]>,
+  stepRelations: {} as Record<string, StepRelation[]>,
   stepReferenceImages: {} as Record<string, ReferenceImage[]>,
 };
 
@@ -408,6 +414,16 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   setStepTags: async (stepId, tagNames) => {
     const tags = await api.setStepTags(stepId, tagNames);
     set((s) => ({ stepTags: { ...s.stepTags, [stepId]: tags } }));
+  },
+
+  loadStepRelations: async (stepId) => {
+    const relations = await api.listStepRelations(stepId);
+    set((s) => ({ stepRelations: { ...s.stepRelations, [stepId]: relations } }));
+  },
+
+  setStepRelations: async (stepId, relations) => {
+    const result = await api.setStepRelations(stepId, relations);
+    set((s) => ({ stepRelations: { ...s.stepRelations, [stepId]: result } }));
   },
 
   loadStepReferenceImages: async (stepId) => {

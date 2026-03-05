@@ -122,11 +122,11 @@ Full collection management. All three entity types, wishlists with pricing, pain
 - ~~Tags: predefined tag library, tag picker in step editor, step_tags persistence~~ DONE
 - ~~Reference image attachments: per-step reference images, file picker, display in editor panel~~ DONE
 - ~~Sub-steps: "Add sub-step" in step editor, nested indentation in rail, drag-to-nest/un-nest, drag/reorder within parent~~ DONE
-- Track join point: set the step on another track where this subassembly merges
-- Step relations: "Blocked by" / "Blocks access to", replaces step — step picker UI in editor
+- ~~Track join point: set the step on another track where this subassembly merges~~ DONE
+- ~~Step relations: "Blocked by" / "Blocks access to", replaces step — step picker UI in editor~~ DONE
+- ~~Sub-step auto-completion: parent completes when all children complete (global setting toggle)~~ DONE
 
 ### Deferred to Phase 4+
-- Sub-step auto-completion: parent completes when all children complete, progress tracking within parent steps
 - Image cleanup: paint-over mask per step stored as a layer; source image never modified (full UX in Phase 4 Building mode)
 
 ### Deliverable

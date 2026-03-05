@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { X, ChevronRight, Plus, ImageIcon, ListTree } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { X, ChevronRight, Plus, ImageIcon, ListTree, Link2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
@@ -27,7 +27,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import type { AdhesiveType, SourceType } from "@/shared/types";
+import type { AdhesiveType, SourceType, StepRelationType } from "@/shared/types";
 import {
   ADHESIVE_TYPE_LABELS,
   SOURCE_TYPE_LABELS,
@@ -49,6 +49,9 @@ export function StepEditorPanel() {
   const stepTags = useAppStore((s) => s.stepTags);
   const loadStepTags = useAppStore((s) => s.loadStepTags);
   const setStepTagsAction = useAppStore((s) => s.setStepTags);
+  const stepRelations = useAppStore((s) => s.stepRelations);
+  const loadStepRelations = useAppStore((s) => s.loadStepRelations);
+  const setStepRelationsAction = useAppStore((s) => s.setStepRelations);
   const stepReferenceImages = useAppStore((s) => s.stepReferenceImages);
   const loadStepReferenceImages = useAppStore((s) => s.loadStepReferenceImages);
   const addReferenceImageStore = useAppStore((s) => s.addReferenceImageStore);
@@ -57,6 +60,9 @@ export function StepEditorPanel() {
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
+  const [relationPopoverOpen, setRelationPopoverOpen] = useState<StepRelationType | null>(null);
+  const [replacesPopoverOpen, setReplacesPopoverOpen] = useState(false);
+  const [relationSearch, setRelationSearch] = useState("");
   const [editingCaptionId, setEditingCaptionId] = useState<string | null>(null);
   const [expandedImageId, setExpandedImageId] = useState<string | null>(null);
 
@@ -66,10 +72,14 @@ export function StepEditorPanel() {
   useEffect(() => {
     if (step) {
       if (!stepTags[step.id]) loadStepTags(step.id);
+      if (!stepRelations[step.id]) loadStepRelations(step.id);
       if (!stepReferenceImages[step.id]) loadStepReferenceImages(step.id);
     }
     setExpandedImageId(null);
     setEditingCaptionId(null);
+    setRelationPopoverOpen(null);
+    setReplacesPopoverOpen(false);
+    setRelationSearch("");
   }, [step?.id]);
 
   if (!step) return null;
@@ -80,6 +90,28 @@ export function StepEditorPanel() {
     : null;
   const currentTags = stepTags[step.id] ?? [];
   const currentTagNames = new Set(currentTags.map((t) => t.name));
+
+  const currentRelations = stepRelations[step.id] ?? [];
+  const blockedByIds = currentRelations
+    .filter((r) => r.from_step_id === step.id && r.relation_type === "blocked_by")
+    .map((r) => r.to_step_id);
+  const blocksAccessIds = currentRelations
+    .filter((r) => r.from_step_id === step.id && r.relation_type === "blocks_access_to")
+    .map((r) => r.to_step_id);
+
+  // Steps available for relation pickers (all project steps except this one)
+  const otherSteps = useMemo(() => steps.filter((s) => s.id !== step.id), [steps, step.id]);
+
+  // Group steps by track for picker display
+  const stepsByTrackForPicker = useMemo(() => {
+    const grouped = new Map<string, typeof steps>();
+    for (const s of otherSteps) {
+      const list = grouped.get(s.track_id) ?? [];
+      list.push(s);
+      grouped.set(s.track_id, list);
+    }
+    return grouped;
+  }, [otherSteps]);
 
   const currentTrack = tracks.find((t) => t.id === step.track_id);
   const parentStep = step.parent_step_id
@@ -101,6 +133,30 @@ export function StepEditorPanel() {
       ? currentTags.filter((t) => t.name !== tagName).map((t) => t.name)
       : [...currentTags.map((t) => t.name), tagName];
     await setStepTagsAction(step.id, next);
+  };
+
+  const handleToggleRelation = async (targetStepId: string, relationType: StepRelationType) => {
+    const currentIds = relationType === "blocked_by" ? blockedByIds : blocksAccessIds;
+    const otherType: StepRelationType = relationType === "blocked_by" ? "blocks_access_to" : "blocked_by";
+    const otherIds = relationType === "blocked_by" ? blocksAccessIds : blockedByIds;
+
+    let newIds: string[];
+    if (currentIds.includes(targetStepId)) {
+      newIds = currentIds.filter((id) => id !== targetStepId);
+    } else {
+      newIds = [...currentIds, targetStepId];
+    }
+
+    const relations = [
+      ...newIds.map((id) => ({ target_step_id: id, relation_type: relationType })),
+      ...otherIds.map((id) => ({ target_step_id: id, relation_type: otherType })),
+    ];
+    await setStepRelationsAction(step.id, relations);
+  };
+
+  const handleSetReplaces = async (targetStepId: string | null) => {
+    await handleUpdate({ replaces_step_id: targetStepId });
+    setReplacesPopoverOpen(false);
   };
 
   const handleAddReference = async () => {
@@ -342,6 +398,215 @@ export function StepEditorPanel() {
                   </div>
                 </PopoverContent>
               </Popover>
+            </div>
+          </div>
+
+          {/* Relations */}
+          <div className="space-y-1.5">
+            <Label className="text-[10px] text-text-tertiary">Relations</Label>
+
+            {/* Blocked by */}
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-1">
+                {blockedByIds.map((id) => {
+                  const s = steps.find((st) => st.id === id);
+                  const t = s ? tracks.find((tr) => tr.id === s.track_id) : null;
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => handleToggleRelation(id, "blocked_by")}
+                      className="inline-flex items-center gap-0.5 rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-700 hover:bg-red-500/20"
+                    >
+                      {t && <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: t.color }} />}
+                      {s?.title ?? id.slice(0, 6)}
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  );
+                })}
+                <Popover open={relationPopoverOpen === "blocked_by"} onOpenChange={(open) => { setRelationPopoverOpen(open ? "blocked_by" : null); setRelationSearch(""); }}>
+                  <PopoverTrigger asChild>
+                    <button className="inline-flex items-center gap-0.5 rounded-full border border-dashed border-border px-1.5 py-0.5 text-[10px] text-text-tertiary hover:border-text-secondary hover:text-text-secondary">
+                      <Link2 className="h-2.5 w-2.5" />
+                      blocked by
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-52 p-1.5">
+                    <div className="mb-1 flex items-center gap-1 rounded border border-border px-1.5 py-1">
+                      <Search className="h-3 w-3 text-text-tertiary" />
+                      <input
+                        value={relationSearch}
+                        onChange={(e) => setRelationSearch(e.target.value)}
+                        placeholder="Search steps..."
+                        className="flex-1 bg-transparent text-[11px] outline-none"
+                      />
+                    </div>
+                    <ScrollArea className="max-h-[200px]">
+                      {tracks.map((t) => {
+                        const trackSteps = (stepsByTrackForPicker.get(t.id) ?? []).filter(
+                          (s) => !relationSearch || s.title.toLowerCase().includes(relationSearch.toLowerCase()),
+                        );
+                        if (trackSteps.length === 0) return null;
+                        return (
+                          <div key={t.id} className="mb-1">
+                            <div className="flex items-center gap-1 px-1 py-0.5 text-[9px] font-semibold text-text-tertiary">
+                              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: t.color }} />
+                              {t.name}
+                            </div>
+                            {trackSteps.map((s) => (
+                              <button
+                                key={s.id}
+                                onClick={() => handleToggleRelation(s.id, "blocked_by")}
+                                className={`flex w-full items-center rounded px-2 py-1 text-[11px] ${
+                                  blockedByIds.includes(s.id)
+                                    ? "bg-red-500/10 font-medium text-red-700"
+                                    : "text-text-secondary hover:bg-black/[0.03]"
+                                }`}
+                              >
+                                {s.title}
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </ScrollArea>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            {/* Blocks access to */}
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-1">
+                {blocksAccessIds.map((id) => {
+                  const s = steps.find((st) => st.id === id);
+                  const t = s ? tracks.find((tr) => tr.id === s.track_id) : null;
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => handleToggleRelation(id, "blocks_access_to")}
+                      className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 hover:bg-amber-500/20"
+                    >
+                      {t && <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: t.color }} />}
+                      {s?.title ?? id.slice(0, 6)}
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  );
+                })}
+                <Popover open={relationPopoverOpen === "blocks_access_to"} onOpenChange={(open) => { setRelationPopoverOpen(open ? "blocks_access_to" : null); setRelationSearch(""); }}>
+                  <PopoverTrigger asChild>
+                    <button className="inline-flex items-center gap-0.5 rounded-full border border-dashed border-border px-1.5 py-0.5 text-[10px] text-text-tertiary hover:border-text-secondary hover:text-text-secondary">
+                      <Link2 className="h-2.5 w-2.5" />
+                      blocks access
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-52 p-1.5">
+                    <div className="mb-1 flex items-center gap-1 rounded border border-border px-1.5 py-1">
+                      <Search className="h-3 w-3 text-text-tertiary" />
+                      <input
+                        value={relationSearch}
+                        onChange={(e) => setRelationSearch(e.target.value)}
+                        placeholder="Search steps..."
+                        className="flex-1 bg-transparent text-[11px] outline-none"
+                      />
+                    </div>
+                    <ScrollArea className="max-h-[200px]">
+                      {tracks.map((t) => {
+                        const trackSteps = (stepsByTrackForPicker.get(t.id) ?? []).filter(
+                          (s) => !relationSearch || s.title.toLowerCase().includes(relationSearch.toLowerCase()),
+                        );
+                        if (trackSteps.length === 0) return null;
+                        return (
+                          <div key={t.id} className="mb-1">
+                            <div className="flex items-center gap-1 px-1 py-0.5 text-[9px] font-semibold text-text-tertiary">
+                              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: t.color }} />
+                              {t.name}
+                            </div>
+                            {trackSteps.map((s) => (
+                              <button
+                                key={s.id}
+                                onClick={() => handleToggleRelation(s.id, "blocks_access_to")}
+                                className={`flex w-full items-center rounded px-2 py-1 text-[11px] ${
+                                  blocksAccessIds.includes(s.id)
+                                    ? "bg-amber-500/10 font-medium text-amber-700"
+                                    : "text-text-secondary hover:bg-black/[0.03]"
+                                }`}
+                              >
+                                {s.title}
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </ScrollArea>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            {/* Replaces */}
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-1">
+                {step.replaces_step_id && (() => {
+                  const s = steps.find((st) => st.id === step.replaces_step_id);
+                  const t = s ? tracks.find((tr) => tr.id === s.track_id) : null;
+                  return (
+                    <button
+                      onClick={() => handleSetReplaces(null)}
+                      className="inline-flex items-center gap-0.5 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent hover:bg-accent/20"
+                    >
+                      {t && <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: t.color }} />}
+                      {s?.title ?? step.replaces_step_id.slice(0, 6)}
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  );
+                })()}
+                {!step.replaces_step_id && (
+                  <Popover open={replacesPopoverOpen} onOpenChange={(open) => { setReplacesPopoverOpen(open); setRelationSearch(""); }}>
+                    <PopoverTrigger asChild>
+                      <button className="inline-flex items-center gap-0.5 rounded-full border border-dashed border-border px-1.5 py-0.5 text-[10px] text-text-tertiary hover:border-text-secondary hover:text-text-secondary">
+                        <Link2 className="h-2.5 w-2.5" />
+                        replaces
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-52 p-1.5">
+                      <div className="mb-1 flex items-center gap-1 rounded border border-border px-1.5 py-1">
+                        <Search className="h-3 w-3 text-text-tertiary" />
+                        <input
+                          value={relationSearch}
+                          onChange={(e) => setRelationSearch(e.target.value)}
+                          placeholder="Search steps..."
+                          className="flex-1 bg-transparent text-[11px] outline-none"
+                        />
+                      </div>
+                      <ScrollArea className="max-h-[200px]">
+                        {tracks.map((t) => {
+                          const trackSteps = (stepsByTrackForPicker.get(t.id) ?? []).filter(
+                            (s) => !relationSearch || s.title.toLowerCase().includes(relationSearch.toLowerCase()),
+                          );
+                          if (trackSteps.length === 0) return null;
+                          return (
+                            <div key={t.id} className="mb-1">
+                              <div className="flex items-center gap-1 px-1 py-0.5 text-[9px] font-semibold text-text-tertiary">
+                                <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: t.color }} />
+                                {t.name}
+                              </div>
+                              {trackSteps.map((s) => (
+                                <button
+                                  key={s.id}
+                                  onClick={() => handleSetReplaces(s.id)}
+                                  className="flex w-full items-center rounded px-2 py-1 text-[11px] text-text-secondary hover:bg-black/[0.03]"
+                                >
+                                  {s.title}
+                                </button>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </ScrollArea>
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
             </div>
           </div>
 

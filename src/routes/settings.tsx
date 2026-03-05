@@ -6,6 +6,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import * as api from "@/api";
 import { cn } from "@/lib/utils";
@@ -29,12 +30,14 @@ export default function SettingsRoute() {
   const navigate = useNavigate();
   const [theme, setTheme] = useState<Theme>("light");
   const [pdfDpi, setPdfDpi] = useState<PdfDpi>("150");
+  const [autoCompleteParent, setAutoCompleteParent] = useState(true);
   const [dbPath, setDbPath] = useState<string>("");
   const [appVersion, setAppVersion] = useState<string>("");
 
   useEffect(() => {
     api.getSetting("theme").then((v) => setTheme(v as Theme)).catch(() => {});
     api.getSetting("pdf_dpi").then((v) => setPdfDpi(v as PdfDpi)).catch(() => {});
+    api.getSetting("auto_complete_parent").then((v) => setAutoCompleteParent(v !== "false")).catch(() => {});
     appDataDir().then((dir) => setDbPath(`${dir}model-builder/db.sqlite`)).catch(() => {});
     getVersion().then(setAppVersion).catch(() => {});
   }, []);
@@ -47,6 +50,11 @@ export default function SettingsRoute() {
   const handleDpiChange = async (value: PdfDpi) => {
     setPdfDpi(value);
     await api.setSetting("pdf_dpi", value);
+  };
+
+  const handleAutoCompleteChange = async (checked: boolean) => {
+    setAutoCompleteParent(checked);
+    await api.setSetting("auto_complete_parent", checked ? "true" : "false");
   };
 
   return (
@@ -121,6 +129,28 @@ export default function SettingsRoute() {
             Higher DPI = sharper pages but larger files and slower import.
             Applies to new imports only.
           </p>
+        </section>
+
+        {/* Build */}
+        <section className="mb-6">
+          <h2 className="mb-2 text-xs font-semibold text-text-primary">
+            Build
+          </h2>
+          <Separator className="mb-3" />
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-[11px] text-text-secondary">
+                Auto-complete parent steps
+              </Label>
+              <p className="mt-0.5 text-[10px] text-text-tertiary">
+                Completing all sub-steps automatically completes the parent.
+              </p>
+            </div>
+            <Switch
+              checked={autoCompleteParent}
+              onCheckedChange={handleAutoCompleteChange}
+            />
+          </div>
         </section>
 
         {/* Data */}

@@ -7,6 +7,7 @@ pub mod palette_entries;
 pub mod projects;
 pub mod reference_images;
 pub mod settings;
+pub mod step_relations;
 pub mod steps;
 pub mod tags;
 pub mod tracks;

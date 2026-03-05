@@ -545,7 +545,11 @@ export function TrackRail() {
         is_completed: !step.is_completed,
       });
       updateStepStore(updated);
-      if (activeProjectId) loadTracks(activeProjectId);
+      if (activeProjectId) {
+        await loadTracks(activeProjectId);
+        // Reload all steps to pick up propagated parent completion changes
+        loadSteps(activeProjectId);
+      }
     } catch (e) {
       toast.error(`Failed to update step: ${e}`);
     }

@@ -20,6 +20,7 @@ import type {
   CreateStepInput,
   UpdateStepInput,
   Tag,
+  StepRelation,
   ReferenceImage,
   InstructionSource,
   InstructionPage,
@@ -290,6 +291,19 @@ export async function setStepTags(
   tagNames: string[],
 ): Promise<Tag[]> {
   return invoke<Tag[]>("set_step_tags", { stepId, tagNames });
+}
+
+// ── Step Relations ───────────────────────────────────────────────────────────
+
+export async function listStepRelations(stepId: string): Promise<StepRelation[]> {
+  return invoke<StepRelation[]>("list_step_relations", { stepId });
+}
+
+export async function setStepRelations(
+  stepId: string,
+  relations: { target_step_id: string; relation_type: string }[],
+): Promise<StepRelation[]> {
+  return invoke<StepRelation[]>("set_step_relations", { stepId, relations });
 }
 
 // ── Reference Images ─────────────────────────────────────────────────────────
