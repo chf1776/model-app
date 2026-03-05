@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Phase 2G: Join Point Indicators & Crop-to-Step
+- **Incoming join point markers**: Target tracks now show an inline divider at the join point step with the source track's color bar and name, making both ends of a join visible
+- **Outgoing join point markers**: Source tracks show a directional marker at the end of their step list with an arrow and the target track's color bar
+- **Directional join point icons**: Replaced ambiguous GitMerge icons with arrow + colored bar indicators — bar position (left vs right of arrow) distinguishes incoming from outgoing
+- **Collapsed join point label**: Track headers show the join target with arrow + color bar when collapsed; hidden when expanded (markers take over)
+- **Menu wording**: "Set Join Point" renamed to "Joins Into…" with ArrowRight icon for clearer directionality
+- **Crop empty steps**: Clicking the empty crop preview in the step editor switches to crop mode; drawing a crop updates the existing step instead of creating a new one
+- **Crop tool root steps**: Crop tool now always creates root-level steps (Step 1, 2, 3…) instead of auto-nesting under the active step
+
+### Fixed
+- Crop tool creating sub-steps (Step 1.1, 2.1) instead of sequential root steps
+
 #### Phase 2F: Tags, Reference Images & Drag-to-Nest
 - **Drag-to-nest**: Drag a step horizontally in the track rail to change its nesting depth — drag right to nest under the item above, drag left to un-nest to root level. Uses dnd-kit SortableTree-style projection from horizontal offset
 - **Drop indicator line**: Accent-colored line with circle marker shows at the projected depth during drag, giving real-time visual feedback for nest/un-nest operations
