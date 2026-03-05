@@ -469,14 +469,17 @@ export function TrackRail() {
     }
   };
 
-  const getJoinPointLabel = useCallback(
-    (track: Track): string | null => {
+  const getJoinPointInfo = useCallback(
+    (track: Track): { label: string; color: string } | null => {
       if (!track.join_point_step_id) return null;
       const step = stepsById.get(track.join_point_step_id);
-      if (!step) return "Unknown step";
+      if (!step) return { label: "Unknown step", color: "#999" };
       const targetTrack = tracks.find((t) => t.id === step.track_id);
       const trackName = targetTrack?.name ?? "Unknown track";
-      return `${trackName} / ${step.title}`;
+      return {
+        label: `${trackName} / ${step.title}`,
+        color: targetTrack?.color ?? "#999",
+      };
     },
     [stepsById, tracks],
   );
@@ -637,7 +640,7 @@ export function TrackRail() {
                 onChangeColor={() => setColorTrack(track)}
                 onSetJoinPoint={() => setJoinPointTrack(track)}
                 onDelete={() => setDeleteTrackTarget(track)}
-                joinPointLabel={getJoinPointLabel(track)}
+                joinPointInfo={getJoinPointInfo(track)}
                 canSetJoinPoint={tracks.length > 1}
                 steps={stepsByTrack.get(track.id) ?? []}
                 activeStepId={activeStepId}

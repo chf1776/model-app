@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { MoreHorizontal, Pencil, Palette, Trash2, Plus, GitMerge } from "lucide-react";
+import { MoreHorizontal, Pencil, Palette, Trash2, Plus, ArrowRight } from "lucide-react";
 import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -30,7 +30,7 @@ interface TrackItemProps {
   onChangeColor: () => void;
   onSetJoinPoint: () => void;
   onDelete: () => void;
-  joinPointLabel: string | null;
+  joinPointInfo: { label: string; color: string } | null;
   canSetJoinPoint: boolean;
   steps: Step[];
   activeStepId: string | null;
@@ -63,7 +63,7 @@ export function TrackItem({
   onChangeColor,
   onSetJoinPoint,
   onDelete,
-  joinPointLabel,
+  joinPointInfo,
   canSetJoinPoint,
   onStepClick,
   onAddStep,
@@ -154,8 +154,8 @@ export function TrackItem({
                   className="text-xs"
                   disabled={!canSetJoinPoint}
                 >
-                  <GitMerge className="mr-2 h-3 w-3" />
-                  {track.join_point_step_id ? "Edit" : "Set"} Join Point
+                  <ArrowRight className="mr-2 h-3 w-3" />
+                  {track.join_point_step_id ? "Edit" : "Set"} Joins Into…
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={onDelete}
@@ -183,10 +183,14 @@ export function TrackItem({
               </div>
             )}
           </div>
-          {joinPointLabel && (
+          {joinPointInfo && !isExpanded && (
             <div className="mt-0.5 flex items-center gap-1 text-[10px] text-text-tertiary">
-              <GitMerge className="h-2.5 w-2.5" />
-              <span className="truncate">{joinPointLabel}</span>
+              <ArrowRight className="h-2.5 w-2.5" />
+              <span
+                className="inline-block h-2 w-[3px] rounded-sm"
+                style={{ backgroundColor: joinPointInfo.color }}
+              />
+              <span className="truncate">{joinPointInfo.label}</span>
             </div>
           )}
         </div>
@@ -223,8 +227,14 @@ export function TrackItem({
                   const projectedDepth =
                     isBeingDragged && projection ? projection.depth : undefined;
 
+                  const incoming = incomingJoinPoints?.get(step.id);
+
                   return (
                     <div key={step.id}>
+                      {/* Incoming join point marker (before the target step) */}
+                      {incoming && incoming.length > 0 && (
+                        <JoinPointMarker tracks={incoming} direction="incoming" />
+                      )}
                       <SortableStepItem
                         id={step.id}
                         step={step}
@@ -246,7 +256,6 @@ export function TrackItem({
                             ? () => onAddSubStep(step.id)
                             : undefined
                         }
-                        joiningTracks={incomingJoinPoints?.get(step.id)}
                       />
                       {/* Drop indicator line after the over element */}
                       {overElementId === step.id &&
@@ -260,6 +269,14 @@ export function TrackItem({
               )}
             </div>
           </SortableContext>
+          {/* Outgoing join point marker (at end of source track) */}
+          {track.join_point_step_id && joinPointInfo && (
+            <JoinPointMarker
+              direction="outgoing"
+              label={joinPointInfo.label}
+              barColor={joinPointInfo.color}
+            />
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -272,6 +289,45 @@ export function TrackItem({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+type JoinPointMarkerProps =
+  | { direction: "incoming"; tracks: Track[] }
+  | { direction: "outgoing"; label: string; barColor: string };
+
+function JoinPointMarker(props: JoinPointMarkerProps) {
+  return (
+    <div className="flex items-center gap-1 px-1.5 py-1">
+      <div className="h-px flex-1 bg-accent/30" />
+      <div className="flex items-center gap-1 text-[9px] font-medium text-accent">
+        {props.direction === "incoming" ? (
+          <>
+            {props.tracks.map((t, i) => (
+              <span key={t.id} className="flex items-center gap-1">
+                {i > 0 && <span className="text-accent/50">,</span>}
+                <span
+                  className="inline-block h-3 w-[3px] rounded-sm"
+                  style={{ backgroundColor: t.color }}
+                />
+                <span className="truncate">{t.name}</span>
+              </span>
+            ))}
+            <ArrowRight className="h-2.5 w-2.5" />
+          </>
+        ) : (
+          <>
+            <ArrowRight className="h-2.5 w-2.5" />
+            <span
+              className="inline-block h-3 w-[3px] rounded-sm"
+              style={{ backgroundColor: props.barColor }}
+            />
+            <span className="truncate">{props.label}</span>
+          </>
+        )}
+      </div>
+      <div className="h-px flex-1 bg-accent/30" />
     </div>
   );
 }
