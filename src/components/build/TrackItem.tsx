@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { MoreHorizontal, Pencil, Palette, Trash2, Plus } from "lucide-react";
+import { MoreHorizontal, Pencil, Palette, Trash2, Plus, GitMerge } from "lucide-react";
 import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -28,7 +28,10 @@ interface TrackItemProps {
   onToggleExpand: (e: React.MouseEvent) => void;
   onRename: () => void;
   onChangeColor: () => void;
+  onSetJoinPoint: () => void;
   onDelete: () => void;
+  joinPointLabel: string | null;
+  canSetJoinPoint: boolean;
   steps: Step[];
   activeStepId: string | null;
   selectedStepIds?: string[];
@@ -57,7 +60,10 @@ export function TrackItem({
   onToggleExpand,
   onRename,
   onChangeColor,
+  onSetJoinPoint,
   onDelete,
+  joinPointLabel,
+  canSetJoinPoint,
   onStepClick,
   onAddStep,
   onAddSubStep,
@@ -142,6 +148,14 @@ export function TrackItem({
                   Change Color
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  onClick={onSetJoinPoint}
+                  className="text-xs"
+                  disabled={!canSetJoinPoint}
+                >
+                  <GitMerge className="mr-2 h-3 w-3" />
+                  {track.join_point_step_id ? "Edit" : "Set"} Join Point
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   onClick={onDelete}
                   className="text-xs text-red-600 focus:text-red-600"
                 >
@@ -167,6 +181,12 @@ export function TrackItem({
               </div>
             )}
           </div>
+          {joinPointLabel && (
+            <div className="mt-0.5 flex items-center gap-1 text-[10px] text-text-tertiary">
+              <GitMerge className="h-2.5 w-2.5" />
+              <span className="truncate">{joinPointLabel}</span>
+            </div>
+          )}
         </div>
       </button>
 

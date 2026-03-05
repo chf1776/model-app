@@ -204,6 +204,18 @@ export async function deleteTrack(id: string): Promise<void> {
   return invoke<void>("delete_track", { id });
 }
 
+export async function setTrackJoinPoint(
+  id: string,
+  joinPointStepId: string | null,
+  joinPointNotes: string | null,
+): Promise<Track> {
+  return invoke<Track>("set_track_join_point", {
+    id,
+    joinPointStepId,
+    joinPointNotes,
+  });
+}
+
 export async function reorderTracks(
   projectId: string,
   orderedIds: string[],

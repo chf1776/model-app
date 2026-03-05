@@ -26,6 +26,7 @@ import {
   RenameTrackDialog,
   ChangeColorDialog,
   DeleteTrackDialog,
+  JoinPointDialog,
 } from "./TrackDialogs";
 
 const POINTER_SENSOR_CONFIG = {
@@ -91,6 +92,7 @@ export function TrackRail() {
   const [renameTrack, setRenameTrack] = useState<Track | null>(null);
   const [colorTrack, setColorTrack] = useState<Track | null>(null);
   const [deleteTrackTarget, setDeleteTrackTarget] = useState<Track | null>(null);
+  const [joinPointTrack, setJoinPointTrack] = useState<Track | null>(null);
 
   // Drag state
   const sensors = useSensors(useSensor(PointerSensor, POINTER_SENSOR_CONFIG));
@@ -441,6 +443,31 @@ export function TrackRail() {
     }
   };
 
+  const handleSetJoinPoint = async (
+    id: string,
+    joinPointStepId: string | null,
+    joinPointNotes: string | null,
+  ) => {
+    try {
+      const updated = await api.setTrackJoinPoint(id, joinPointStepId, joinPointNotes);
+      updateTrackStore(updated);
+    } catch (e) {
+      toast.error(`Failed to set join point: ${e}`);
+    }
+  };
+
+  const getJoinPointLabel = useCallback(
+    (track: Track): string | null => {
+      if (!track.join_point_step_id) return null;
+      const step = stepsById.get(track.join_point_step_id);
+      if (!step) return "Unknown step";
+      const targetTrack = tracks.find((t) => t.id === step.track_id);
+      const trackName = targetTrack?.name ?? "Unknown track";
+      return `${trackName} / ${step.title}`;
+    },
+    [stepsById, tracks],
+  );
+
   const handleAddStep = async (trackId: string) => {
     const trackSteps = stepsByTrack.get(trackId) ?? [];
     const rootCount = trackSteps.filter((s) => !s.parent_step_id).length;
@@ -595,7 +622,10 @@ export function TrackRail() {
                 }
                 onRename={() => setRenameTrack(track)}
                 onChangeColor={() => setColorTrack(track)}
+                onSetJoinPoint={() => setJoinPointTrack(track)}
                 onDelete={() => setDeleteTrackTarget(track)}
+                joinPointLabel={getJoinPointLabel(track)}
+                canSetJoinPoint={tracks.length > 1}
                 steps={stepsByTrack.get(track.id) ?? []}
                 activeStepId={activeStepId}
                 selectedStepIds={selectedStepIds}
@@ -653,6 +683,14 @@ export function TrackRail() {
         onOpenChange={(open) => !open && setDeleteTrackTarget(null)}
         track={deleteTrackTarget}
         onDelete={handleDelete}
+      />
+      <JoinPointDialog
+        open={!!joinPointTrack}
+        onOpenChange={(open) => !open && setJoinPointTrack(null)}
+        track={joinPointTrack}
+        tracks={tracks}
+        steps={steps}
+        onSetJoinPoint={handleSetJoinPoint}
       />
     </div>
   );

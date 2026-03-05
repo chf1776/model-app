@@ -61,6 +61,7 @@ pub fn run() {
             commands::tracks::update_track,
             commands::tracks::delete_track,
             commands::tracks::reorder_tracks,
+            commands::tracks::set_track_join_point,
             commands::steps::list_steps,
             commands::steps::list_project_steps,
             commands::steps::create_step,

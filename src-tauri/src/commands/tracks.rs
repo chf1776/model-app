@@ -27,6 +27,22 @@ pub fn delete_track(db: State<'_, AppDb>, id: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn set_track_join_point(
+    db: State<'_, AppDb>,
+    id: String,
+    join_point_step_id: Option<String>,
+    join_point_notes: Option<String>,
+) -> Result<Track, String> {
+    let conn = db.conn()?;
+    crate::db::queries::tracks::set_join_point(
+        &conn,
+        &id,
+        join_point_step_id.as_deref(),
+        join_point_notes.as_deref(),
+    )
+}
+
+#[tauri::command]
 pub fn reorder_tracks(
     db: State<'_, AppDb>,
     project_id: String,

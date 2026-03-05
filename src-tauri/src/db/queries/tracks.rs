@@ -127,6 +127,21 @@ pub fn delete(conn: &Connection, id: &str) -> Result<(), String> {
     Ok(())
 }
 
+pub fn set_join_point(
+    conn: &Connection,
+    id: &str,
+    join_point_step_id: Option<&str>,
+    join_point_notes: Option<&str>,
+) -> Result<Track, String> {
+    let ts = now();
+    conn.execute(
+        "UPDATE tracks SET join_point_step_id = ?1, join_point_notes = ?2, updated_at = ?3 WHERE id = ?4",
+        params![join_point_step_id, join_point_notes, ts, id],
+    )
+    .map_err(|e| e.to_string())?;
+    get_by_id(conn, id)
+}
+
 pub fn reorder(conn: &Connection, project_id: &str, ordered_ids: Vec<String>) -> Result<(), String> {
     let ts = now();
     for (i, id) in ordered_ids.iter().enumerate() {
