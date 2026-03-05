@@ -9,13 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-#### Phase 2H: Step Relations & Sub-step Auto-completion
+#### Phase 2H: Step Relations, Progress Ring & Quantity Counter
 - **Step relations**: "Blocked by" and "Blocks access to" relation types between steps, with step picker UI in the editor panel grouped by track with search filtering
-- **Replaces step**: Set a single step that this step replaces via `replaces_step_id`, with picker UI in the editor panel
+- **Bidirectional relation display**: Relations shown from both sides with semantic labels — "Blocked by" ↔ "Blocks", "Blocks access to" ↔ "Access blocked by" — editable and removable from either end
+- **Relation chip navigation**: Click a relation chip to navigate to the linked step; click X to remove the relation
+- **Replaces step**: Set a single step that this step replaces via `replaces_step_id`; target step shows "Replaced by" with removable chip
 - **Step relation persistence**: Full Rust backend (queries, commands) for the `step_relations` table that already existed in the schema
-- **Sub-step auto-completion**: When all sub-steps of a parent are completed, the parent is automatically marked complete; uncompleting any sub-step uncompletes the parent
-- **Auto-complete setting**: Global "Auto-complete parent steps" toggle in Settings > Build section (default: enabled)
-- **Completion propagation**: TrackRail reloads all steps after toggling completion to reflect propagated parent state changes
+- **Sub-step progress ring**: Parent steps show a circular progress arc in the completion marker — perimeter fills proportionally as sub-steps are completed, turns green when all done
+- **Quantity counter**: Steps with quantity > 1 show +/− buttons in the editor panel and a "3/5" fraction label on the rail; completion marker ring fills proportionally to quantity progress
+- **Quantity current persistence**: `quantity_current` field added to `UpdateStepInput` (Rust + TypeScript) for increment/decrement support
+- **Nullable field clearing**: `replaces_step_id` uses `Option<Option<String>>` pattern to distinguish "not provided" from "explicitly set to null"
 
 #### Phase 2G: Join Point Indicators & Crop-to-Step
 - **Incoming join point markers**: Target tracks now show an inline divider at the join point step with the source track's color bar and name, making both ends of a join visible

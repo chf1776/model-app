@@ -123,8 +123,9 @@ Full collection management. All three entity types, wishlists with pricing, pain
 - ~~Reference image attachments: per-step reference images, file picker, display in editor panel~~ DONE
 - ~~Sub-steps: "Add sub-step" in step editor, nested indentation in rail, drag-to-nest/un-nest, drag/reorder within parent~~ DONE
 - ~~Track join point: set the step on another track where this subassembly merges~~ DONE
-- ~~Step relations: "Blocked by" / "Blocks access to", replaces step — step picker UI in editor~~ DONE
-- ~~Sub-step auto-completion: parent completes when all children complete (global setting toggle)~~ DONE
+- ~~Step relations: "Blocked by" / "Blocks access to", replaces step — bidirectional display with semantic labels, editable from both ends, chip navigation~~ DONE
+- ~~Sub-step progress ring: circular progress arc on parent completion marker fills as sub-steps complete (informational, no auto-completion)~~ DONE
+- ~~Quantity counter: +/− buttons in step editor, fraction label on rail, progress ring fills proportionally~~ DONE
 
 ### Deferred to Phase 4+
 - Image cleanup: paint-over mask per step stored as a layer; source image never modified (full UX in Phase 4 Building mode)
@@ -211,12 +212,12 @@ You can see the build structure, track progress visually, and get a quick summar
 - Reference count badge (tappable)
 - Tags picker (predefined set)
 - Paint references (tappable; editable in Building mode — populated in Phase 6)
-- Quantity counter `4 / 12` with `+` / `−`; auto-completes at target
+- ~~Quantity counter `4 / 12` with `+` / `−`~~ DONE (moved to Phase 2H)
 
 ### Sub-steps in Building mode
 - Center shows parent overview; sub-step rail below image
 - Each sub-step has its own instruction image and complete button
-- Parent auto-completes when all sub-steps done
+- Parent progress ring already shows sub-step completion (Phase 2H); parent completion remains manual
 
 ### Drying timers
 - Floating draggable bubble; position persists across sessions
@@ -322,7 +323,7 @@ Complete paint tracking — global shelf, per-build formulas, step-level referen
 ### Advanced step relations
 - "Blocked by" / "Blocks access to" soft warnings in Building mode
 - Pre-paint + access-seal detection: warn when sealing step would trap an unpainted pre-paint step
-- "Replaces step": replaced step gets strikethrough, excluded from count, auto-completes
+- "Replaces step" enhancements: replaced step gets strikethrough, excluded from count (basic replaces linking done in Phase 2H)
 
 ### Keyboard shortcuts — complete
 - All shortcuts wired; `?` overlay shows full table
@@ -365,7 +366,7 @@ A fully polished, complete app. Finish a build, export a shareable document, eve
 | --- | --- | --- |
 | 1A | Foundation | App shell, basic kit management, project creation |
 | 1B | Collection Completeness | Paint shelf, accessories, wishlist system |
-| 2A–2E | Setup Mode | PDF import, crop tool, track/step organization |
+| 2A–2H | Setup Mode | PDF import, crop tool, track/step organization, tags, references, relations, quantity |
 | **3** | **Building — Core** | **Working build loop (critical path)** |
 | 3.5 | Basic Overview | Read-only assembly map, compact summary cards |
 | 4 | Building — Enrichment | Annotations, references, timers, page mode |

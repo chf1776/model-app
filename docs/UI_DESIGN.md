@@ -872,10 +872,19 @@ At 1470px, this gives: 180 + 1070 + 220 = 1470px. Canvas gets the lion's share.
 - Contents when expanded:
   - Source + Quantity: two-column row. Source is read-only (auto-populated from crop region).
   - Pre-paint required: toggle switch (section 24.6)
-  - Blocked by: step picker dropdown
-  - Blocks access to: step picker dropdown
-  - Replaces step: step picker dropdown
   - Reference images: thumbnail strip with "+ add" dashed placeholder
+
+**Relations section** (above Advanced, below Tags):
+Six labeled rows with add (+) popover pickers and removable/navigable chips:
+  - Blocked by / Blocks (bidirectional pair — `blocked_by` relation type)
+  - Blocks access to / Access blocked by (bidirectional pair — `blocks_access_to` relation type)
+  - Replaces / Replaced by (via `replaces_step_id` — unidirectional, shown bidirectionally)
+  - Chips: click name to navigate to linked step, click X to remove relation
+  - Pickers: popover with search (matches step titles and track names), steps grouped by track with color dots
+
+**Quantity progress** (below title, visible when quantity > 1):
+  - Muted background bar with "Progress" label, −/+ round buttons, and "3/5" counter
+  - Counter turns green when target reached
 
 #### 33.3 Crop Regions on Canvas
 
@@ -950,7 +959,7 @@ Fixed bar at the bottom of the workspace, below the canvas.
 **Row 2 (metadata):** padding 4px 12px.
 - Adhesive type (10px tertiary)
 - Pre-paint flag: when set, semantic pill "Pre-paint" in warning color (`#C4913A` text, `#C4913A15` background, `1px solid #C4913A25`). Hidden when not set.
-- Quantity counter: only visible when step quantity > 1. Shows "2/12" (completed/total) in 10px monospace, with −/+ buttons (14×14px ghost icon buttons). Auto-completes step when target reached.
+- Quantity counter: only visible when step quantity > 1. Shows "2/12" (completed/total) in 10px monospace, with −/+ buttons (14×14px ghost icon buttons). Completion marker ring fills proportionally; text turns green at target. (Implemented in Phase 2H Setup mode editor panel; Building mode info bar in Phase 4.)
 - Tags (pill badges per section 31)
 - Separator
 - Notes preview (10px tertiary, flex: 1, ellipsis overflow, click to edit)

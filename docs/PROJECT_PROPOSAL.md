@@ -92,7 +92,7 @@ Used when preparing a project: uploading instruction PDFs, cropping step images,
 - **Step management**
   - Create steps manually or from crop regions
   - Reorder steps via drag-and-drop
-  - **Sub-steps** — a step can contain ordered child steps. The parent step acts as a container; completing all sub-steps auto-completes the parent. Sub-steps each have their own instruction image, notes, and metadata. Created via an "Add sub-step" button in the step editor, or by right-clicking a step in the left panel.
+  - **Sub-steps** — a step can contain ordered child steps. The parent step acts as a container; a circular progress ring on the parent's completion marker fills as sub-steps are completed (parent completion remains manual). Sub-steps each have their own instruction image, notes, and metadata. Created via an "Add sub-step" button in the step editor, or by right-clicking a step in the left panel.
   - **Bulk step creation** — draw multiple crop regions on a page, then select all and click "Create steps." A dialog lets you assign all selected regions to a track at once; each region becomes a step in sequence. Useful for quickly processing a full page of steps.
 - **Step editor** (full form, right panel)
   - Title
@@ -100,7 +100,7 @@ Used when preparing a project: uploading instruction PDFs, cropping step images,
   - Source name (e.g. "Aber PE set #35xxx")
   - Adhesive type — predefined dropdown (None / Liquid cement / Tube cement / CA thin / CA medium–thick / Epoxy / PVA / Custom) with a default drying time pre-filled per type; user can override the duration
   - Pre-paint required flag — shows a paint brush indicator on the step. The app issues a soft warning when another step's "blocks access to" relation would seal off this area before it has been painted.
-  - Quantity — optional count for repeated-action steps (e.g. 12 road wheels). In Building mode, a +/− counter appears in the info bar; the step auto-completes when the count reaches the target.
+  - Quantity — optional count for repeated-action steps (e.g. 12 road wheels). A +/− counter appears in the step editor panel; the completion marker ring fills proportionally to progress. In Building mode, the counter also appears in the info bar.
   - Notes (freeform text)
   - Tags — select from a predefined tag set managed in app settings (e.g. "pre-paint", "dry-fit", "drying", "fragile")
   - Paint references — tag which colours from the project's paint palette were used in this step
@@ -173,7 +173,7 @@ Used when you're at the bench doing the actual work. Optimized for the instructi
 - Step title
 - Key metadata — adhesive type, tags, paint references (tappable to add or remove; editable in Building mode, not just Setup), pre-paint indicator if flagged
 - Reference count (e.g. "2 refs") — tappable to reveal the references drawer
-- Quantity counter (if step has a quantity set) — `4 / 12` with `+` and `−` buttons; step auto-completes when count reaches the target
+- Quantity counter (if step has a quantity set) — `4 / 12` with `+` and `−` buttons; completion marker ring fills proportionally
 - Notes preview — tappable to expand into an editable text field; auto-saves on blur
 - "Start timer" button — starts a drying timer using the step's configured drying time; labelled with the step name
 - Complete button
