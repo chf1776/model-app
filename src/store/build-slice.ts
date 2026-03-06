@@ -102,6 +102,12 @@ export interface BuildSlice {
   setBuildMode: (mode: BuildMode) => void;
   completeActiveStep: () => Promise<void>;
 
+  // Progress photo + milestone
+  pendingProgressPhotoStepId: string | null;
+  clearPendingProgressPhoto: () => void;
+  pendingMilestone: { trackId: string; trackName: string; trackColor: string } | null;
+  dismissMilestone: () => void;
+
   // Canvas mode
   canvasMode: CanvasMode;
   setCanvasMode: (mode: CanvasMode) => void;
@@ -130,6 +136,8 @@ const DEFAULT_BUILD_STATE = {
   stepRelations: {} as Record<string, StepRelation[]>,
   stepReferenceImages: {} as Record<string, ReferenceImage[]>,
   buildMode: "setup" as BuildMode,
+  pendingProgressPhotoStepId: null as string | null,
+  pendingMilestone: null as { trackId: string; trackName: string; trackColor: string } | null,
 };
 
 const DEFAULT_VIEWER_STATE = {
@@ -600,10 +608,49 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         is_completed: !step.is_completed,
       });
       get().updateStepStore(updated);
-      if (activeProjectId) get().loadTracks(activeProjectId);
 
-      // Auto-advance to next incomplete step on completion
+      if (activeProjectId) {
+        // Await track reload so we can check milestone
+        await get().loadTracks(activeProjectId);
+      }
+
+      // On completion (not un-completion)
       if (!step.is_completed) {
+        // Log step_complete
+        if (activeProjectId) {
+          api.addBuildLogEntry({
+            projectId: activeProjectId,
+            entryType: "step_complete",
+            stepId: step.id,
+            trackId: step.track_id,
+          }).catch(() => {});
+        }
+
+        // Check for milestone: track fully complete
+        const freshTracks = get().tracks;
+        const track = freshTracks.find((t) => t.id === step.track_id);
+        if (track && track.completed_count === track.step_count && track.step_count > 0) {
+          // Milestone detected — log it and show dialog (skip auto-advance)
+          if (activeProjectId) {
+            api.addBuildLogEntry({
+              projectId: activeProjectId,
+              entryType: "milestone",
+              trackId: track.id,
+              isTrackCompletion: true,
+              trackStepCount: track.step_count,
+            }).catch(() => {});
+          }
+          set({
+            pendingMilestone: { trackId: track.id, trackName: track.name, trackColor: track.color },
+            pendingProgressPhotoStepId: step.id,
+          });
+          return;
+        }
+
+        // Set pending progress photo for toast
+        set({ pendingProgressPhotoStepId: step.id });
+
+        // Auto-advance to next incomplete step
         const flatSteps = flattenTrackSteps(get().steps, activeTrackId);
         const currentIdx = flatSteps.findIndex((s) => s.id === step.id);
         const candidates = [
@@ -617,6 +664,25 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       }
     } catch (e) {
       toast.error(`Failed to update step: ${e}`);
+    }
+  },
+
+  clearPendingProgressPhoto: () => {
+    set({ pendingProgressPhotoStepId: null });
+  },
+
+  dismissMilestone: () => {
+    const { steps, tracks } = get();
+    set({ pendingMilestone: null });
+    // Auto-advance: find next track's first incomplete step
+    const sortedTracks = [...tracks].sort((a, b) => a.display_order - b.display_order);
+    for (const t of sortedTracks) {
+      const trackSteps = flattenTrackSteps(steps, t.id);
+      const nextIncomplete = trackSteps.find((s) => !s.is_completed);
+      if (nextIncomplete) {
+        get().setActiveStep(nextIncomplete.id);
+        return;
+      }
     }
   },
 

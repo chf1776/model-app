@@ -18,8 +18,11 @@ import { NavigationBar } from "@/components/build/NavigationBar";
 import { BuildingRail } from "@/components/build/BuildingRail";
 import { BuildingStepPanel } from "@/components/build/BuildingStepPanel";
 import { CropCanvas } from "@/components/build/CropCanvas";
+import { MilestoneDialog } from "@/components/build/MilestoneDialog";
+import { RelationPill } from "@/components/build/RelationPill";
 import { flattenTrackSteps } from "@/components/build/tree-utils";
 import { useUploadPdf } from "@/components/build/useUploadPdf";
+import { useProgressPhotoToast } from "@/components/build/useProgressPhotoToast";
 
 export default function BuildRoute() {
   const project = useAppStore((s) => s.project);
@@ -55,6 +58,9 @@ export default function BuildRoute() {
 
   const hasSources = instructionSources.length > 0;
   const handleUploadPdf = useUploadPdf();
+
+  // Progress photo toast (building mode only)
+  useProgressPhotoToast();
 
   // Close source manager when processing starts
   useEffect(() => {
@@ -270,11 +276,13 @@ export default function BuildRoute() {
             <div className="relative flex min-w-0 flex-1 flex-col bg-[#E8E4DF]">
               <div className="relative min-h-0 flex-1">
                 <CropCanvas />
+                <RelationPill />
               </div>
               <NavigationBar />
             </div>
 
             {activeStepId && <BuildingStepPanel />}
+            <MilestoneDialog />
           </>
         )}
       </div>

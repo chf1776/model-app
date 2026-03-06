@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] — 2026-03-06 — Phase 3 Polish: Photos, Milestones, Relations
+
+### Added
+- **Progress photos**: Backend (Rust) and frontend for capturing photos after completing a step; images stashed with `prog_` prefix; auto-creates build log entry
+- **Milestone photos**: Backend and frontend for capturing photos when a track is fully completed; stashed with `mile_` prefix
+- **Build log entries**: General-purpose logging backend (`build_log_entries` table) with typed entry types (`step_complete`, `note`, `photo`, `milestone`, `build_complete`)
+- **Progress photo toast**: After completing a step, a 4-second sonner toast offers "Add Photo" action that opens a file picker
+- **Milestone detection**: Completing the last step in a track triggers a milestone dialog instead of auto-advancing
+- **MilestoneDialog**: Full-screen overlay card with track color dot, "Track Complete!" heading, Capture Photo / Add Note / Continue actions; Continue auto-advances to next track's first incomplete step
+- **Un-complete confirmation**: Clicking Complete on an already-completed step shows an AlertDialog before toggling back to incomplete
+- **RelationPill**: Floating amber pill overlaid on CropCanvas when active step has `blocked_by` relations; shows blocker title or count, click navigates to blocking step, auto-dismisses after 5 seconds
+- **`BuildLogEntryType` union type**: Type-safe string union matching the DB CHECK constraint
+- **`IMAGE_FILE_FILTER` constant**: Shared image file picker filter for reuse across dialogs
+
+### Changed
+- `completeActiveStep` now awaits track reload for milestone detection, inserts `step_complete` and `milestone` build log entries
+- `addBuildLogEntry` API uses an options object instead of 8 positional parameters
+
 ## [0.3.2] — 2026-03-06 — Phase 3C: Step Panel & Completion Flow
 
 ### Added

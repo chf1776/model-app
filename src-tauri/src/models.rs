@@ -392,6 +392,46 @@ pub struct ReferenceImage {
     pub created_at: i64,
 }
 
+// ── Progress Photo ──────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProgressPhoto {
+    pub id: String,
+    pub step_id: String,
+    pub file_path: String,
+    pub captured_at: i64,
+    pub created_at: i64,
+}
+
+// ── Milestone Photo ─────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MilestonePhoto {
+    pub id: String,
+    pub track_id: String,
+    pub file_path: String,
+    pub captured_at: i64,
+    pub created_at: i64,
+}
+
+// ── Build Log Entry ─────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BuildLogEntry {
+    pub id: String,
+    pub project_id: String,
+    pub entry_type: String,
+    pub body: Option<String>,
+    pub photo_path: Option<String>,
+    pub caption: Option<String>,
+    pub step_id: Option<String>,
+    pub track_id: Option<String>,
+    pub step_number: Option<i32>,
+    pub is_track_completion: bool,
+    pub track_step_count: Option<i32>,
+    pub created_at: i64,
+}
+
 // ── Project UI State ────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

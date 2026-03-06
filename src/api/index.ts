@@ -22,6 +22,10 @@ import type {
   Tag,
   StepRelation,
   ReferenceImage,
+  ProgressPhoto,
+  MilestonePhoto,
+  BuildLogEntry,
+  BuildLogEntryType,
   InstructionSource,
   InstructionPage,
   ProjectUiState,
@@ -333,6 +337,52 @@ export async function updateReferenceImageCaption(
 
 export async function deleteReferenceImage(id: string): Promise<void> {
   return invoke<void>("delete_reference_image", { id });
+}
+
+// ── Progress Photos ──────────────────────────────────────────────────────────
+
+export async function addProgressPhoto(
+  stepId: string,
+  sourcePath: string,
+): Promise<ProgressPhoto> {
+  return invoke<ProgressPhoto>("add_progress_photo", { stepId, sourcePath });
+}
+
+export async function listProgressPhotos(stepId: string): Promise<ProgressPhoto[]> {
+  return invoke<ProgressPhoto[]>("list_progress_photos", { stepId });
+}
+
+// ── Milestone Photos ────────────────────────────────────────────────────────
+
+export async function addMilestonePhoto(
+  trackId: string,
+  sourcePath: string,
+): Promise<MilestonePhoto> {
+  return invoke<MilestonePhoto>("add_milestone_photo", { trackId, sourcePath });
+}
+
+// ── Build Log ───────────────────────────────────────────────────────────────
+
+export async function addBuildLogEntry(opts: {
+  projectId: string;
+  entryType: BuildLogEntryType;
+  body?: string | null;
+  stepId?: string | null;
+  trackId?: string | null;
+  stepNumber?: number | null;
+  isTrackCompletion?: boolean | null;
+  trackStepCount?: number | null;
+}): Promise<BuildLogEntry> {
+  return invoke<BuildLogEntry>("add_build_log_entry", {
+    projectId: opts.projectId,
+    entryType: opts.entryType,
+    body: opts.body ?? null,
+    stepId: opts.stepId ?? null,
+    trackId: opts.trackId ?? null,
+    stepNumber: opts.stepNumber ?? null,
+    isTrackCompletion: opts.isTrackCompletion ?? null,
+    trackStepCount: opts.trackStepCount ?? null,
+  });
 }
 
 // ── Instructions ─────────────────────────────────────────────────────────────

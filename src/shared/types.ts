@@ -461,6 +461,45 @@ export interface ReferenceImage {
   created_at: number;
 }
 
+// ── Progress Photos ─────────────────────────────────────────────────────────
+
+export interface ProgressPhoto {
+  id: string;
+  step_id: string;
+  file_path: string;
+  captured_at: number;
+  created_at: number;
+}
+
+// ── Milestone Photos ────────────────────────────────────────────────────────
+
+export interface MilestonePhoto {
+  id: string;
+  track_id: string;
+  file_path: string;
+  captured_at: number;
+  created_at: number;
+}
+
+// ── Build Log Entries ───────────────────────────────────────────────────────
+
+export type BuildLogEntryType = "step_complete" | "note" | "photo" | "milestone" | "build_complete";
+
+export interface BuildLogEntry {
+  id: string;
+  project_id: string;
+  entry_type: BuildLogEntryType;
+  body: string | null;
+  photo_path: string | null;
+  caption: string | null;
+  step_id: string | null;
+  track_id: string | null;
+  step_number: number | null;
+  is_track_completion: boolean;
+  track_step_count: number | null;
+  created_at: number;
+}
+
 // ── Instruction Sources ──────────────────────────────────────────────────────
 
 export interface InstructionSource {
@@ -497,6 +536,11 @@ export interface ProjectUiState {
 }
 
 export type Zone = "collection" | "build" | "overview";
+
+export const IMAGE_FILE_FILTER = {
+  name: "Images",
+  extensions: ["png", "jpg", "jpeg", "webp"],
+};
 
 export const KIT_CATEGORIES: { value: KitCategory; label: string }[] = [
   { value: "ship", label: "Ship" },

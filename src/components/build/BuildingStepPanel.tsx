@@ -1,10 +1,20 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check } from "lucide-react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { toast } from "sonner";
 import { useAppStore } from "@/store";
 import * as api from "@/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ADHESIVE_TYPE_LABELS } from "@/shared/types";
 import type { Step } from "@/shared/types";
 import { StepCompletionMarker } from "./StepCompletionMarker";
@@ -62,7 +72,15 @@ export function BuildingStepPanel() {
     incomingBlockedBy.length > 0 ||
     incomingBlocksAccess.length > 0;
 
-  const handleComplete = () => completeActiveStep();
+  const [uncompleteOpen, setUncompleteOpen] = useState(false);
+
+  const handleComplete = () => {
+    if (step.is_completed) {
+      setUncompleteOpen(true);
+    } else {
+      completeActiveStep();
+    }
+  };
 
   const handleToggleSubStep = async (child: Step) => {
     try {
@@ -356,6 +374,23 @@ export function BuildingStepPanel() {
           )}
         </div>
       </ScrollArea>
+
+      <AlertDialog open={uncompleteOpen} onOpenChange={setUncompleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Un-complete this step?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark <span className="font-medium">{step.title}</span> as incomplete.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => completeActiveStep()}>
+              Un-complete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
