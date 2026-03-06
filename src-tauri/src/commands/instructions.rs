@@ -141,16 +141,6 @@ pub fn delete_instruction_source(
 }
 
 #[tauri::command]
-pub fn save_build_mode(
-    db: State<'_, AppDb>,
-    project_id: String,
-    build_mode: String,
-) -> Result<(), String> {
-    let conn = db.conn()?;
-    crate::db::queries::project_ui_state::save_build_mode(&conn, &project_id, &build_mode)
-}
-
-#[tauri::command]
 pub fn set_page_rotation(
     db: State<'_, AppDb>,
     page_id: String,

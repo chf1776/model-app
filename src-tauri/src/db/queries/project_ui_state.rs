@@ -33,22 +33,6 @@ pub fn get_or_create(conn: &Connection, project_id: &str) -> Result<ProjectUiSta
     .map_err(|e| e.to_string())
 }
 
-pub fn save_build_mode(
-    conn: &Connection,
-    project_id: &str,
-    build_mode: &str,
-) -> Result<(), String> {
-    let ts = now();
-
-    conn.execute(
-        "UPDATE project_ui_state SET build_mode = ?1, updated_at = ?2
-         WHERE project_id = ?3",
-        params![build_mode, ts, project_id],
-    )
-    .map_err(|e| e.to_string())?;
-    Ok(())
-}
-
 pub fn save_view_state(
     conn: &Connection,
     project_id: &str,

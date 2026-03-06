@@ -386,13 +386,6 @@ export async function getProjectUiState(
   return invoke<ProjectUiState>("get_project_ui_state", { projectId });
 }
 
-export async function saveBuildMode(
-  projectId: string,
-  buildMode: string,
-): Promise<void> {
-  return invoke<void>("save_build_mode", { projectId, buildMode });
-}
-
 export async function saveViewState(
   projectId: string,
   zoom: number,
