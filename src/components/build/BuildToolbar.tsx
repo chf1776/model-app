@@ -1,8 +1,10 @@
-import { Upload, ZoomIn, ZoomOut, Maximize2, FileStack, RotateCw, MousePointer, Crop, RectangleHorizontal, Keyboard } from "lucide-react";
+import { Upload, ZoomIn, ZoomOut, Maximize2, FileStack, RotateCw, MousePointer, Crop, RectangleHorizontal, Keyboard, Settings2, Hammer } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { SegmentedPill } from "@/components/shared/SegmentedPill";
 import { useAppStore } from "@/store";
+import type { BuildMode } from "@/store/build-slice";
 import * as api from "@/api";
 import { useUploadPdf } from "./useUploadPdf";
 
@@ -15,6 +17,8 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
   const project = useAppStore((s) => s.project);
   const tracks = useAppStore((s) => s.tracks);
   const activeTrackId = useAppStore((s) => s.activeTrackId);
+  const buildMode = useAppStore((s) => s.buildMode);
+  const setBuildMode = useAppStore((s) => s.setBuildMode);
   const instructionSources = useAppStore((s) => s.instructionSources);
   const viewerZoom = useAppStore((s) => s.viewerZoom);
   const setViewerZoom = useAppStore((s) => s.setViewerZoom);
@@ -78,8 +82,16 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
 
   return (
     <div className="flex items-center gap-2 border-b border-border bg-background px-3 py-1">
-      {/* Left: Mode label */}
-      <span className="text-[11px] font-medium text-accent">Setup</span>
+      {/* Left: Mode toggle */}
+      <SegmentedPill<BuildMode>
+        items={[
+          { value: "setup", label: "Setup", icon: <Settings2 className="h-3 w-3" /> },
+          { value: "building", label: "Building", icon: <Hammer className="h-3 w-3" /> },
+        ]}
+        value={buildMode}
+        onChange={setBuildMode}
+        size="sm"
+      />
 
       <Separator orientation="vertical" className="h-[14px]" />
 
@@ -107,55 +119,59 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
       {/* Right: Actions */}
       {instructionSources.length > 0 && (
         <>
-          {/* Mode toggle */}
-          <div className="flex items-center rounded-md border border-border">
-            <button
-              onClick={() => setCanvasMode("view")}
-              className={`rounded-l-[5px] px-1.5 py-1 ${
-                canvasMode === "view"
-                  ? "bg-accent text-white"
-                  : "text-text-tertiary hover:bg-muted hover:text-text-secondary"
-              }`}
-              title="View mode (V)"
-            >
-              <MousePointer className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={() => setCanvasMode("crop")}
-              className={`rounded-r-[5px] px-1.5 py-1 ${
-                canvasMode === "crop"
-                  ? "bg-accent text-white"
-                  : "text-text-tertiary hover:bg-muted hover:text-text-secondary"
-              }`}
-              title="Crop mode (C)"
-            >
-              <Crop className="h-3.5 w-3.5" />
-            </button>
-          </div>
+          {buildMode === "setup" && (
+            <>
+              {/* Canvas mode toggle */}
+              <div className="flex items-center rounded-md border border-border">
+                <button
+                  onClick={() => setCanvasMode("view")}
+                  className={`rounded-l-[5px] px-1.5 py-1 ${
+                    canvasMode === "view"
+                      ? "bg-accent text-white"
+                      : "text-text-tertiary hover:bg-muted hover:text-text-secondary"
+                  }`}
+                  title="View mode (V)"
+                >
+                  <MousePointer className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => setCanvasMode("crop")}
+                  className={`rounded-r-[5px] px-1.5 py-1 ${
+                    canvasMode === "crop"
+                      ? "bg-accent text-white"
+                      : "text-text-tertiary hover:bg-muted hover:text-text-secondary"
+                  }`}
+                  title="Crop mode (C)"
+                >
+                  <Crop className="h-3.5 w-3.5" />
+                </button>
+              </div>
 
-          {/* Full page button */}
-          <button
-            onClick={handleFullPage}
-            className="rounded p-1 text-text-tertiary hover:bg-muted hover:text-text-secondary"
-            title="Full page step (F)"
-          >
-            <RectangleHorizontal className="h-3.5 w-3.5" />
-          </button>
+              {/* Full page button */}
+              <button
+                onClick={handleFullPage}
+                className="rounded p-1 text-text-tertiary hover:bg-muted hover:text-text-secondary"
+                title="Full page step (F)"
+              >
+                <RectangleHorizontal className="h-3.5 w-3.5" />
+              </button>
 
-          <Separator orientation="vertical" className="h-[14px]" />
+              <Separator orientation="vertical" className="h-[14px]" />
 
-          {/* Source manager */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onOpenSourceManager}
-            className="h-6 gap-1 px-1.5 text-[11px] text-text-tertiary hover:text-text-secondary"
-          >
-            <FileStack className="h-3.5 w-3.5" />
-            Sources
-          </Button>
+              {/* Source manager */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onOpenSourceManager}
+                className="h-6 gap-1 px-1.5 text-[11px] text-text-tertiary hover:text-text-secondary"
+              >
+                <FileStack className="h-3.5 w-3.5" />
+                Sources
+              </Button>
 
-          <Separator orientation="vertical" className="h-[14px]" />
+              <Separator orientation="vertical" className="h-[14px]" />
+            </>
+          )}
 
           {/* Zoom controls */}
           <div className="flex items-center gap-0.5">
@@ -205,15 +221,17 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
         </button>
       )}
 
-      {/* Upload button */}
-      <Button
-        size="sm"
-        onClick={handleUploadPdf}
-        className="h-6 gap-1 bg-accent px-2 text-[11px] text-white hover:bg-accent-hover"
-      >
-        <Upload className="h-3 w-3" />
-        Upload PDF
-      </Button>
+      {/* Upload button (setup only) */}
+      {buildMode === "setup" && (
+        <Button
+          size="sm"
+          onClick={handleUploadPdf}
+          className="h-6 gap-1 bg-accent px-2 text-[11px] text-white hover:bg-accent-hover"
+        >
+          <Upload className="h-3 w-3" />
+          Upload PDF
+        </Button>
+      )}
     </div>
   );
 }

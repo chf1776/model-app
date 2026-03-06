@@ -13,6 +13,7 @@ import { ProcessingOverlay } from "@/components/build/ProcessingOverlay";
 import { SourceManagerPanel } from "@/components/build/SourceManagerPanel";
 import { TrackRail } from "@/components/build/TrackRail";
 import { StepEditorPanel } from "@/components/build/StepEditorPanel";
+import { InfoBar } from "@/components/build/InfoBar";
 import { KeyboardShortcutsDialog } from "@/components/build/KeyboardShortcutsDialog";
 import { useUploadPdf } from "@/components/build/useUploadPdf";
 
@@ -28,6 +29,7 @@ export default function BuildRoute() {
   const rotatePage = useAppStore((s) => s.rotatePage);
   const activeStepId = useAppStore((s) => s.activeStepId);
   const setActiveStep = useAppStore((s) => s.setActiveStep);
+  const buildMode = useAppStore((s) => s.buildMode);
   const canvasMode = useAppStore((s) => s.canvasMode);
   const setCanvasMode = useAppStore((s) => s.setCanvasMode);
   const activeTrackId = useAppStore((s) => s.activeTrackId);
@@ -108,7 +110,7 @@ export default function BuildRoute() {
         case "c":
         case "C":
           e.preventDefault();
-          setCanvasMode("crop");
+          if (buildMode !== "building") setCanvasMode("crop");
           break;
         case "v":
           e.preventDefault();
@@ -117,6 +119,7 @@ export default function BuildRoute() {
         case "f":
         case "F": {
           e.preventDefault();
+          if (buildMode === "building") break;
           const page = currentSourcePages[currentPageIndex];
           if (!activeTrackId) {
             toast.info("Select a track first");
@@ -159,7 +162,7 @@ export default function BuildRoute() {
     },
     [
       nextPage, prevPage, viewerZoom, setViewerZoom, requestFitToView, rotatePage,
-      setCanvasMode, canvasMode, activeStepId, setActiveStep, activeTrackId,
+      setCanvasMode, canvasMode, buildMode, activeStepId, setActiveStep, activeTrackId,
       selectedStepIds, clearSelectedSteps,
       currentSourcePages, currentPageIndex, steps, addStep, pushUndo, activeProjectId, loadTracks,
       undoLastCrop,
@@ -211,24 +214,28 @@ export default function BuildRoute() {
       <div className="flex flex-1 overflow-hidden">
         <TrackRail />
 
-        <div className="relative min-w-0 flex-1 bg-[#E8E4DF]">
-          {isProcessingPdf && <ProcessingOverlay />}
+        <div className="relative flex min-w-0 flex-1 flex-col bg-[#E8E4DF]">
+          <div className="relative flex-1 min-h-0">
+            {isProcessingPdf && <ProcessingOverlay />}
 
-          {sourceManagerOpen && (
-            <SourceManagerPanel onClose={() => setSourceManagerOpen(false)} />
-          )}
+            {sourceManagerOpen && (
+              <SourceManagerPanel onClose={() => setSourceManagerOpen(false)} />
+            )}
 
-          {hasSources ? (
-            <>
-              <InstructionCanvas />
-              <PageNavigator />
-            </>
-          ) : (
-            <EmptyInstructionsState onUpload={handleUploadPdf} />
-          )}
+            {hasSources ? (
+              <>
+                <InstructionCanvas />
+                <PageNavigator />
+              </>
+            ) : (
+              <EmptyInstructionsState onUpload={handleUploadPdf} />
+            )}
+          </div>
+
+          {buildMode === "building" && activeStepId && <InfoBar />}
         </div>
 
-        {activeStepId && <StepEditorPanel />}
+        {activeStepId && buildMode === "setup" && <StepEditorPanel />}
       </div>
 
       <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
