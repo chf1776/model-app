@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-03-06 — Phase 3A: Mode Toggle & Building Layout
+
+### Added
+- **Setup/Building mode toggle**: SegmentedPill in the build toolbar switches between Setup and Building modes, persisted per-project in `project_ui_state`
+- **Active track persistence**: `active_track_id` saved to DB via new V5 migration, restored on project load
+- **Building mode layout**: TrackRail and StepEditorPanel hidden in building mode; canvas expands to fill available space
+- **NavigationBar**: Slim 30px bar below canvas in building mode with prev/next buttons and "Step N of M" counter
+- **Setup-only tool hiding**: View/Crop toggle, Full Page button, Source Manager, and Upload PDF hidden when in building mode
+- **Keyboard guards**: C (crop) and F (full page) keys disabled in building mode; arrow keys navigate between steps in building mode
+- **Auto-select on enter**: Switching to building mode with no active step auto-selects the first incomplete step
+- **Canvas mode guard**: Crop mode blocked in building mode (both from keyboard and store)
+
 ## [0.2.8] — 2026-03-05 — Phase 2H: Step Relations, Progress Ring & Quantity Counter
 
 ### Added

@@ -5,6 +5,7 @@ import * as api from "@/api";
 import { toast } from "sonner";
 
 export type CanvasMode = "view" | "crop";
+export type BuildMode = "setup" | "building";
 
 export interface BuildSlice {
   activeProjectId: string | null;
@@ -95,6 +96,10 @@ export interface BuildSlice {
   resetViewerState: () => void;
   requestFitToView: () => void;
 
+  // Build mode
+  buildMode: BuildMode;
+  setBuildMode: (mode: BuildMode) => void;
+
   // Canvas mode
   canvasMode: CanvasMode;
   setCanvasMode: (mode: CanvasMode) => void;
@@ -122,6 +127,7 @@ const DEFAULT_BUILD_STATE = {
   stepTags: {} as Record<string, Tag[]>,
   stepRelations: {} as Record<string, StepRelation[]>,
   stepReferenceImages: {} as Record<string, ReferenceImage[]>,
+  buildMode: "setup" as BuildMode,
 };
 
 const DEFAULT_VIEWER_STATE = {
@@ -178,11 +184,16 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
 
   setActiveProject: async (id) => {
     await api.setActiveProject(id);
-    const project = await api.getProject(id);
+    const [project, uiState] = await Promise.all([
+      api.getProject(id),
+      api.getProjectUiState(id),
+    ]);
     set({
       activeProjectId: id,
       project,
       ...DEFAULT_BUILD_STATE,
+      buildMode: (uiState.build_mode as BuildMode) ?? "setup",
+      activeTrackId: uiState.active_track_id ?? null,
       canvasMode: "view" as CanvasMode,
       ...DEFAULT_PAGE_STATE,
       ...DEFAULT_VIEWER_STATE,
@@ -205,7 +216,13 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   loadActiveProject: async () => {
     const project = await api.getActiveProject();
     if (project) {
-      set({ activeProjectId: project.id, project });
+      const uiState = await api.getProjectUiState(project.id);
+      set({
+        activeProjectId: project.id,
+        project,
+        buildMode: (uiState.build_mode as BuildMode) ?? "setup",
+        activeTrackId: uiState.active_track_id ?? null,
+      });
       get().loadInstructionSources(project.id);
       get().loadTracks(project.id);
       get().loadSteps(project.id);
@@ -245,6 +262,11 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       }));
     } else {
       set({ activeTrackId: null });
+    }
+    // Persist to DB (fire-and-forget)
+    const projectId = get().activeProjectId;
+    if (projectId) {
+      api.saveActiveTrack(projectId, id);
     }
   },
 
@@ -555,7 +577,34 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     set((s) => ({ fitToViewTrigger: s.fitToViewTrigger + 1 }));
   },
 
+  setBuildMode: async (mode) => {
+    const state = get();
+    const projectId = state.activeProjectId;
+    if (!projectId) return;
+
+    const updates: Record<string, unknown> = { buildMode: mode };
+
+    // Force canvas back to view mode when entering building
+    if (mode === "building") {
+      updates.canvasMode = "view" as CanvasMode;
+
+      // Auto-select first incomplete step if none active
+      if (!state.activeStepId) {
+        const firstIncomplete = state.steps.find((s) => !s.is_completed);
+        if (firstIncomplete) {
+          updates.activeStepId = firstIncomplete.id;
+          updates.activeTrackId = firstIncomplete.track_id;
+        }
+      }
+    }
+
+    set(updates);
+    await api.saveBuildMode(projectId, mode);
+  },
+
   setCanvasMode: (mode) => {
+    // Block crop mode in building mode
+    if (mode === "crop" && get().buildMode === "building") return;
     if (mode === "crop" && !get().activeTrackId) {
       toast.info("Select a track first");
       return;

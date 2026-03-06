@@ -398,6 +398,7 @@ pub struct ReferenceImage {
 pub struct ProjectUiState {
     pub project_id: String,
     pub active_step_id: Option<String>,
+    pub active_track_id: Option<String>,
     pub build_mode: String,
     pub nav_mode: String,
     pub image_zoom: f64,

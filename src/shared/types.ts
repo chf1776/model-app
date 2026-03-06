@@ -487,6 +487,7 @@ export interface InstructionPage {
 export interface ProjectUiState {
   project_id: string;
   active_step_id: string | null;
+  active_track_id: string | null;
   build_mode: "setup" | "building";
   nav_mode: "track" | "page";
   image_zoom: number;

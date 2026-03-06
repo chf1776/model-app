@@ -14,10 +14,12 @@ import { SourceManagerPanel } from "@/components/build/SourceManagerPanel";
 import { TrackRail } from "@/components/build/TrackRail";
 import { StepEditorPanel } from "@/components/build/StepEditorPanel";
 import { KeyboardShortcutsDialog } from "@/components/build/KeyboardShortcutsDialog";
+import { NavigationBar } from "@/components/build/NavigationBar";
 import { useUploadPdf } from "@/components/build/useUploadPdf";
 
 export default function BuildRoute() {
   const project = useAppStore((s) => s.project);
+  const buildMode = useAppStore((s) => s.buildMode);
   const instructionSources = useAppStore((s) => s.instructionSources);
   const isProcessingPdf = useAppStore((s) => s.isProcessingPdf);
   const nextPage = useAppStore((s) => s.nextPage);
@@ -78,6 +80,33 @@ export default function BuildRoute() {
         return;
       }
 
+      // Building mode navigation
+      if (buildMode === "building") {
+        switch (e.key) {
+          case "ArrowLeft":
+          case "ArrowUp": {
+            e.preventDefault();
+            const trackSteps = steps
+              .filter((s) => s.track_id === activeTrackId)
+              .sort((a, b) => a.display_order - b.display_order);
+            const idx = trackSteps.findIndex((s) => s.id === activeStepId);
+            if (idx > 0) setActiveStep(trackSteps[idx - 1].id);
+            return;
+          }
+          case "ArrowRight":
+          case "ArrowDown": {
+            e.preventDefault();
+            const trackSteps = steps
+              .filter((s) => s.track_id === activeTrackId)
+              .sort((a, b) => a.display_order - b.display_order);
+            const idx = trackSteps.findIndex((s) => s.id === activeStepId);
+            if (idx >= 0 && idx < trackSteps.length - 1)
+              setActiveStep(trackSteps[idx + 1].id);
+            return;
+          }
+        }
+      }
+
       switch (e.key) {
         case "Tab":
           e.preventDefault();
@@ -108,7 +137,7 @@ export default function BuildRoute() {
         case "c":
         case "C":
           e.preventDefault();
-          setCanvasMode("crop");
+          if (buildMode === "setup") setCanvasMode("crop");
           break;
         case "v":
           e.preventDefault();
@@ -117,6 +146,7 @@ export default function BuildRoute() {
         case "f":
         case "F": {
           e.preventDefault();
+          if (buildMode === "building") break;
           const page = currentSourcePages[currentPageIndex];
           if (!activeTrackId) {
             toast.info("Select a track first");
@@ -158,6 +188,7 @@ export default function BuildRoute() {
       }
     },
     [
+      buildMode,
       nextPage, prevPage, viewerZoom, setViewerZoom, requestFitToView, rotatePage,
       setCanvasMode, canvasMode, activeStepId, setActiveStep, activeTrackId,
       selectedStepIds, clearSelectedSteps,
@@ -209,26 +240,30 @@ export default function BuildRoute() {
       />
 
       <div className="flex flex-1 overflow-hidden">
-        <TrackRail />
+        {buildMode === "setup" && <TrackRail />}
 
-        <div className="relative min-w-0 flex-1 bg-[#E8E4DF]">
-          {isProcessingPdf && <ProcessingOverlay />}
+        <div className="relative flex min-w-0 flex-1 flex-col bg-[#E8E4DF]">
+          <div className="relative min-h-0 flex-1">
+            {isProcessingPdf && <ProcessingOverlay />}
 
-          {sourceManagerOpen && (
-            <SourceManagerPanel onClose={() => setSourceManagerOpen(false)} />
-          )}
+            {sourceManagerOpen && buildMode === "setup" && (
+              <SourceManagerPanel onClose={() => setSourceManagerOpen(false)} />
+            )}
 
-          {hasSources ? (
-            <>
-              <InstructionCanvas />
-              <PageNavigator />
-            </>
-          ) : (
-            <EmptyInstructionsState onUpload={handleUploadPdf} />
-          )}
+            {hasSources ? (
+              <>
+                <InstructionCanvas />
+                <PageNavigator />
+              </>
+            ) : (
+              <EmptyInstructionsState onUpload={handleUploadPdf} />
+            )}
+          </div>
+
+          {buildMode === "building" && <NavigationBar />}
         </div>
 
-        {activeStepId && <StepEditorPanel />}
+        {buildMode === "setup" && activeStepId && <StepEditorPanel />}
       </div>
 
       <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />

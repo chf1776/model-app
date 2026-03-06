@@ -13,7 +13,7 @@ pub fn get_or_create(conn: &Connection, project_id: &str) -> Result<ProjectUiSta
     .map_err(|e| e.to_string())?;
 
     conn.query_row(
-        "SELECT project_id, active_step_id, build_mode, nav_mode,
+        "SELECT project_id, active_step_id, active_track_id, build_mode, nav_mode,
                 image_zoom, image_pan_x, image_pan_y, updated_at
          FROM project_ui_state WHERE project_id = ?1",
         params![project_id],
@@ -21,16 +21,47 @@ pub fn get_or_create(conn: &Connection, project_id: &str) -> Result<ProjectUiSta
             Ok(ProjectUiState {
                 project_id: row.get(0)?,
                 active_step_id: row.get(1)?,
-                build_mode: row.get(2)?,
-                nav_mode: row.get(3)?,
-                image_zoom: row.get(4)?,
-                image_pan_x: row.get(5)?,
-                image_pan_y: row.get(6)?,
-                updated_at: row.get(7)?,
+                active_track_id: row.get(2)?,
+                build_mode: row.get(3)?,
+                nav_mode: row.get(4)?,
+                image_zoom: row.get(5)?,
+                image_pan_x: row.get(6)?,
+                image_pan_y: row.get(7)?,
+                updated_at: row.get(8)?,
             })
         },
     )
     .map_err(|e| e.to_string())
+}
+
+pub fn save_build_mode(
+    conn: &Connection,
+    project_id: &str,
+    build_mode: &str,
+) -> Result<(), String> {
+    let ts = now();
+    conn.execute(
+        "UPDATE project_ui_state SET build_mode = ?1, updated_at = ?2
+         WHERE project_id = ?3",
+        params![build_mode, ts, project_id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+pub fn save_active_track(
+    conn: &Connection,
+    project_id: &str,
+    active_track_id: Option<&str>,
+) -> Result<(), String> {
+    let ts = now();
+    conn.execute(
+        "UPDATE project_ui_state SET active_track_id = ?1, updated_at = ?2
+         WHERE project_id = ?3",
+        params![active_track_id, ts, project_id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 pub fn save_view_state(
