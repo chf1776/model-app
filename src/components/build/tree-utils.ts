@@ -1,6 +1,13 @@
 import { arrayMove } from "@dnd-kit/sortable";
 import type { Step } from "@/shared/types";
 
+/** Filter steps by track and sort by display_order. */
+export function getOrderedTrackSteps(steps: Step[], trackId: string | null): Step[] {
+  return steps
+    .filter((s) => s.track_id === trackId)
+    .sort((a, b) => a.display_order - b.display_order);
+}
+
 export interface FlatStep {
   id: string;
   parentId: string | null;

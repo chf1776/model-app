@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useAppStore } from "@/store";
+import { getOrderedTrackSteps } from "./tree-utils";
 
 export function NavigationBar() {
   const steps = useAppStore((s) => s.steps);
@@ -7,9 +8,7 @@ export function NavigationBar() {
   const activeTrackId = useAppStore((s) => s.activeTrackId);
   const setActiveStep = useAppStore((s) => s.setActiveStep);
 
-  const trackSteps = steps
-    .filter((s) => s.track_id === activeTrackId)
-    .sort((a, b) => a.display_order - b.display_order);
+  const trackSteps = getOrderedTrackSteps(steps, activeTrackId);
 
   const currentIndex = trackSteps.findIndex((s) => s.id === activeStepId);
   const total = trackSteps.length;

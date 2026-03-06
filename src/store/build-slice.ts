@@ -192,7 +192,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       activeProjectId: id,
       project,
       ...DEFAULT_BUILD_STATE,
-      buildMode: (uiState.build_mode as BuildMode) ?? "setup",
+      buildMode: uiState.build_mode === "building" ? "building" : "setup",
       activeTrackId: uiState.active_track_id ?? null,
       canvasMode: "view" as CanvasMode,
       ...DEFAULT_PAGE_STATE,
@@ -220,12 +220,15 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       set({
         activeProjectId: project.id,
         project,
-        buildMode: (uiState.build_mode as BuildMode) ?? "setup",
+        buildMode: uiState.build_mode === "building" ? "building" : "setup",
         activeTrackId: uiState.active_track_id ?? null,
       });
-      get().loadInstructionSources(project.id);
-      get().loadTracks(project.id);
-      get().loadSteps(project.id);
+      // Fire all loads in parallel
+      Promise.all([
+        get().loadInstructionSources(project.id),
+        get().loadTracks(project.id),
+        get().loadSteps(project.id),
+      ]);
     }
   },
 
@@ -329,7 +332,8 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       const step = state.steps.find((s) => s.id === id);
       if (step) {
         const update: Record<string, unknown> = { activeStepId: id };
-        if (step.track_id !== state.activeTrackId) {
+        const trackChanged = step.track_id !== state.activeTrackId;
+        if (trackChanged) {
           update.activeTrackId = step.track_id;
         }
         if (!state.expandedTrackIds.includes(step.track_id)) {
@@ -344,6 +348,10 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
           }
         }
         set(update);
+        // Persist track change to DB
+        if (trackChanged && state.activeProjectId) {
+          api.saveActiveTrack(state.activeProjectId, step.track_id);
+        }
       } else {
         set({ activeStepId: id });
       }
@@ -582,7 +590,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     const projectId = state.activeProjectId;
     if (!projectId) return;
 
-    const updates: Record<string, unknown> = { buildMode: mode };
+    const updates: Partial<BuildSlice> = { buildMode: mode };
 
     // Force canvas back to view mode when entering building
     if (mode === "building") {
@@ -599,7 +607,11 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     }
 
     set(updates);
-    await api.saveBuildMode(projectId, mode);
+    try {
+      await api.saveBuildMode(projectId, mode);
+    } catch (e) {
+      toast.error(`Failed to save build mode: ${e}`);
+    }
   },
 
   setCanvasMode: (mode) => {

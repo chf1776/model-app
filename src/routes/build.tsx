@@ -15,6 +15,7 @@ import { TrackRail } from "@/components/build/TrackRail";
 import { StepEditorPanel } from "@/components/build/StepEditorPanel";
 import { KeyboardShortcutsDialog } from "@/components/build/KeyboardShortcutsDialog";
 import { NavigationBar } from "@/components/build/NavigationBar";
+import { getOrderedTrackSteps } from "@/components/build/tree-utils";
 import { useUploadPdf } from "@/components/build/useUploadPdf";
 
 export default function BuildRoute() {
@@ -82,28 +83,20 @@ export default function BuildRoute() {
 
       // Building mode navigation
       if (buildMode === "building") {
+        const ordered = getOrderedTrackSteps(steps, activeTrackId);
+        const idx = ordered.findIndex((s) => s.id === activeStepId);
         switch (e.key) {
           case "ArrowLeft":
-          case "ArrowUp": {
+          case "ArrowUp":
             e.preventDefault();
-            const trackSteps = steps
-              .filter((s) => s.track_id === activeTrackId)
-              .sort((a, b) => a.display_order - b.display_order);
-            const idx = trackSteps.findIndex((s) => s.id === activeStepId);
-            if (idx > 0) setActiveStep(trackSteps[idx - 1].id);
+            if (idx > 0) setActiveStep(ordered[idx - 1].id);
             return;
-          }
           case "ArrowRight":
-          case "ArrowDown": {
+          case "ArrowDown":
             e.preventDefault();
-            const trackSteps = steps
-              .filter((s) => s.track_id === activeTrackId)
-              .sort((a, b) => a.display_order - b.display_order);
-            const idx = trackSteps.findIndex((s) => s.id === activeStepId);
-            if (idx >= 0 && idx < trackSteps.length - 1)
-              setActiveStep(trackSteps[idx + 1].id);
+            if (idx >= 0 && idx < ordered.length - 1)
+              setActiveStep(ordered[idx + 1].id);
             return;
-          }
         }
       }
 
