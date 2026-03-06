@@ -1,5 +1,25 @@
 import { arrayMove } from "@dnd-kit/sortable";
-import type { Step } from "@/shared/types";
+import type { Step, StepRelation } from "@/shared/types";
+
+/** Parse step relations into categorized ID arrays for display. */
+export function parseStepRelations(relations: StepRelation[], stepId: string) {
+  const blockedByIds: string[] = [];
+  const blocksAccessIds: string[] = [];
+  const incomingBlockedBy: string[] = [];
+  const incomingBlocksAccess: string[] = [];
+
+  for (const r of relations) {
+    if (r.from_step_id === stepId) {
+      if (r.relation_type === "blocked_by") blockedByIds.push(r.to_step_id);
+      else if (r.relation_type === "blocks_access_to") blocksAccessIds.push(r.to_step_id);
+    } else if (r.to_step_id === stepId) {
+      if (r.relation_type === "blocked_by") incomingBlockedBy.push(r.from_step_id);
+      else if (r.relation_type === "blocks_access_to") incomingBlocksAccess.push(r.from_step_id);
+    }
+  }
+
+  return { blockedByIds, blocksAccessIds, incomingBlockedBy, incomingBlocksAccess };
+}
 
 /** Compute effective dimensions after rotation. Works for any angle but typically 0/90/180/270. */
 export function getEffectiveDimensions(w: number, h: number, rotation: number) {

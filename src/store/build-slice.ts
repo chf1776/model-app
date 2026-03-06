@@ -599,9 +599,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         id: step.id,
         is_completed: !step.is_completed,
       });
-      set((s) => ({
-        steps: s.steps.map((st) => (st.id === updated.id ? updated : st)),
-      }));
+      get().updateStepStore(updated);
       if (activeProjectId) get().loadTracks(activeProjectId);
 
       // Auto-advance to next incomplete step on completion

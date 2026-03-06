@@ -34,6 +34,7 @@ import {
   PREDEFINED_TAGS,
 } from "@/shared/types";
 import { CropPreview } from "./CropPreview";
+import { parseStepRelations } from "./tree-utils";
 
 export function StepEditorPanel() {
   const steps = useAppStore((s) => s.steps);
@@ -91,20 +92,8 @@ export function StepEditorPanel() {
   const currentTagNames = new Set(currentTags.map((t) => t.name));
 
   const currentRelations = stepRelations[step.id] ?? [];
-  // Outgoing: this step declared these relations
-  const blockedByIds = currentRelations
-    .filter((r) => r.from_step_id === step.id && r.relation_type === "blocked_by")
-    .map((r) => r.to_step_id);
-  const blocksAccessIds = currentRelations
-    .filter((r) => r.from_step_id === step.id && r.relation_type === "blocks_access_to")
-    .map((r) => r.to_step_id);
-  // Incoming: other steps declared relations involving this step
-  const incomingBlockedBy = currentRelations
-    .filter((r) => r.to_step_id === step.id && r.relation_type === "blocked_by")
-    .map((r) => r.from_step_id);
-  const incomingBlocksAccess = currentRelations
-    .filter((r) => r.to_step_id === step.id && r.relation_type === "blocks_access_to")
-    .map((r) => r.from_step_id);
+  const { blockedByIds, blocksAccessIds, incomingBlockedBy, incomingBlocksAccess } =
+    parseStepRelations(currentRelations, step.id);
 
   // Steps that replace this one (from their replaces_step_id)
   const replacedBySteps = useMemo(

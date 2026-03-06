@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ADHESIVE_TYPE_LABELS } from "@/shared/types";
 import type { Step } from "@/shared/types";
 import { StepCompletionMarker } from "./StepCompletionMarker";
-import { buildChildrenMap } from "./tree-utils";
+import { parseStepRelations } from "./tree-utils";
 
 export function BuildingStepPanel() {
   const steps = useAppStore((s) => s.steps);
@@ -33,13 +33,15 @@ export function BuildingStepPanel() {
   useEffect(() => {
     if (!step) return;
     if (!stepTags[step.id]) loadStepTags(step.id);
-    loadStepRelations(step.id);
+    if (!stepRelations[step.id]) loadStepRelations(step.id);
     if (!stepReferenceImages[step.id]) loadStepReferenceImages(step.id);
   }, [step?.id]);
 
-  // Children of this step
-  const childrenMap = useMemo(() => buildChildrenMap(steps), [steps]);
-  const children = step ? childrenMap.get(step.id) ?? [] : [];
+  // Children of the active step only
+  const children = useMemo(
+    () => (step ? steps.filter((s) => s.parent_step_id === step.id) : []),
+    [steps, step?.id],
+  );
 
   if (!step) return null;
 
@@ -47,19 +49,8 @@ export function BuildingStepPanel() {
   const currentRelations = stepRelations[step.id] ?? [];
   const referenceImages = stepReferenceImages[step.id] ?? [];
 
-  // Relations
-  const blockedByIds = currentRelations
-    .filter((r) => r.from_step_id === step.id && r.relation_type === "blocked_by")
-    .map((r) => r.to_step_id);
-  const blocksAccessIds = currentRelations
-    .filter((r) => r.from_step_id === step.id && r.relation_type === "blocks_access_to")
-    .map((r) => r.to_step_id);
-  const incomingBlockedBy = currentRelations
-    .filter((r) => r.to_step_id === step.id && r.relation_type === "blocked_by")
-    .map((r) => r.from_step_id);
-  const incomingBlocksAccess = currentRelations
-    .filter((r) => r.to_step_id === step.id && r.relation_type === "blocks_access_to")
-    .map((r) => r.from_step_id);
+  const { blockedByIds, blocksAccessIds, incomingBlockedBy, incomingBlocksAccess } =
+    parseStepRelations(currentRelations, step.id);
 
   const replacesStep = step.replaces_step_id
     ? steps.find((s) => s.id === step.replaces_step_id) ?? null
@@ -100,7 +91,7 @@ export function BuildingStepPanel() {
   return (
     <div className="flex w-[280px] shrink-0 flex-col border-l border-border bg-sidebar">
       <ScrollArea className="flex-1 overflow-hidden">
-        <div className="space-y-0 p-3">
+        <div className="p-3">
           {/* Section 1: Step Header + Completion */}
           <div className="space-y-2.5">
             <div className="flex items-start gap-2">

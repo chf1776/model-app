@@ -92,20 +92,16 @@ export default function BuildRoute() {
           completeActiveStep();
           return;
         }
-        const ordered = flattenTrackSteps(steps, activeTrackId);
-        const idx = ordered.findIndex((s) => s.id === activeStepId);
-        switch (e.key) {
-          case "ArrowLeft":
-          case "ArrowUp":
-            e.preventDefault();
-            if (idx > 0) setActiveStep(ordered[idx - 1].id);
-            return;
-          case "ArrowRight":
-          case "ArrowDown":
-            e.preventDefault();
-            if (idx >= 0 && idx < ordered.length - 1)
-              setActiveStep(ordered[idx + 1].id);
-            return;
+        if (e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "ArrowRight" || e.key === "ArrowDown") {
+          e.preventDefault();
+          const ordered = flattenTrackSteps(steps, activeTrackId);
+          const idx = ordered.findIndex((s) => s.id === activeStepId);
+          if ((e.key === "ArrowLeft" || e.key === "ArrowUp") && idx > 0) {
+            setActiveStep(ordered[idx - 1].id);
+          } else if ((e.key === "ArrowRight" || e.key === "ArrowDown") && idx >= 0 && idx < ordered.length - 1) {
+            setActiveStep(ordered[idx + 1].id);
+          }
+          return;
         }
       }
 
