@@ -1,9 +1,9 @@
-import { useMemo, useRef, useEffect } from "react";
+import { useMemo, useRef, useEffect, forwardRef } from "react";
 import { ChevronDown, Check, ArrowRight, ArrowDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAppStore } from "@/store";
 import type { Step, Track, InstructionPage } from "@/shared/types";
-import { getOrderedTrackSteps } from "./tree-utils";
+import { getOrderedTrackSteps, buildChildrenMap } from "./tree-utils";
 import { StepThumbnail } from "./StepThumbnail";
 import { StepCompletionMarker } from "./StepCompletionMarker";
 import * as api from "@/api";
@@ -41,17 +41,7 @@ export function BuildingRail() {
     [trackSteps],
   );
 
-  const childrenMap = useMemo(() => {
-    const map = new Map<string, Step[]>();
-    for (const s of trackSteps) {
-      if (s.parent_step_id) {
-        const arr = map.get(s.parent_step_id) ?? [];
-        arr.push(s);
-        map.set(s.parent_step_id, arr);
-      }
-    }
-    return map;
-  }, [trackSteps]);
+  const childrenMap = useMemo(() => buildChildrenMap(trackSteps), [trackSteps]);
 
   const pageMap = useMemo(() => {
     const map = new Map<string, InstructionPage>();
@@ -280,8 +270,6 @@ export function BuildingRail() {
 
 // ── Step Row ────────────────────────────────────────────────────────────────
 
-import { forwardRef } from "react";
-
 interface BuildingStepRowProps {
   step: Step;
   index?: number;
@@ -315,13 +303,7 @@ const BuildingStepRow = forwardRef<HTMLButtonElement, BuildingStepRowProps>(
             : "border-l-2 border-transparent hover:bg-muted/50"
         }`}
       >
-        <div
-          className="shrink-0"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleComplete();
-          }}
-        >
+        <div className="shrink-0">
           <StepCompletionMarker
             completed={step.is_completed}
             progress={progress}

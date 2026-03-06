@@ -1,6 +1,31 @@
 import { arrayMove } from "@dnd-kit/sortable";
 import type { Step } from "@/shared/types";
 
+/** Compute effective dimensions after rotation. Works for any angle but typically 0/90/180/270. */
+export function getEffectiveDimensions(w: number, h: number, rotation: number) {
+  const rad = (rotation * Math.PI) / 180;
+  const cos = Math.abs(Math.cos(rad));
+  const sin = Math.abs(Math.sin(rad));
+  return {
+    effectiveW: w * cos + h * sin,
+    effectiveH: w * sin + h * cos,
+    rad,
+  };
+}
+
+/** Build a map of parentStepId → children for a list of steps. */
+export function buildChildrenMap(steps: Step[]): Map<string, Step[]> {
+  const map = new Map<string, Step[]>();
+  for (const s of steps) {
+    if (s.parent_step_id) {
+      const arr = map.get(s.parent_step_id) ?? [];
+      arr.push(s);
+      map.set(s.parent_step_id, arr);
+    }
+  }
+  return map;
+}
+
 /** Filter steps by track and sort by display_order. */
 export function getOrderedTrackSteps(steps: Step[], trackId: string | null): Step[] {
   return steps
@@ -15,14 +40,7 @@ export function getOrderedTrackSteps(steps: Step[], trackId: string | null): Ste
 export function flattenTrackSteps(steps: Step[], trackId: string | null): Step[] {
   const ordered = getOrderedTrackSteps(steps, trackId);
   const roots = ordered.filter((s) => !s.parent_step_id);
-  const childrenMap = new Map<string, Step[]>();
-  for (const s of ordered) {
-    if (s.parent_step_id) {
-      const arr = childrenMap.get(s.parent_step_id) ?? [];
-      arr.push(s);
-      childrenMap.set(s.parent_step_id, arr);
-    }
-  }
+  const childrenMap = buildChildrenMap(ordered);
   const flat: Step[] = [];
   for (const root of roots) {
     flat.push(root);
@@ -82,14 +100,7 @@ export function flattenSteps(
   activeDragId?: string | null,
 ): FlatStep[] {
   const rootSteps = steps.filter((s) => !s.parent_step_id);
-  const childrenMap = new Map<string, Step[]>();
-  for (const s of steps) {
-    if (s.parent_step_id) {
-      const arr = childrenMap.get(s.parent_step_id) ?? [];
-      arr.push(s);
-      childrenMap.set(s.parent_step_id, arr);
-    }
-  }
+  const childrenMap = buildChildrenMap(steps);
 
   const flat: FlatStep[] = [];
   for (const root of rootSteps) {

@@ -3,11 +3,13 @@ import { Expand } from "lucide-react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useAppStore } from "@/store";
 import type { Step, InstructionPage } from "@/shared/types";
+import { getEffectiveDimensions } from "./tree-utils";
 
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 5.0;
 const ZOOM_STEP = 1.08;
 const PADDING = 24;
+const ACCENT_COLOR = "#4E7282";
 
 export function CropCanvas() {
   const steps = useAppStore((s) => s.steps);
@@ -57,17 +59,15 @@ export function CropCanvas() {
     const rotation = page.rotation ?? 0;
     const cropW = step.crop_w!;
     const cropH = step.crop_h!;
-    const rad = (rotation * Math.PI) / 180;
-    const cos = Math.abs(Math.cos(rad));
-    const sin = Math.abs(Math.sin(rad));
+    const { effectiveW, effectiveH, rad } = getEffectiveDimensions(cropW, cropH, rotation);
     return {
-      effectiveW: cropW * cos + cropH * sin,
-      effectiveH: cropW * sin + cropH * cos,
+      effectiveW,
+      effectiveH,
       cropX: step.crop_x!,
       cropY: step.crop_y!,
       cropW,
       cropH,
-      rotation,
+      rad,
     };
   }, [step, hasCrop, page]);
 
@@ -99,28 +99,33 @@ export function CropCanvas() {
       setImageLoaded(true);
     };
     img.src = convertFileSrc(page.file_path);
-    return () => { img.src = ""; };
+    return () => {
+      img.src = "";
+      imgRef.current = null;
+    };
   }, [page?.id, page?.file_path]);
 
   // Auto-fit on step change or container resize
   useEffect(() => {
     if (imageLoaded) fitToView();
-  }, [activeStepId, imageLoaded, containerSize.w, containerSize.h, fitToViewTrigger]);
+  }, [activeStepId, imageLoaded, containerSize.w, containerSize.h, fitToViewTrigger, fitToView]);
 
-  // Draw crop on canvas
+  // Draw crop on canvas (only on zoom/image change, NOT on pan)
   useEffect(() => {
     const canvas = canvasRef.current;
     const img = imgRef.current;
     const dims = getCropDimensions();
     if (!canvas || !img || !dims) return;
 
-    const { effectiveW, effectiveH, cropX, cropY, cropW, cropH, rotation } = dims;
+    const { effectiveW, effectiveH, cropX, cropY, cropW, cropH, rad } = dims;
     const drawW = Math.round(effectiveW * viewerZoom);
     const drawH = Math.round(effectiveH * viewerZoom);
 
-    canvas.width = drawW;
-    canvas.height = drawH;
-    canvas.style.transform = `translate(${viewerPanX}px, ${viewerPanY}px)`;
+    // Only resize canvas when dimensions actually change
+    if (canvas.width !== drawW || canvas.height !== drawH) {
+      canvas.width = drawW;
+      canvas.height = drawH;
+    }
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -128,7 +133,7 @@ export function CropCanvas() {
     ctx.clearRect(0, 0, drawW, drawH);
     ctx.save();
     ctx.translate(drawW / 2, drawH / 2);
-    ctx.rotate((rotation * Math.PI) / 180);
+    ctx.rotate(rad);
     ctx.drawImage(
       img,
       cropX, cropY, cropW, cropH,
@@ -138,7 +143,14 @@ export function CropCanvas() {
       cropH * viewerZoom,
     );
     ctx.restore();
-  }, [imageLoaded, viewerZoom, viewerPanX, viewerPanY, getCropDimensions]);
+  }, [imageLoaded, viewerZoom, getCropDimensions]);
+
+  // Update canvas position on pan (CSS transform only, no redraw)
+  useEffect(() => {
+    if (canvasRef.current) {
+      canvasRef.current.style.transform = `translate(${viewerPanX}px, ${viewerPanY}px)`;
+    }
+  }, [viewerPanX, viewerPanY]);
 
   // Wheel zoom
   const handleWheel = useCallback(
@@ -259,11 +271,9 @@ function FullPageModal({
       if (!ctx) return;
 
       const rotation = page.rotation ?? 0;
-      const rad = (rotation * Math.PI) / 180;
-      const cos = Math.abs(Math.cos(rad));
-      const sin = Math.abs(Math.sin(rad));
-      const effW = page.width * cos + page.height * sin;
-      const effH = page.width * sin + page.height * cos;
+      const { effectiveW: effW, effectiveH: effH, rad } = getEffectiveDimensions(
+        page.width, page.height, rotation,
+      );
 
       // Fit to 90% of viewport
       const maxW = window.innerWidth * 0.9;
@@ -297,7 +307,7 @@ function FullPageModal({
         const cy = (step.crop_y - page.height / 2) * scale;
         const cw = step.crop_w * scale;
         const ch = step.crop_h * scale;
-        ctx.strokeStyle = "var(--color-accent)";
+        ctx.strokeStyle = ACCENT_COLOR;
         ctx.lineWidth = 2;
         ctx.strokeRect(cx, cy, cw, ch);
         // Dim everything outside

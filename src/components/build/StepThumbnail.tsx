@@ -1,8 +1,27 @@
 import { useRef, useEffect, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import type { Step, InstructionPage } from "@/shared/types";
+import { getEffectiveDimensions } from "./tree-utils";
 
 const THUMB_H = 36;
+
+// Shared image cache: avoids loading the same page image N times for N thumbnails
+const imageCache = new Map<string, HTMLImageElement>();
+
+function loadPageImage(filePath: string): Promise<HTMLImageElement> {
+  const cached = imageCache.get(filePath);
+  if (cached?.complete) return Promise.resolve(cached);
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      imageCache.set(filePath, img);
+      resolve(img);
+    };
+    img.onerror = reject;
+    img.src = convertFileSrc(filePath);
+  });
+}
 
 interface StepThumbnailProps {
   step: Step;
@@ -25,25 +44,19 @@ export function StepThumbnail({ step, page, isActive, isCompleted }: StepThumbna
     if (!page || !hasCrop) return;
 
     let aborted = false;
-    const img = new Image();
 
-    img.onload = () => {
+    loadPageImage(page.file_path).then((img) => {
       if (aborted || !canvasRef.current) return;
       const canvas = canvasRef.current;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      const rotation = page.rotation ?? 0;
       const cropX = step.crop_x!;
       const cropY = step.crop_y!;
       const cropW = step.crop_w!;
       const cropH = step.crop_h!;
 
-      const rad = (rotation * Math.PI) / 180;
-      const cos = Math.abs(Math.cos(rad));
-      const sin = Math.abs(Math.sin(rad));
-      const effectiveW = cropW * cos + cropH * sin;
-      const effectiveH = cropW * sin + cropH * cos;
+      const { effectiveW, effectiveH, rad } = getEffectiveDimensions(cropW, cropH, page.rotation ?? 0);
 
       const scale = THUMB_H / effectiveH;
       const drawW = Math.round(effectiveW * scale);
@@ -66,14 +79,9 @@ export function StepThumbnail({ step, page, isActive, isCompleted }: StepThumbna
         cropH * scale,
       );
       ctx.restore();
-    };
+    });
 
-    img.src = convertFileSrc(page.file_path);
-
-    return () => {
-      aborted = true;
-      img.src = "";
-    };
+    return () => { aborted = true; };
   }, [page, hasCrop, step.crop_x, step.crop_y, step.crop_w, step.crop_h]);
 
   if (!hasCrop || !page) {
