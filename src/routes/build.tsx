@@ -17,7 +17,7 @@ import { KeyboardShortcutsDialog } from "@/components/build/KeyboardShortcutsDia
 import { NavigationBar } from "@/components/build/NavigationBar";
 import { BuildingRail } from "@/components/build/BuildingRail";
 import { CropCanvas } from "@/components/build/CropCanvas";
-import { getOrderedTrackSteps } from "@/components/build/tree-utils";
+import { flattenTrackSteps } from "@/components/build/tree-utils";
 import { useUploadPdf } from "@/components/build/useUploadPdf";
 
 export default function BuildRoute() {
@@ -85,7 +85,7 @@ export default function BuildRoute() {
 
       // Building mode navigation
       if (buildMode === "building") {
-        const ordered = getOrderedTrackSteps(steps, activeTrackId);
+        const ordered = flattenTrackSteps(steps, activeTrackId);
         const idx = ordered.findIndex((s) => s.id === activeStepId);
         switch (e.key) {
           case "ArrowLeft":

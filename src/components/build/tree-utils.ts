@@ -8,6 +8,58 @@ export function getOrderedTrackSteps(steps: Step[], trackId: string | null): Ste
     .sort((a, b) => a.display_order - b.display_order);
 }
 
+/**
+ * Flatten track steps in walk order: root1, root1.child1, root1.child2, root2, ...
+ * Returns the flat list and the total root count.
+ */
+export function flattenTrackSteps(steps: Step[], trackId: string | null): Step[] {
+  const ordered = getOrderedTrackSteps(steps, trackId);
+  const roots = ordered.filter((s) => !s.parent_step_id);
+  const childrenMap = new Map<string, Step[]>();
+  for (const s of ordered) {
+    if (s.parent_step_id) {
+      const arr = childrenMap.get(s.parent_step_id) ?? [];
+      arr.push(s);
+      childrenMap.set(s.parent_step_id, arr);
+    }
+  }
+  const flat: Step[] = [];
+  for (const root of roots) {
+    flat.push(root);
+    const children = childrenMap.get(root.id);
+    if (children) flat.push(...children);
+  }
+  return flat;
+}
+
+/**
+ * Compute a hierarchical label for a step, e.g. "Step 3" or "Step 2.1".
+ * rootCount is the total number of root steps.
+ */
+export function getStepLabel(
+  step: Step,
+  allSteps: Step[],
+): { label: string; rootCount: number } {
+  const trackSteps = allSteps
+    .filter((s) => s.track_id === step.track_id)
+    .sort((a, b) => a.display_order - b.display_order);
+  const roots = trackSteps.filter((s) => !s.parent_step_id);
+
+  if (!step.parent_step_id) {
+    const rootIdx = roots.findIndex((s) => s.id === step.id);
+    return { label: `Step ${rootIdx + 1}`, rootCount: roots.length };
+  }
+
+  // Sub-step: find parent index and child index
+  const parentIdx = roots.findIndex((s) => s.id === step.parent_step_id);
+  const siblings = trackSteps.filter((s) => s.parent_step_id === step.parent_step_id);
+  const childIdx = siblings.findIndex((s) => s.id === step.id);
+  return {
+    label: `Step ${parentIdx + 1}.${childIdx + 1}`,
+    rootCount: roots.length,
+  };
+}
+
 export interface FlatStep {
   id: string;
   parentId: string | null;

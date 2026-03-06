@@ -1,6 +1,7 @@
+import { useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useAppStore } from "@/store";
-import { getOrderedTrackSteps } from "./tree-utils";
+import { flattenTrackSteps, getStepLabel } from "./tree-utils";
 
 export function NavigationBar() {
   const steps = useAppStore((s) => s.steps);
@@ -10,26 +11,33 @@ export function NavigationBar() {
   const setActiveStep = useAppStore((s) => s.setActiveStep);
 
   const activeTrack = tracks.find((t) => t.id === activeTrackId);
-  const trackSteps = getOrderedTrackSteps(steps, activeTrackId);
-  // Count only root steps for navigation
-  const rootSteps = trackSteps.filter((s) => !s.parent_step_id);
 
-  const currentIndex = rootSteps.findIndex((s) => s.id === activeStepId);
-  const total = rootSteps.length;
+  // Flat list: root1 → children → root2 → children → ...
+  const flatSteps = useMemo(
+    () => flattenTrackSteps(steps, activeTrackId),
+    [steps, activeTrackId],
+  );
+
+  const currentIndex = flatSteps.findIndex((s) => s.id === activeStepId);
+  const activeStep = currentIndex >= 0 ? flatSteps[currentIndex] : null;
+
+  const { label, rootCount } = activeStep
+    ? getStepLabel(activeStep, steps)
+    : { label: "—", rootCount: 0 };
 
   const goPrev = () => {
     if (currentIndex > 0) {
-      setActiveStep(rootSteps[currentIndex - 1].id);
+      setActiveStep(flatSteps[currentIndex - 1].id);
     }
   };
 
   const goNext = () => {
-    if (currentIndex < total - 1) {
-      setActiveStep(rootSteps[currentIndex + 1].id);
+    if (currentIndex < flatSteps.length - 1) {
+      setActiveStep(flatSteps[currentIndex + 1].id);
     }
   };
 
-  if (total === 0) return null;
+  if (flatSteps.length === 0) return null;
 
   return (
     <div className="flex h-[30px] items-center justify-center gap-2 border-t border-border bg-background/80 backdrop-blur-sm">
@@ -42,7 +50,7 @@ export function NavigationBar() {
       </button>
       <span className="flex items-center gap-1.5 text-[11px] text-text-secondary">
         <span className="tabular-nums">
-          Step {currentIndex >= 0 ? currentIndex + 1 : "—"} of {total}
+          {label} of {rootCount} steps
         </span>
         {activeTrack && (
           <>
@@ -56,7 +64,7 @@ export function NavigationBar() {
       </span>
       <button
         onClick={goNext}
-        disabled={currentIndex >= total - 1}
+        disabled={currentIndex >= flatSteps.length - 1}
         className="rounded p-0.5 text-text-tertiary hover:bg-muted hover:text-text-secondary disabled:opacity-30 disabled:hover:bg-transparent"
       >
         <ChevronRight className="h-3.5 w-3.5" />
