@@ -145,28 +145,62 @@ You can import a full instruction manual, crop every step, organize into tracks 
 
 **Goal**: Actually build from the app. Work through steps, mark them complete, capture photos. The core loop is end-to-end.
 
-### Layout and navigation
-- Zone toolbar: active project dropdown (switch without going to Collection), Setup/Building toggle, Track/Page toggle, camera, help
-- Left rail: all tracks listed; active track expanded (step thumbnails + numbers), others collapsed (name + completion fraction); click to switch
-- Center: instruction image (zoom/pan with mouse wheel and drag)
-- Info bar: step title, adhesive type, pre-paint flag, notes preview (tappable to edit), complete button
-- `← / →` to navigate steps within active track; `Space` / `Enter` to complete
+### 3A: Mode Toggle + Layout + Navigation
+- Setup/Building toggle: SegmentedPill in toolbar with Settings2/Hammer icons
+- `build_mode` persisted in `project_ui_state` (DB), hydrated on project load
+- Building mode hides setup-only tools (crop, full page, sources, upload PDF)
+- Canvas guard: crop mode blocked in building mode; C/F keys no-op
+- Layout switch: setup shows TrackRail + Canvas + StepEditorPanel; building shows BuildingRail + CropCanvas + StepPanel
+- Navigation bar (bottom of canvas column, ~30px): prev/next buttons + "Step N of M" + track dot/name
+- Keyboard navigation: `↓`/`↑` next/prev step, `Shift+↓`/`Shift+↑` next/prev incomplete, `←`/`→` switch track, `Space`/`Enter` complete, `+`/`-` quantity, `Cmd+`/`Cmd-` zoom, `0` fit-to-view, `?` shortcuts
+- Rail auto-scrolls to keep active step visible
+- Empty states: "Add steps in Setup mode to start building" when no steps; single track hides dropdown
+- State persistence: resume restores active step, active track, zoom, pan, build mode (add `active_track_id` to `project_ui_state`)
 
-### Step completion
-- Mark complete → slim non-blocking "Capture your progress?" prompt (auto-dismisses after 4 seconds)
-- Un-complete: click completed indicator → confirmation dialog
-- Progress photo capture: file picker → stored in `photos/progress/<step-id>_<timestamp>.jpg`; thumbnail generated
+### 3B: Building Rail + Canvas
+- **Building rail (single-track view)** with Popover dropdown selector in header
+- Track selector: 8px color dot + bold name + done/total count; completed tracks show checkmark in success green
+- Dropdown shows project-wide total at top (e.g. "8/24 overall")
+- **Step rows**: fixed height, 6px vertical padding. Thumbnail left (36px height, width varies by aspect ratio: 54×36 wide, 36×36 square, 27×36 tall), title right
+- **Thumbnails as CSS-clipped images** (crop from source page PNG). Annotation compositing deferred to Phase 4
+- Thumbnail states: done (45% opacity), active (full opacity + 1.5px accent border + glow), pending (full opacity + standard border)
+- Title states: done (text-tertiary, 400), active (accent, 600 + "Step N of M" secondary line, top-level only), pending (text-primary, 400)
+- Pre-paint: 5px amber dot, right-aligned, tooltip on hover
+- Sub-steps: indented rows visible, expand/collapse when parent is active
+- **Join indicators**: minimal inline rows, clickable (switches track + selects join step). Inbound: 3×18px bar in source color + down-arrow + track name (success green + checkmark if source complete). Outbound: right-arrow + 3×18px bar in destination color + track name. 2px vertical margin
+- No editing controls (no add/delete/drag/context menu)
+- **Canvas** shows **crop region for the active step**, fit-to-view by default, zoom/pan enabled
+- **Floating relation pill**: amber pill overlaid top-center of crop, auto-dismisses, re-shows on return. Clickable to navigate to blocking step
+- **"Show Full Page" button**: opens full-screen modal showing entire instruction page with crop region highlighted
+- Steps without crops: placeholder with step title centered
+- Step transitions: subtle crossfade between steps
 
-### Milestone card
-- Fires when all steps in a track are complete
-- Options: Capture Photo, Add Note, Continue; stays until dismissed
-- Milestone photo stored in `photos/milestones/`; note appended to build log
-
-### State persistence
-- Resume restores exact state: active step, zoom level and pan position, Track/Page mode, Setup/Building mode
+### 3C: Step Panel + Completion Flow
+- **Step Panel (right, 280px)**: all step context + completion action. Only sections with data are rendered:
+  - Step header + Complete button (Start Timer button hidden until Phase 4)
+  - Quantity tracker (pips + count + +/-)
+  - Sub-step checklist (collapsible, expanded when parent active)
+  - Relations (clickable chips, amber for blocked_by, accent for blocks_access_to)
+  - Before/after comparison (for steps with replaces_step_id)
+  - Details (adhesive, drying time, source, pre-paint pill, tags)
+  - Notes (full text)
+  - Reference images (masonry two-column grid)
+- **Step completion flow**:
+  - Complete → auto-advance to next incomplete step
+  - Slim non-blocking "Capture your progress?" toast (auto-dismisses after 4s)
+  - Progress photo capture: file picker → copy to stash (reuses reference image infrastructure) → `progress_photos` table
+  - Un-complete: click completed marker → confirmation dialog
+- **Milestone card**: fires when all steps in a track are complete
+  - Options: Capture Photo, Add Note, Continue; stays until dismissed
+  - Milestone photo stored in stash → `milestone_photos` table; note appended to build log
 
 ### Deliverable
 The app is useful for a real build. Work through steps, mark them complete, capture photos.
+
+### Deferred to Phase 4
+- Drying timer service + floating bubble + Start Timer button
+- Annotation compositing on thumbnails (upgrade CSS-clip to Konva-render)
+- Annotation hint overlay on canvas
 
 ---
 
@@ -196,44 +230,36 @@ You can see the build structure, track progress visually, and get a quick summar
 
 ## Phase 4: Building Mode — Enrichment
 
-**Goal**: The full building experience — annotations, references, timers, and all workflow tools.
+**Goal**: The full building experience — annotations, timers, page mode, and all workflow tools. Builds on the core loop from Phase 3.
 
-### Page mode
-- Left rail switches to numbered page list; completion indicator per page (✓ = all done, · = partial)
-- Source selector at bottom of rail (switch between PDFs)
-- Instruction page shown with colored interactive regions per step (track color)
-- Click a region to select a step and load info bar; camera disabled until a step is selected
-- `◀ / ▶` arrows + page counter (`pg 4/18`) navigate pages; `Tab / Shift+Tab` as shortcuts
+### Drying timers (deferred from Phase 3)
+- Global timer service: Zustand slice (`activeTimers`, `addTimer`, `removeTimer`, `tickTimers`), setInterval-driven
+- Start Timer button in step panel (uses step's `drying_time_min`); `T` keyboard shortcut
+- Floating draggable bubble on canvas; position persists across sessions
+- Collapsed: all timer rows with progress bars; Expanded: full controls + "+ Add timer"
+- OS notification on completion; bubble pulses; completions auto-logged in build log
 
 ### Annotation tools
 - **Checkmarks**: click anywhere on instruction image to place a checkmark (no toolbar); persists on step
 - **Annotation toolbar** (`A`): circle, arrow, cross-out, highlight, freehand, text; auto-dismisses on step advance
+- Annotation hint overlay on canvas ("Click to place checkmark / Press A for annotations")
+- **Thumbnail compositing**: upgrade CSS-clipped thumbnails in building rail to Konva-rendered (includes annotation marks)
 
-### Reference images (`R`)
-- References strip opens alongside instruction image; tap thumbnail for split-screen view
-- `+ Add reference` imports a new reference image for the current step on the fly
-- Auto-dismisses on step advance
+### Page mode
+- Left rail switches to numbered page list; completion indicator per page (checkmark = all done, dot = partial)
+- Source selector at bottom of rail (switch between PDFs)
+- Instruction page shown with colored interactive regions per step (track color)
+- Click a region to select a step and load step panel; camera disabled until a step is selected
+- Arrow/page counter navigate pages; `Tab / Shift+Tab` as shortcuts
 
-### Info bar (complete)
-- Reference count badge (tappable)
-- Tags picker (predefined set)
+### Step panel enhancements
 - Paint references (tappable; editable in Building mode — populated in Phase 6)
-- ~~Quantity counter `4 / 12` with `+` / `−`~~ DONE (moved to Phase 2H)
-
-### Sub-steps in Building mode
-- Center shows parent overview; sub-step rail below image
-- Each sub-step has its own instruction image and complete button
-- Parent progress ring already shows sub-step completion (Phase 2H); parent completion remains manual
-
-### Drying timers
-- Floating draggable bubble; position persists across sessions
-- Start from step info bar (uses configured adhesive drying time) or from bubble (custom label + duration)
-- Collapsed: most urgent timer; Expanded: all active timers + dismiss buttons + "+ Add timer"
-- OS notification on completion; bubble pulses
-- Completions auto-logged in build log (`T` shortcut to start from current step)
+- ~~Quantity counter~~ DONE (Phase 2H setup + Phase 3C step panel)
+- ~~Reference images~~ DONE (Phase 3C step panel)
+- ~~Sub-step checklist~~ DONE (Phase 3C step panel)
 
 ### Deliverable
-The complete building experience. Annotations, references, timers, sub-steps, page mode — all workflow tools live.
+The complete building experience. Annotations, timers, page mode — all workflow tools live.
 
 ---
 

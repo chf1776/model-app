@@ -916,21 +916,44 @@ Frosted glass bar pinned to bottom center of canvas.
 
 ### 34. Build Zone — Building Mode (Pass 4)
 
-Building mode has two views (Track and Page) that share the same info bar and canvas. The step editor panel is not present; metadata is shown in the info bar.
+Building mode has two views (Track and Page) that share the same info bar and canvas. The step editor panel is not present; metadata is shown in the info bar. Setup/Building toggle is a SegmentedPill in the toolbar (Settings2/Hammer icons, `sm` size).
 
 #### 34.1 Track View Layout
-Left-to-right: Track rail (160px) | Instruction canvas (flex: 1) | Info bar (bottom).
+Left-to-right: Building rail (200px) | Canvas column (flex: 1, contains canvas + InfoBar + overlays).
 
-**Track rail (160px):**
-- Narrower than Setup's 180px (no drag handles, no competing step editor).
-- Same track list behavior as section 26.3: active track expanded with step list, others collapsed with completion fraction.
-- Step items: 2px left padding + step marker (14px) + title (9px). Active step highlighted with `#FFFFFF` background, radius 2px.
-- No drag handles in Building mode.
+**Building rail (200px):**
+Single-track view. Popover dropdown selector in the header switches between tracks. Step list below shows only the selected track's steps.
+
+**Rail header:**
+- Track selector (Popover + custom list). Closed state: 8px track color dot, track name (bold), done/total count, chevron right-aligned.
+- Open panel: project-wide total at top ("8/24 overall"), then all tracks listed. Each option: 8px color dot, name, done/total count. Selected track: tinted background, bold name in track color. Completed tracks: checkmark in success green (`#5A9A5F`) instead of count.
+
+**Step rows:**
+- Fixed row height. 6px vertical padding. Each row: thumbnail on left, step title on right.
+- **Thumbnails**: fixed height 36px, width varies by crop aspect ratio (wide: 54×36, square: 36×36, tall/full-page: 27×36). Rendered via offscreen Konva canvas (includes annotations). Eager batch-render on track load, cached in memory (`Map<stepId, dataURL>`), re-rendered on annotation change.
+- Thumbnail states: Done: 45% opacity, standard border. Active: full opacity, 1.5px accent border with subtle outer glow. Pending: full opacity, standard border.
+- Title states: Done: `text-tertiary`, weight 400. Active: accent color, weight 600; secondary line below: "Step N of M" in `text-tertiary` at 9px (top-level steps only). Pending: `text-primary`, weight 400.
+- Pre-paint flag: 5px amber dot (`#C4913A`), right-aligned in row. Tooltip on hover: "Pre-paint".
+- Sub-steps: indented rows below parent, expand/collapse when parent is active.
+- No editing controls (no add/delete/drag handles/context menu).
+
+**Join indicators:**
+Minimal inline rows between steps. Clickable — switches to that track + selects the join step.
+- Inbound (another track feeds in): 3px x 18px vertical bar in source track's color, down-arrow icon in same color, track name in `text-secondary`. If source track fully complete: bar and arrow render in success green with checkmark after name. Appears directly above the step it joins before. Multiple inbound joins at adjacent steps stack. 2px vertical margin.
+- Outbound (this track continues into another): right-arrow icon in `text-tertiary`, 3px x 18px bar in destination track's color, destination track name in `text-tertiary`. Shown at bottom of step list only on branch tracks with a `join_point_step_id` defined.
 
 **Canvas:**
-- Same as Setup (section 33.1) but without crop regions.
-- Shows the cropped instruction image for the current step, centered and zoomable/pannable.
-- Annotation hint: subtle text in top-right corner ("Click to place ✓ · Press A for annotations"), background `#FFFFFFCC`, padding 2px 6px, radius 4px.
+- Shows the **cropped instruction image** for the active step, fit-to-view by default, zoomable/pannable.
+- **Relation callout banner** (top of canvas): slim amber/warning banner when step has blocking relations. E.g. "Blocked by: Step 3 — Glue fuselage halves".
+- **Sub-step indicators**: numbered pills overlaid (filled accent = done, accent ring = current, gray outline = pending).
+- **Before/after toggle**: small toggle in top-left corner of crop image for steps with `replaces_step_id`. Two buttons: "Before" (muted) / "After" (active).
+- **Notes overlay**: semi-transparent bar floating at bottom of crop image (~80% dark background, white text). Dismissible with x button. Shows step notes as caption/subtitle.
+- **Quantity bottom strip**: below crop image. Horizontal row of pips (~10px circles). Filled accent = done, empty with border = remaining. +/- buttons on sides. ~24-30px height.
+- **Reference images area**: below quantity strip. Masonry/pinterest-style layout with reference image thumbnails (varied aspect ratios, thin borders, rounded corners). Compact (~100-120px tall).
+- **"Show Full Page" button**: icon button (expand icon) in top-right corner of crop. Opens full-screen modal: dimmed background, full instruction page centered, crop region highlighted with accent border.
+- **Floating timer bubble**: (Phase 4) bottom-right corner, floating above everything. Details in section 36.
+- **Annotation hint**: (Phase 4) subtle text in top-right corner. Details in section 34.5.
+- Step transitions: subtle crossfade between steps.
 
 #### 34.2 Page View Layout
 Left-to-right: Page rail (110px) | Instruction canvas (flex: 1) | Info bar (bottom).
@@ -948,46 +971,72 @@ Left-to-right: Page rail (110px) | Instruction canvas (flex: 1) | Info bar (bott
 - Clicking a region selects that step and loads it in the info bar.
 - No step selected: info bar shows placeholder text "Click a step region to view details."
 
-#### 34.3 Info Bar — Two-Row (Variant B)
-Fixed bar at the bottom of the workspace, below the canvas.
+#### 34.3 Navigation Bar
+Slim bar at the bottom of the canvas column, below the crop image. ~30px tall.
 
-**Row 1 (primary):** padding 5px 12px, border-top `1px solid #E5E0DA`, border-bottom `1px solid #E5E0DA`.
-- Track color dot (6px) + step title (12px/600 `#0C0A09`) — flex: 1
-- Timer button: timer icon (11px) + "Timer" label (9px tertiary). Starts drying timer for current step's adhesive.
-- Complete button: accent background, white text, 11px/600, padding 4px 14px, radius 6px. Check icon + "Complete". Keyboard: Space or Enter.
+- Border-top `1px solid #E5E0DA`, white background, padding 4px 12px.
+- Left: chevron-left button (ghost, 20x20px). Navigates to previous step.
+- Center: "Step 4 of 12" (11px, text-secondary) + 6px track color dot + track name (11px, text-secondary).
+- Right: chevron-right button (ghost, 20x20px). Navigates to next step.
+- Top-level step count only (sub-steps not counted).
 
-**Row 2 (metadata):** padding 4px 12px.
-- Adhesive type (10px tertiary)
-- Pre-paint flag: when set, semantic pill "Pre-paint" in warning color (`#C4913A` text, `#C4913A15` background, `1px solid #C4913A25`). Hidden when not set.
-- Quantity counter: only visible when step quantity > 1. Shows "2/12" (completed/total) in 10px monospace, with −/+ buttons (14×14px ghost icon buttons). Completion marker ring fills proportionally; text turns green at target. (Implemented in Phase 2H Setup mode editor panel; Building mode info bar in Phase 4.)
-- Tags (pill badges per section 31)
-- Separator
-- Notes preview (10px tertiary, flex: 1, ellipsis overflow, click to edit)
-- Reference count ("0 refs", 9px accent/500, clickable — opens reference strip)
-- Needed count: cart icon (9px warning) + "N needed" (9px/500 warning). Only visible when step uses wishlisted materials. Clickable — opens Needed popover. See `WISHLIST_FEATURE.md` section 4.
-- Paint count ("0 paints", 9px accent/500, clickable — opens paint references)
+#### 34.4 Step Panel (Right, 280px)
+Replaces the old two-row info bar. All step context and the completion action live here. Scrollable. Padding 12px. Sections separated by subtle dividers. Only sections with data are rendered.
 
-**Total info bar height:** ~52px (two rows of ~26px each).
+**Section 1 — Step Header + Completion:**
+- Track color dot (8px) + step title (13px/600, text-primary). Track name below (10px, text-tertiary).
+- Full-width "Complete" button: accent background, white text, check icon + "Complete", 12px/600, radius 6px, padding 8px. Keyboard: Space or Enter.
+- "Start Timer" button (Phase 4): secondary styled below Complete. Uses step's `drying_time_min`. See section 36.
+- Quantity tracker (only when quantity > 1): row of pips (10px circles, filled accent = done, empty = remaining), count in monospace, +/- buttons.
 
-#### 34.4 Annotation Layer (Track Mode Only)
+**Section 2 — Sub-steps** (only if step has children, expanded by default):
+- Header: "Sub-steps" (10px/600) + "1/3" count in text-tertiary.
+- Sub-step rows: completion marker (14px circle) + title (11px). Clickable to navigate.
+- States: done (filled marker, tertiary text, strikethrough), current (accent ring, accent text), pending (empty circle, text-primary).
+
+**Section 3 — Relations** (only if step has relations):
+- Header: "Relations" (10px/600).
+- Chips: "Blocked by" in amber styling, "Blocks access to" in accent styling. Clickable to navigate.
+
+**Section 4 — Before/After** (only if `replaces_step_id` is set):
+- Header: "Replaces Step N" (10px/600).
+- Stacked crop placeholders: "Before" (faded) and "After" (current, accent border). ~60px tall each.
+
+**Section 5 — Details:**
+- Metadata rows (10px): adhesive type, drying time, source page. Label in text-tertiary, value in text-primary.
+- Pre-paint pill (only if set): amber styled.
+- Tags: pill badges.
+
+**Section 6 — Notes** (only if notes exist):
+- Header: "Notes" (10px/600).
+- Full text (11px, text-primary, line-height 1.5).
+
+**Section 7 — Reference Images** (only if references attached):
+- Header: "References" (10px/600) + count badge.
+- Masonry two-column grid of thumbnails. Thin border, rounded corners. Captions (9px, text-tertiary).
+
+_The old two-row info bar spec (Variant B) is superseded by sections 34.3 + 34.4 above._
+
+~~**Old info bar (superseded by 34.3 + 34.4):**~~
+~~Row 1: track dot + title + timer button + complete button.~~
+~~Row 2: adhesive type, pre-paint pill, quantity counter, tags, notes preview, ref count, needed count, paint count.~~
+~~Total height ~52px.~~
+
+#### 34.5 Annotation Layer (Track Mode Only)
 - **Checkmarks:** Click anywhere on instruction image to place a ✓ mark. No toolbar required. Persists on the step.
 - **Annotation toolbar:** Triggered by pressing `A`. Appears as a horizontal floating pill above the canvas center.
   - Background: `#FFFFFFE0`, backdrop-filter blur(8px), radius 6px, border `1px solid #E5E0DA`, padding 3px.
   - Tools: circle, arrow, cross-out, highlight, freehand, text. Each as a 24×24px icon button. Active tool gets accent background.
   - Auto-dismisses on step advance.
 
-#### 34.5 Step Completion Flow
-1. User clicks Complete (or presses Space/Enter).
+#### 34.6 Step Completion Flow
+1. User clicks Complete in step panel (or presses Space/Enter).
 2. Step marker transitions to filled state. Next step becomes active.
 3. Slim non-blocking toast appears at bottom of canvas: "Capture your progress?" with camera icon + dismiss. Auto-dismisses after 4 seconds.
 4. If all steps in track complete: milestone card dialog (section 28) fires.
 
-#### 34.6 Reference Strip
-Triggered by clicking reference count in info bar, or pressing `R`.
-- Opens alongside instruction image (right side of canvas, 200px wide).
-- Shows reference image thumbnails stacked vertically. Click for split-screen view.
-- "+ Add reference" button at bottom (imports image for current step).
-- Auto-dismisses on step advance.
+#### 34.7 Reference Images
+Reference images are shown in the step panel (section 34.4, section 7) as a masonry two-column grid. Click a thumbnail to enlarge. The old reference strip (200px side panel) is superseded by the step panel's reference section.
 
 ### 35. Overview Zone (Pass 4)
 
@@ -1079,9 +1128,16 @@ Draggable, always-on-top element in Build zone. Position persists across session
 - **Multiple timers (collapsed):** All timers visible as rows. Most urgent (least time remaining) listed first. Card grows vertically to fit all rows (no scroll). At 4 timers the card is roughly 120px tall.
 
 #### 36.3 Starting Timers
-- From info bar: timer button starts timer using current step's adhesive drying time. Label auto-set to step title.
+- From step panel: "Start Timer" button (secondary styled) below Complete button. Uses current step's `drying_time_min`. Label auto-set to step title. When no drying time configured, prompts for custom duration.
 - From bubble: "+ Add timer" with custom label and duration.
 - Keyboard shortcut: `T` starts timer for current step.
+
+#### 36.4 Timer Service (Global)
+- Timers are managed by a global Zustand slice (or section of build-slice): `activeTimers`, `addTimer()`, `removeTimer()`, `tickTimers()`.
+- A `setInterval` drives the countdown (1s tick). Multiple timers can run concurrently.
+- Timers persist across step/track navigation — the floating bubble is always visible in Build zone.
+- Timers are ephemeral (lost on app restart). DB persistence deferred.
+- Timer completions auto-log to build log and fire OS notifications.
 
 ---
 
