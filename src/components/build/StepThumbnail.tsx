@@ -1,0 +1,104 @@
+import { useRef, useEffect, useState } from "react";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import type { Step, InstructionPage } from "@/shared/types";
+
+const THUMB_H = 36;
+
+interface StepThumbnailProps {
+  step: Step;
+  page: InstructionPage | undefined;
+  isActive: boolean;
+  isCompleted: boolean;
+}
+
+export function StepThumbnail({ step, page, isActive, isCompleted }: StepThumbnailProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [size, setSize] = useState({ w: THUMB_H, h: THUMB_H });
+
+  const hasCrop =
+    step.crop_x != null &&
+    step.crop_y != null &&
+    step.crop_w != null &&
+    step.crop_h != null;
+
+  useEffect(() => {
+    if (!page || !hasCrop) return;
+
+    let aborted = false;
+    const img = new Image();
+
+    img.onload = () => {
+      if (aborted || !canvasRef.current) return;
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const rotation = page.rotation ?? 0;
+      const cropX = step.crop_x!;
+      const cropY = step.crop_y!;
+      const cropW = step.crop_w!;
+      const cropH = step.crop_h!;
+
+      const rad = (rotation * Math.PI) / 180;
+      const cos = Math.abs(Math.cos(rad));
+      const sin = Math.abs(Math.sin(rad));
+      const effectiveW = cropW * cos + cropH * sin;
+      const effectiveH = cropW * sin + cropH * cos;
+
+      const scale = THUMB_H / effectiveH;
+      const drawW = Math.round(effectiveW * scale);
+      const drawH = THUMB_H;
+
+      canvas.width = drawW;
+      canvas.height = drawH;
+      setSize({ w: drawW, h: drawH });
+
+      ctx.clearRect(0, 0, drawW, drawH);
+      ctx.save();
+      ctx.translate(drawW / 2, drawH / 2);
+      ctx.rotate(rad);
+      ctx.drawImage(
+        img,
+        cropX, cropY, cropW, cropH,
+        (-cropW * scale) / 2,
+        (-cropH * scale) / 2,
+        cropW * scale,
+        cropH * scale,
+      );
+      ctx.restore();
+    };
+
+    img.src = convertFileSrc(page.file_path);
+
+    return () => {
+      aborted = true;
+      img.src = "";
+    };
+  }, [page, hasCrop, step.crop_x, step.crop_y, step.crop_w, step.crop_h]);
+
+  if (!hasCrop || !page) {
+    return (
+      <div
+        className="flex items-center justify-center rounded bg-black/[0.03] text-[8px] text-text-tertiary"
+        style={{ width: THUMB_H, height: THUMB_H }}
+      >
+        No crop
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="shrink-0 overflow-hidden rounded"
+      style={{
+        width: size.w,
+        height: size.h,
+        opacity: isCompleted ? 0.45 : 1,
+        outline: isActive ? "1.5px solid var(--color-accent)" : "1px solid var(--color-border)",
+        boxShadow: isActive ? "0 0 4px var(--color-accent)/30" : undefined,
+      }}
+    >
+      <canvas ref={canvasRef} className="block" />
+    </div>
+  );
+}

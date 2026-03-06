@@ -15,6 +15,8 @@ import { TrackRail } from "@/components/build/TrackRail";
 import { StepEditorPanel } from "@/components/build/StepEditorPanel";
 import { KeyboardShortcutsDialog } from "@/components/build/KeyboardShortcutsDialog";
 import { NavigationBar } from "@/components/build/NavigationBar";
+import { BuildingRail } from "@/components/build/BuildingRail";
+import { CropCanvas } from "@/components/build/CropCanvas";
 import { getOrderedTrackSteps } from "@/components/build/tree-utils";
 import { useUploadPdf } from "@/components/build/useUploadPdf";
 
@@ -233,30 +235,43 @@ export default function BuildRoute() {
       />
 
       <div className="flex flex-1 overflow-hidden">
-        {buildMode === "setup" && <TrackRail />}
+        {buildMode === "setup" ? (
+          <>
+            <TrackRail />
 
-        <div className="relative flex min-w-0 flex-1 flex-col bg-[#E8E4DF]">
-          <div className="relative min-h-0 flex-1">
-            {isProcessingPdf && <ProcessingOverlay />}
+            <div className="relative flex min-w-0 flex-1 flex-col bg-[#E8E4DF]">
+              <div className="relative min-h-0 flex-1">
+                {isProcessingPdf && <ProcessingOverlay />}
 
-            {sourceManagerOpen && buildMode === "setup" && (
-              <SourceManagerPanel onClose={() => setSourceManagerOpen(false)} />
-            )}
+                {sourceManagerOpen && (
+                  <SourceManagerPanel onClose={() => setSourceManagerOpen(false)} />
+                )}
 
-            {hasSources ? (
-              <>
-                <InstructionCanvas />
-                <PageNavigator />
-              </>
-            ) : (
-              <EmptyInstructionsState onUpload={handleUploadPdf} />
-            )}
-          </div>
+                {hasSources ? (
+                  <>
+                    <InstructionCanvas />
+                    <PageNavigator />
+                  </>
+                ) : (
+                  <EmptyInstructionsState onUpload={handleUploadPdf} />
+                )}
+              </div>
+            </div>
 
-          {buildMode === "building" && <NavigationBar />}
-        </div>
+            {activeStepId && <StepEditorPanel />}
+          </>
+        ) : (
+          <>
+            <BuildingRail />
 
-        {buildMode === "setup" && activeStepId && <StepEditorPanel />}
+            <div className="relative flex min-w-0 flex-1 flex-col bg-[#E8E4DF]">
+              <div className="relative min-h-0 flex-1">
+                <CropCanvas />
+              </div>
+              <NavigationBar />
+            </div>
+          </>
+        )}
       </div>
 
       <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />

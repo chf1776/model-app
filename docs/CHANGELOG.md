@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-03-06 — Phase 3B: Building Rail & Crop Canvas
+
+### Added
+- **BuildingRail**: Single-track step list (200px) with Popover track selector dropdown showing project-wide progress, per-track done/total counts, and completed track checkmarks
+- **Step thumbnails**: Canvas-rendered crop thumbnails (36px height) in building rail step rows with opacity states (45% for completed, full + accent glow for active)
+- **Building rail step rows**: Completion marker, thumbnail, title with "Step N of M" secondary line on active step, pre-paint amber dot indicator
+- **Sub-step expansion**: Sub-steps visible beneath parent when parent step is active
+- **Join point indicators**: Incoming (source track color bar + arrow + name) and outgoing (arrow + destination color bar + name) inline markers, clickable to navigate across tracks
+- **CropCanvas**: Dedicated canvas showing only the active step's crop region, fit-to-view by default with zoom/pan support
+- **Show Full Page modal**: Expand button on crop canvas opens full-screen instruction page with crop region highlighted and surrounding area dimmed
+- **NavigationBar**: Enhanced with track color dot and track name alongside step counter; counts root steps only (excludes sub-steps)
+- **StepThumbnail**: Reusable component rendering CSS-clipped crop images from instruction page PNGs with rotation support
+- **`getOrderedTrackSteps` utility**: Shared helper in tree-utils.ts for filtered+sorted track step lists
+
 ## [0.3.0] — 2026-03-06 — Phase 3A: Mode Toggle & Building Layout
 
 ### Added

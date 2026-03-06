@@ -4,24 +4,28 @@ import { getOrderedTrackSteps } from "./tree-utils";
 
 export function NavigationBar() {
   const steps = useAppStore((s) => s.steps);
+  const tracks = useAppStore((s) => s.tracks);
   const activeStepId = useAppStore((s) => s.activeStepId);
   const activeTrackId = useAppStore((s) => s.activeTrackId);
   const setActiveStep = useAppStore((s) => s.setActiveStep);
 
+  const activeTrack = tracks.find((t) => t.id === activeTrackId);
   const trackSteps = getOrderedTrackSteps(steps, activeTrackId);
+  // Count only root steps for navigation
+  const rootSteps = trackSteps.filter((s) => !s.parent_step_id);
 
-  const currentIndex = trackSteps.findIndex((s) => s.id === activeStepId);
-  const total = trackSteps.length;
+  const currentIndex = rootSteps.findIndex((s) => s.id === activeStepId);
+  const total = rootSteps.length;
 
   const goPrev = () => {
     if (currentIndex > 0) {
-      setActiveStep(trackSteps[currentIndex - 1].id);
+      setActiveStep(rootSteps[currentIndex - 1].id);
     }
   };
 
   const goNext = () => {
     if (currentIndex < total - 1) {
-      setActiveStep(trackSteps[currentIndex + 1].id);
+      setActiveStep(rootSteps[currentIndex + 1].id);
     }
   };
 
@@ -36,8 +40,19 @@ export function NavigationBar() {
       >
         <ChevronLeft className="h-3.5 w-3.5" />
       </button>
-      <span className="text-[11px] tabular-nums text-text-secondary">
-        Step {currentIndex >= 0 ? currentIndex + 1 : "—"} of {total}
+      <span className="flex items-center gap-1.5 text-[11px] text-text-secondary">
+        <span className="tabular-nums">
+          Step {currentIndex >= 0 ? currentIndex + 1 : "—"} of {total}
+        </span>
+        {activeTrack && (
+          <>
+            <span
+              className="inline-block h-[6px] w-[6px] rounded-full"
+              style={{ backgroundColor: activeTrack.color }}
+            />
+            <span className="text-text-tertiary">{activeTrack.name}</span>
+          </>
+        )}
       </span>
       <button
         onClick={goNext}
