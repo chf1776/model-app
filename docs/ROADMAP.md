@@ -118,14 +118,20 @@ Full collection management. All three entity types, wishlists with pricing, pain
 - Undo last crop (Cmd+Z)
 - Keyboard shortcut help dialog (?)
 
-### Phase 2F (IN PROGRESS): Tags, References, Sub-steps, Join Points & Relations
-- ~~Tags: predefined tag library, tag picker in step editor, step_tags persistence~~ DONE
-- ~~Reference image attachments: per-step reference images, file picker, display in editor panel~~ DONE
-- ~~Sub-steps: "Add sub-step" in step editor, nested indentation in rail, drag-to-nest/un-nest, drag/reorder within parent~~ DONE
-- ~~Track join point: set the step on another track where this subassembly merges~~ DONE
-- ~~Step relations: "Blocked by" / "Blocks access to", replaces step — bidirectional display with semantic labels, editable from both ends, chip navigation~~ DONE
-- ~~Sub-step progress ring: circular progress arc on parent completion marker fills as sub-steps complete (informational, no auto-completion)~~ DONE
-- ~~Quantity counter: +/− buttons in step editor, fraction label on rail, progress ring fills proportionally~~ DONE
+### Phase 2F (COMPLETE): Tags, Reference Images & Drag-to-Nest — v0.2.5–v0.2.6
+- Tags: predefined tag library, tag picker in step editor, step_tags persistence
+- Reference image attachments: per-step reference images, file picker, thumbnails, captions, display in editor panel
+- Sub-steps: "Add sub-step" in step editor, nested indentation in rail, drag-to-nest/un-nest with drop indicator, drag/reorder within parent
+
+### Phase 2G (COMPLETE): Join Point Indicators & Crop-to-Step — v0.2.7
+- Track join points: incoming/outgoing directional markers with color bars, collapsed label
+- Crop-to-existing-step: click empty crop preview to assign crop to existing step
+- Crop tool always creates root-level steps
+
+### Phase 2H (COMPLETE): Step Relations, Progress Ring & Quantity Counter — v0.2.8
+- Step relations: "Blocked by" / "Blocks access to", replaces step — bidirectional display with semantic labels, editable from both ends, chip navigation
+- Sub-step progress ring: circular progress arc on parent completion marker fills as sub-steps complete (informational, no auto-completion)
+- Quantity counter: +/− buttons in step editor, fraction label on rail, progress ring fills proportionally
 
 ### Deferred to Phase 4+
 - Image cleanup: paint-over mask per step stored as a layer; source image never modified (full UX in Phase 4 Building mode)
