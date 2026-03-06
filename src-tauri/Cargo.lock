@@ -2231,7 +2231,7 @@ dependencies = [
 
 [[package]]
 name = "model-builder-assistant"
-version = "0.2.0"
+version = "0.2.8"
 dependencies = [
  "mupdf",
  "refinery",

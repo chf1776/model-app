@@ -7,9 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+## [0.2.8] — 2026-03-05 — Phase 2H: Step Relations, Progress Ring & Quantity Counter
 
-#### Phase 2H: Step Relations, Progress Ring & Quantity Counter
+### Added
 - **Step relations**: "Blocked by" and "Blocks access to" relation types between steps, with step picker UI in the editor panel grouped by track with search filtering
 - **Bidirectional relation display**: Relations shown from both sides with semantic labels — "Blocked by" ↔ "Blocks", "Blocks access to" ↔ "Access blocked by" — editable and removable from either end
 - **Relation chip navigation**: Click a relation chip to navigate to the linked step; click X to remove the relation
@@ -20,7 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Quantity current persistence**: `quantity_current` field added to `UpdateStepInput` (Rust + TypeScript) for increment/decrement support
 - **Nullable field clearing**: `replaces_step_id` uses `Option<Option<String>>` pattern to distinguish "not provided" from "explicitly set to null"
 
-#### Phase 2G: Join Point Indicators & Crop-to-Step
+## [0.2.7] — 2026-03-05 — Phase 2G: Join Point Indicators & Crop-to-Step
+
+### Added
 - **Incoming join point markers**: Target tracks now show an inline divider at the join point step with the source track's color bar and name, making both ends of a join visible
 - **Outgoing join point markers**: Source tracks show a directional marker at the end of their step list with an arrow and the target track's color bar
 - **Directional join point icons**: Replaced ambiguous GitMerge icons with arrow + colored bar indicators — bar position (left vs right of arrow) distinguishes incoming from outgoing
@@ -32,7 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Crop tool creating sub-steps (Step 1.1, 2.1) instead of sequential root steps
 
-#### Phase 2F: Tags, Reference Images & Drag-to-Nest
+## [0.2.6] — 2026-03-04 — Phase 2F: Tags, Reference Images & Drag-to-Nest
+
+### Added
 - **Drag-to-nest**: Drag a step horizontally in the track rail to change its nesting depth — drag right to nest under the item above, drag left to un-nest to root level. Uses dnd-kit SortableTree-style projection from horizontal offset
 - **Drop indicator line**: Accent-colored line with circle marker shows at the projected depth during drag, giving real-time visual feedback for nest/un-nest operations
 - **Auto-rename on nest/un-nest**: Steps with auto-generated titles (e.g. "Step 3", "Step 2.1") are automatically renamed to match their new context when nesting changes
@@ -48,7 +52,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Reference image deletion**: Hover-to-reveal X button removes image from database and stash
 - **Reference images backend**: Full Rust data layer — queries, commands with file stash integration, TypeScript types, API wrappers, and Zustand store with targeted add/update/remove actions
 
-#### Phase 2E-continued: Cross-Track Drag-and-Drop & Track Expansion
+## [0.2.5] — 2026-03-03 — Phase 2E: Cross-Track Drag-and-Drop & Track Expansion
+
+### Added
 - **Cross-track drag-and-drop**: Drag steps between tracks directly in the rail — single steps or multi-selected groups. Steps insert at the drop position in the target track with automatic reordering of both source and target tracks
 - **Multi-track expansion**: Multiple tracks can now show their step lists simultaneously. Click a track header to toggle its expansion; Cmd+click to expand exclusively (collapsing all others)
 - **Expand/collapse all buttons**: Two state-aware icon buttons in the track rail header — expand all (highlighted when all tracks open) and collapse all (highlighted when all tracks closed)
@@ -58,7 +64,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - **Move to Track menu**: Removed the dropdown submenu for moving steps between tracks — superseded by direct drag-and-drop
 
-#### Phase 2C: Canvas Crop Tool & Step Creation
+## [0.2.4] — 2026-03-03 — Phase 2D-remaining: Selection, Editing & Polish
+
+### Added
+- **Track reassignment**: Change a step's track via the editor dropdown — step moves to end of destination track, step counts refresh on both tracks, destination track auto-expands in the rail
+- **Bidirectional rail↔canvas sync**: Clicking a step in the rail navigates the canvas to its page and highlights the crop region; clicking a crop region on the canvas expands the step's track and selects it
+- **Crop preview**: Canvas-rendered thumbnail of the step's cropped+rotated region in the editor panel, with skeleton loading state, "Page N" badge, and click-to-navigate
+- **Page number badges**: Steps with crop regions show a subtle "P3" badge in the rail indicating which instruction page they reference
+- **Step editor panel**: Widened from 220px to 260px for better readability; canvas container fixed with `min-w-0` to prevent editor panel clipping
+
+## [0.2.3] — 2026-03-03 — Phase 2D: Crop Region Resize & Reposition
+
+### Added
+- **Resize handles**: Selected crop regions show 8 Konva Transformer handles (corners + edges) for precise resizing
+- **Drag to reposition**: Selected crop regions are draggable to adjust position on the instruction page
+- **Inverse coordinate conversion**: `effectiveToImage` converts effective-space (post-rotation) coordinates back to image-space for database storage
+- **Zoom-independent handles**: Anchor size, stroke width, and corner radius scale inversely with zoom to maintain constant visual size
+- **Minimum crop size**: Enforced 5px minimum in both dimensions via Transformer `boundBoxFunc`
+
+## [0.2.2] — 2026-03-02 — Phase 2C: Canvas Crop Tool & Step Creation
+
+### Added
 - **Selection-first step creation**: Draw a rectangle on the instruction PDF canvas to instantly create a step on the active track — the primary way to create steps
 - **Canvas mode toggle**: View mode (pan/zoom) and Crop mode (draw crops) with toolbar buttons and keyboard shortcuts (V/C)
 - **Crop regions on canvas**: All crop regions visible on the current page with track-colored borders, semi-transparent fills, and corner labels showing track abbreviation + step number
@@ -69,21 +95,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **useCropDrawing hook**: State machine for crop drawing with stage-to-image coordinate conversion supporting all rotation angles (0/90/180/270)
 - **Canvas mode state**: `canvasMode` in build-slice with guard preventing crop mode without an active track
 
-#### Phase 2D-remaining: Selection, Editing & Polish
-- **Track reassignment**: Change a step's track via the editor dropdown — step moves to end of destination track, step counts refresh on both tracks, destination track auto-expands in the rail
-- **Bidirectional rail↔canvas sync**: Clicking a step in the rail navigates the canvas to its page and highlights the crop region; clicking a crop region on the canvas expands the step's track and selects it
-- **Crop preview**: Canvas-rendered thumbnail of the step's cropped+rotated region in the editor panel, with skeleton loading state, "Page N" badge, and click-to-navigate
-- **Page number badges**: Steps with crop regions show a subtle "P3" badge in the rail indicating which instruction page they reference
-- **Step editor panel**: Widened from 220px to 260px for better readability; canvas container fixed with `min-w-0` to prevent editor panel clipping
+## [0.2.1] — 2026-03-02 — Phase 2B: Track & Step Foundation
 
-#### Phase 2D: Crop Region Resize & Reposition
-- **Resize handles**: Selected crop regions show 8 Konva Transformer handles (corners + edges) for precise resizing
-- **Drag to reposition**: Selected crop regions are draggable to adjust position on the instruction page
-- **Inverse coordinate conversion**: `effectiveToImage` converts effective-space (post-rotation) coordinates back to image-space for database storage
-- **Zoom-independent handles**: Anchor size, stroke width, and corner radius scale inversely with zoom to maintain constant visual size
-- **Minimum crop size**: Enforced 5px minimum in both dimensions via Transformer `boundBoxFunc`
-
-#### Phase 2B: Track & Step Foundation
+### Added
 - **Track & step backend**: Full Rust data layer for tracks and steps — CRUD queries, Tauri commands, TypeScript types, API wrappers, and Zustand store integration
 - **Three-panel build layout**: Build zone now has TrackRail (left) | Canvas (center) | StepEditorPanel (right) layout
 - **Track rail UI**: 200px left panel with track list, add/rename/change-color/delete dialogs, progress bars, and empty state
@@ -91,8 +105,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Active track toolbar**: Selected track shown with color dot + name in the build toolbar
 - **Step editor panel**: 220px right sidebar with title, track, adhesive, source type, pre-paint toggle, notes, and advanced fields (quantity, drying time)
 - **Step UI components**: StepItem, StepCompletionMarker for track rail display
-
-#### Other
 - **Paint group expand/collapse all**: Toolbar buttons to expand or collapse all paint group sections at once
 - **Persistent paint group state**: Expanded/collapsed state for paint groups survives tab switches; uses a base+overrides model so expand/collapse all sets the default for new groups too
 - **Lazy image loading**: Kit box art and accessory thumbnails now use `loading="lazy"`

@@ -1,7 +1,7 @@
 {
   "name": "model-builder-assistant",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.8",
   "type": "module",
   "scripts": {
     "dev": "vite",
