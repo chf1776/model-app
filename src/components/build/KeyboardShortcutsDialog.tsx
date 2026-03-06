@@ -64,6 +64,11 @@ export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcut
             <ShortcutRow keys={<Kbd>Esc</Kbd>} label="Deselect / exit mode" />
           </Section>
 
+          <Section title="Building Mode">
+            <ShortcutRow keys={<><Kbd>Space</Kbd> / <Kbd>Enter</Kbd></>} label="Complete step" />
+            <ShortcutRow keys={<><Kbd>↑</Kbd> / <Kbd>↓</Kbd></>} label="Previous / next step" />
+          </Section>
+
           <Section title="Editing">
             <ShortcutRow keys={<><Kbd>{modKey}</Kbd> <Kbd>Z</Kbd></>} label="Undo last crop" />
             <ShortcutRow keys={<><Kbd>{modKey}</Kbd> click</>} label="Multi-select steps" />

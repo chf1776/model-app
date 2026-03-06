@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-03-06 — Phase 3C: Step Panel & Completion Flow
+
+### Added
+- **BuildingStepPanel**: Read-only 280px right panel in building mode showing all step context — header with track dot/name, completion button, quantity tracker with pips, sub-step checklist, relations (blocked by, blocks, blocks access to, access blocked by), replaces link, details (adhesive, drying time, source, pre-paint pill, tags), notes, and reference images in masonry grid
+- **Step completion flow**: Complete button toggles completion state; on completion, auto-advances to next incomplete step in flat walk order (wrapping around)
+- **`completeActiveStep` store action**: Centralized completion + auto-advance logic shared by panel button and keyboard shortcut
+- **Space/Enter keyboard shortcut**: Completes the active step in building mode
+- **Keyboard shortcuts dialog**: Added "Building Mode" section with Space/Enter and arrow key shortcuts
+
 ## [0.3.1] — 2026-03-06 — Phase 3B: Building Rail & Crop Canvas
 
 ### Added

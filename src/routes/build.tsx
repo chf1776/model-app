@@ -16,6 +16,7 @@ import { StepEditorPanel } from "@/components/build/StepEditorPanel";
 import { KeyboardShortcutsDialog } from "@/components/build/KeyboardShortcutsDialog";
 import { NavigationBar } from "@/components/build/NavigationBar";
 import { BuildingRail } from "@/components/build/BuildingRail";
+import { BuildingStepPanel } from "@/components/build/BuildingStepPanel";
 import { CropCanvas } from "@/components/build/CropCanvas";
 import { flattenTrackSteps } from "@/components/build/tree-utils";
 import { useUploadPdf } from "@/components/build/useUploadPdf";
@@ -46,6 +47,7 @@ export default function BuildRoute() {
   const loadTracks = useAppStore((s) => s.loadTracks);
   const pushUndo = useAppStore((s) => s.pushUndo);
   const undoLastCrop = useAppStore((s) => s.undoLastCrop);
+  const completeActiveStep = useAppStore((s) => s.completeActiveStep);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [sourceManagerOpen, setSourceManagerOpen] = useState(false);
@@ -83,8 +85,13 @@ export default function BuildRoute() {
         return;
       }
 
-      // Building mode navigation
+      // Building mode navigation + completion
       if (buildMode === "building") {
+        if ((e.key === " " || e.key === "Enter") && activeStepId) {
+          e.preventDefault();
+          completeActiveStep();
+          return;
+        }
         const ordered = flattenTrackSteps(steps, activeTrackId);
         const idx = ordered.findIndex((s) => s.id === activeStepId);
         switch (e.key) {
@@ -188,7 +195,7 @@ export default function BuildRoute() {
       setCanvasMode, canvasMode, activeStepId, setActiveStep, activeTrackId,
       selectedStepIds, clearSelectedSteps,
       currentSourcePages, currentPageIndex, steps, addStep, pushUndo, activeProjectId, loadTracks,
-      undoLastCrop,
+      undoLastCrop, completeActiveStep,
     ],
   );
 
@@ -270,6 +277,8 @@ export default function BuildRoute() {
               </div>
               <NavigationBar />
             </div>
+
+            {activeStepId && <BuildingStepPanel />}
           </>
         )}
       </div>

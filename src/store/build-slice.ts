@@ -3,6 +3,7 @@ import type { Project, InstructionSource, InstructionPage, Track, Step, Tag, Ste
 import type { AppStore } from "./index";
 import * as api from "@/api";
 import { toast } from "sonner";
+import { flattenTrackSteps } from "@/components/build/tree-utils";
 
 export type CanvasMode = "view" | "crop";
 export type BuildMode = "setup" | "building";
@@ -99,6 +100,7 @@ export interface BuildSlice {
   // Build mode
   buildMode: BuildMode;
   setBuildMode: (mode: BuildMode) => void;
+  completeActiveStep: () => Promise<void>;
 
   // Canvas mode
   canvasMode: CanvasMode;
@@ -583,6 +585,41 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
 
   requestFitToView: () => {
     set((s) => ({ fitToViewTrigger: s.fitToViewTrigger + 1 }));
+  },
+
+  completeActiveStep: async () => {
+    const state = get();
+    const { activeStepId, steps, activeTrackId, activeProjectId } = state;
+    if (!activeStepId) return;
+    const step = steps.find((s) => s.id === activeStepId);
+    if (!step) return;
+
+    try {
+      const updated = await api.updateStep({
+        id: step.id,
+        is_completed: !step.is_completed,
+      });
+      set((s) => ({
+        steps: s.steps.map((st) => (st.id === updated.id ? updated : st)),
+      }));
+      if (activeProjectId) get().loadTracks(activeProjectId);
+
+      // Auto-advance to next incomplete step on completion
+      if (!step.is_completed) {
+        const flatSteps = flattenTrackSteps(get().steps, activeTrackId);
+        const currentIdx = flatSteps.findIndex((s) => s.id === step.id);
+        const candidates = [
+          ...flatSteps.slice(currentIdx + 1),
+          ...flatSteps.slice(0, currentIdx),
+        ];
+        const nextIncomplete = candidates.find((s) => !s.is_completed);
+        if (nextIncomplete) {
+          get().setActiveStep(nextIncomplete.id);
+        }
+      }
+    } catch (e) {
+      toast.error(`Failed to update step: ${e}`);
+    }
   },
 
   setBuildMode: async (mode) => {
