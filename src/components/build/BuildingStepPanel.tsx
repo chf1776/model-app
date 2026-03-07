@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check } from "lucide-react";
+import { Check, Camera } from "lucide-react";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
 import { toast } from "sonner";
 import { useAppStore } from "@/store";
 import * as api from "@/api";
@@ -15,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ADHESIVE_TYPE_LABELS } from "@/shared/types";
+import { ADHESIVE_TYPE_LABELS, IMAGE_FILE_FILTER } from "@/shared/types";
 import type { Step } from "@/shared/types";
 import { StepCompletionMarker } from "./StepCompletionMarker";
 import { parseStepRelations } from "./tree-utils";
@@ -82,6 +83,21 @@ export function BuildingStepPanel() {
     }
   };
 
+  const handleAddProgressPhoto = async () => {
+    const path = await open({
+      multiple: false,
+      filters: [IMAGE_FILE_FILTER],
+    });
+    if (path) {
+      try {
+        await api.addProgressPhoto(step.id, path);
+        toast.success("Progress photo saved");
+      } catch (e) {
+        toast.error(`Failed to save photo: ${e}`);
+      }
+    }
+  };
+
   const handleToggleSubStep = async (child: Step) => {
     try {
       const updated = await api.updateStep({
@@ -125,17 +141,26 @@ export function BuildingStepPanel() {
               </div>
             </div>
 
-            <button
-              onClick={handleComplete}
-              className={`flex w-full items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${
-                step.is_completed
-                  ? "bg-success text-white hover:bg-success/90"
-                  : "bg-accent text-white hover:bg-accent-hover"
-              }`}
-            >
-              <Check className="h-3.5 w-3.5" />
-              {step.is_completed ? "Completed" : "Complete"}
-            </button>
+            <div className="flex gap-1.5">
+              <button
+                onClick={handleComplete}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${
+                  step.is_completed
+                    ? "bg-success text-white hover:bg-success/90"
+                    : "bg-accent text-white hover:bg-accent-hover"
+                }`}
+              >
+                <Check className="h-3.5 w-3.5" />
+                {step.is_completed ? "Completed" : "Complete"}
+              </button>
+              <button
+                onClick={handleAddProgressPhoto}
+                className="flex items-center justify-center rounded-md border border-border px-2 py-2 text-text-secondary hover:bg-muted/50 hover:text-accent"
+                title="Add progress photo"
+              >
+                <Camera className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
 
           {/* Section 2: Quantity Tracker */}

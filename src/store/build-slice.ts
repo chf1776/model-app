@@ -102,9 +102,7 @@ export interface BuildSlice {
   setBuildMode: (mode: BuildMode) => void;
   completeActiveStep: () => Promise<void>;
 
-  // Progress photo + milestone
-  pendingProgressPhotoStepId: string | null;
-  clearPendingProgressPhoto: () => void;
+  // Milestone
   pendingMilestone: { trackId: string; trackName: string; trackColor: string } | null;
   dismissMilestone: () => void;
 
@@ -136,7 +134,6 @@ const DEFAULT_BUILD_STATE = {
   stepRelations: {} as Record<string, StepRelation[]>,
   stepReferenceImages: {} as Record<string, ReferenceImage[]>,
   buildMode: "setup" as BuildMode,
-  pendingProgressPhotoStepId: null as string | null,
   pendingMilestone: null as { trackId: string; trackName: string; trackColor: string } | null,
 };
 
@@ -356,6 +353,10 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
           if (pageIdx >= 0 && pageIdx !== state.currentPageIndex) {
             update.currentPageIndex = pageIdx;
           }
+        }
+        // Reset viewer so CropCanvas re-centers on the new step
+        if (state.buildMode === "building") {
+          Object.assign(update, DEFAULT_VIEWER_STATE);
         }
         set(update);
         // Persist track change to DB
@@ -642,13 +643,9 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
           }
           set({
             pendingMilestone: { trackId: track.id, trackName: track.name, trackColor: track.color },
-            pendingProgressPhotoStepId: step.id,
           });
           return;
         }
-
-        // Set pending progress photo for toast
-        set({ pendingProgressPhotoStepId: step.id });
 
         // Auto-advance to next incomplete step
         const flatSteps = flattenTrackSteps(get().steps, activeTrackId);
@@ -665,10 +662,6 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     } catch (e) {
       toast.error(`Failed to update step: ${e}`);
     }
-  },
-
-  clearPendingProgressPhoto: () => {
-    set({ pendingProgressPhotoStepId: null });
   },
 
   dismissMilestone: () => {
@@ -693,9 +686,10 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
 
     const updates: Partial<BuildSlice> = { buildMode: mode };
 
-    // Force canvas back to view mode when entering building
+    // Force canvas back to view mode and reset viewer when entering building
     if (mode === "building") {
       updates.canvasMode = "view" as CanvasMode;
+      Object.assign(updates, DEFAULT_VIEWER_STATE);
 
       // Auto-select first incomplete step if none active
       if (!state.activeStepId) {

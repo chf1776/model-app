@@ -1,6 +1,16 @@
-import { useMemo, useRef, useEffect, forwardRef } from "react";
+import { useMemo, useRef, useEffect, useState, forwardRef } from "react";
 import { ChevronDown, Check, ArrowRight, ArrowDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAppStore } from "@/store";
 import type { Step, Track, InstructionPage } from "@/shared/types";
 import { getOrderedTrackSteps, buildChildrenMap } from "./tree-utils";
@@ -88,17 +98,45 @@ export function BuildingRail() {
     }
   }, [activeStepId]);
 
+  const completeActiveStep = useAppStore((s) => s.completeActiveStep);
+  const [uncompleteStep, setUncompleteStep] = useState<Step | null>(null);
+
   const handleToggleComplete = async (step: Step) => {
+    if (step.is_completed) {
+      setUncompleteStep(step);
+      return;
+    }
+    // For active step, use the full completion flow (logging, milestone, etc.)
+    if (step.id === activeStepId) {
+      completeActiveStep();
+      return;
+    }
+    // For non-active steps, simple toggle
     try {
       const updated = await api.updateStep({
         id: step.id,
-        is_completed: !step.is_completed,
+        is_completed: true,
       });
       updateStepStore(updated);
       if (activeProjectId) loadTracks(activeProjectId);
     } catch (e) {
       toast.error(`Failed to update step: ${e}`);
     }
+  };
+
+  const confirmUncomplete = async () => {
+    if (!uncompleteStep) return;
+    try {
+      const updated = await api.updateStep({
+        id: uncompleteStep.id,
+        is_completed: false,
+      });
+      updateStepStore(updated);
+      if (activeProjectId) loadTracks(activeProjectId);
+    } catch (e) {
+      toast.error(`Failed to update step: ${e}`);
+    }
+    setUncompleteStep(null);
   };
 
   if (tracks.length === 0) {
@@ -264,6 +302,23 @@ export function BuildingRail() {
           </div>
         )}
       </div>
+
+      <AlertDialog open={!!uncompleteStep} onOpenChange={(open) => !open && setUncompleteStep(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Un-complete this step?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark <span className="font-medium">{uncompleteStep?.title}</span> as incomplete.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmUncomplete}>
+              Un-complete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

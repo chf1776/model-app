@@ -1,51 +1,91 @@
-import { useState } from "react";
-import { Camera, MessageSquare, ArrowRight } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Camera, ArrowRight, X } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { toast } from "sonner";
 import { useAppStore } from "@/store";
 import * as api from "@/api";
 import { IMAGE_FILE_FILTER } from "@/shared/types";
+
+const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp"];
 
 export function MilestoneDialog() {
   const milestone = useAppStore((s) => s.pendingMilestone);
   const dismissMilestone = useAppStore((s) => s.dismissMilestone);
   const activeProjectId = useAppStore((s) => s.activeProjectId);
 
-  const [showNote, setShowNote] = useState(false);
   const [noteText, setNoteText] = useState("");
+  const [photoPath, setPhotoPath] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const dropZoneRef = useRef<HTMLButtonElement>(null);
+
+  // Listen for Tauri file drag-drop events
+  useEffect(() => {
+    if (!milestone) return;
+    const unlisten = getCurrentWebview().onDragDropEvent((event) => {
+      if (event.payload.type === "enter" || event.payload.type === "over") {
+        setDragOver(true);
+      } else if (event.payload.type === "drop") {
+        setDragOver(false);
+        const paths = event.payload.paths;
+        const imagePath = paths.find((p) => {
+          const ext = p.split(".").pop()?.toLowerCase() ?? "";
+          return IMAGE_EXTENSIONS.includes(ext);
+        });
+        if (imagePath) {
+          setPhotoPath(imagePath);
+        }
+      } else if (event.payload.type === "leave") {
+        setDragOver(false);
+      }
+    });
+    return () => { unlisten.then((fn) => fn()); };
+  }, [milestone]);
 
   if (!milestone) return null;
 
-  const handleCapturePhoto = async () => {
+  const handlePickPhoto = async () => {
     const path = await open({
       multiple: false,
       filters: [IMAGE_FILE_FILTER],
     });
     if (path) {
-      try {
-        await api.addMilestonePhoto(milestone.trackId, path);
-        toast.success("Milestone photo saved");
-      } catch (e) {
-        toast.error(`Failed to save photo: ${e}`);
-      }
+      setPhotoPath(path);
     }
-    dismissMilestone();
   };
 
-  const handleAddNote = async () => {
-    if (noteText.trim() && activeProjectId) {
-      try {
-        await api.addBuildLogEntry({
-          projectId: activeProjectId,
-          entryType: "note",
-          body: noteText.trim(),
-          trackId: milestone.trackId,
-        });
-      } catch (e) {
-        toast.error(`Failed to save note: ${e}`);
+  const handleContinue = async () => {
+    setSaving(true);
+    try {
+      // Save photo if one was picked
+      if (photoPath) {
+        try {
+          await api.addMilestonePhoto(milestone.trackId, photoPath);
+        } catch (e) {
+          toast.error(`Failed to save photo: ${e}`);
+        }
       }
+      // Save note if one was written
+      if (noteText.trim() && activeProjectId) {
+        try {
+          await api.addBuildLogEntry({
+            projectId: activeProjectId,
+            entryType: "note",
+            body: noteText.trim(),
+            trackId: milestone.trackId,
+          });
+        } catch (e) {
+          toast.error(`Failed to save note: ${e}`);
+        }
+      }
+    } finally {
+      setSaving(false);
+      setNoteText("");
+      setPhotoPath(null);
+      dismissMilestone();
     }
-    dismissMilestone();
   };
 
   return (
@@ -62,52 +102,49 @@ export function MilestoneDialog() {
           You finished every step in <span className="font-semibold">{milestone.trackName}</span>.
         </p>
 
-        {showNote ? (
-          <div className="mb-3 space-y-2">
-            <textarea
-              value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
-              placeholder="Add a note about this milestone..."
-              className="h-20 w-full resize-none rounded-md border border-border bg-white px-2.5 py-2 text-xs text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none"
-              autoFocus
+        {/* Photo area */}
+        {photoPath ? (
+          <div className="relative mb-3">
+            <img
+              src={convertFileSrc(photoPath)}
+              alt="Milestone"
+              className="w-full rounded-md border border-border object-cover"
+              style={{ maxHeight: 160 }}
             />
-            <div className="flex gap-2">
-              <button
-                onClick={handleAddNote}
-                className="flex-1 rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:bg-accent-hover"
-              >
-                Save Note
-              </button>
-              <button
-                onClick={() => setShowNote(false)}
-                className="rounded-md border border-border px-3 py-1.5 text-xs text-text-secondary hover:bg-muted/50"
-              >
-                Cancel
-              </button>
-            </div>
+            <button
+              onClick={() => setPhotoPath(null)}
+              className="absolute right-1 top-1 rounded-full bg-black/50 p-0.5 text-white hover:bg-black/70"
+            >
+              <X className="h-3 w-3" />
+            </button>
           </div>
         ) : (
-          <div className="mb-3 flex flex-col gap-2">
-            <button
-              onClick={handleCapturePhoto}
-              className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-xs font-medium text-text-primary hover:bg-muted/50"
-            >
-              <Camera className="h-3.5 w-3.5 text-accent" />
-              Capture Photo
-            </button>
-            <button
-              onClick={() => setShowNote(true)}
-              className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-xs font-medium text-text-primary hover:bg-muted/50"
-            >
-              <MessageSquare className="h-3.5 w-3.5 text-accent" />
-              Add Note
-            </button>
-          </div>
+          <button
+            ref={dropZoneRef}
+            onClick={handlePickPhoto}
+            className={`mb-3 flex w-full items-center justify-center gap-2 rounded-md border border-dashed px-3 py-4 text-xs transition-colors ${
+              dragOver
+                ? "border-accent bg-accent/5 text-accent"
+                : "border-border text-text-tertiary hover:border-accent hover:text-accent"
+            }`}
+          >
+            <Camera className="h-4 w-4" />
+            {dragOver ? "Drop image here" : "Click or drag a photo"}
+          </button>
         )}
 
+        {/* Note area */}
+        <textarea
+          value={noteText}
+          onChange={(e) => setNoteText(e.target.value)}
+          placeholder="Add a note about this milestone..."
+          className="mb-3 h-16 w-full resize-none rounded-md border border-border bg-white px-2.5 py-2 text-xs text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none"
+        />
+
         <button
-          onClick={dismissMilestone}
-          className="flex w-full items-center justify-center gap-1.5 rounded-md bg-accent px-3 py-2 text-xs font-semibold text-white hover:bg-accent-hover"
+          onClick={handleContinue}
+          disabled={saving}
+          className="flex w-full items-center justify-center gap-1.5 rounded-md bg-accent px-3 py-2 text-xs font-semibold text-white hover:bg-accent-hover disabled:opacity-50"
         >
           Continue
           <ArrowRight className="h-3.5 w-3.5" />

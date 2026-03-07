@@ -22,7 +22,6 @@ import { MilestoneDialog } from "@/components/build/MilestoneDialog";
 import { RelationPill } from "@/components/build/RelationPill";
 import { flattenTrackSteps } from "@/components/build/tree-utils";
 import { useUploadPdf } from "@/components/build/useUploadPdf";
-import { useProgressPhotoToast } from "@/components/build/useProgressPhotoToast";
 
 export default function BuildRoute() {
   const project = useAppStore((s) => s.project);
@@ -58,9 +57,6 @@ export default function BuildRoute() {
 
   const hasSources = instructionSources.length > 0;
   const handleUploadPdf = useUploadPdf();
-
-  // Progress photo toast (building mode only)
-  useProgressPhotoToast();
 
   // Close source manager when processing starts
   useEffect(() => {
