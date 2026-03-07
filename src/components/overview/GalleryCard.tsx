@@ -27,7 +27,7 @@ export function GalleryCard() {
     <OverviewCard
       title="Gallery"
       icon={Camera}
-      subtitle={totalCount > 0 ? `${totalCount} photos` : undefined}
+      subtitle={totalCount > 0 ? `${totalCount} photo${totalCount === 1 ? "" : "s"}` : undefined}
     >
       {totalCount === 0 ? (
         <div className="flex h-full items-center justify-center py-3">

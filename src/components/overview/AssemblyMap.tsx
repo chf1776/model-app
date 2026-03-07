@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { ChevronDown, ChevronRight, Map } from "lucide-react";
 import { useAppStore } from "@/store";
 import type { Track, Step } from "@/shared/types";
@@ -21,7 +21,11 @@ export function AssemblyMap() {
   const setActiveZone = useAppStore((s) => s.setActiveZone);
   const setActiveStep = useAppStore((s) => s.setActiveStep);
   const [collapsed, setCollapsed] = useState(false);
-  const [hoveredStepId, setHoveredStepId] = useState<string | null>(null);
+  const [tooltip, setTooltip] = useState<{
+    text: string;
+    x: number;
+    y: number;
+  } | null>(null);
 
   const trackRows: TrackRow[] = useMemo(() => {
     return tracks.map((track) => ({
@@ -55,14 +59,18 @@ export function AssemblyMap() {
     return map;
   }, [trackRows]);
 
+  const nodeCenter = useCallback(
+    (trackIdx: number, stepIdx: number) => ({
+      cx: SVG_PAD_X + stepIdx * NODE_SPACING + NODE_SPACING / 2,
+      cy: SVG_PAD_Y + trackIdx * ROW_HEIGHT + ROW_HEIGHT / 2,
+    }),
+    [],
+  );
+
   const handleNodeClick = (stepId: string) => {
     setActiveStep(stepId);
     setActiveZone("build");
   };
-
-  const hoveredStep = hoveredStepId
-    ? steps.find((s) => s.id === hoveredStepId)
-    : null;
 
   return (
     <div className="shrink-0 rounded-lg border border-border bg-card">
@@ -132,27 +140,21 @@ export function AssemblyMap() {
               height={svgHeight}
               className="shrink-0"
             >
-              {/* Join arrows */}
-              {trackRows.map(({ track }, trackIdx) => {
-                if (!track.join_point_step_id) return null;
+              {/* Join arrows — from first node of joining track to the join point step */}
+              {trackRows.map(({ track, steps: rowSteps }, trackIdx) => {
+                if (!track.join_point_step_id || rowSteps.length === 0)
+                  return null;
                 const target = stepPositionMap[track.join_point_step_id];
                 if (!target) return null;
-                const fromX = SVG_PAD_X;
-                const fromY =
-                  SVG_PAD_Y + trackIdx * ROW_HEIGHT + ROW_HEIGHT / 2;
-                const toX =
-                  SVG_PAD_X + target.stepIndex * NODE_SPACING + NODE_SPACING / 2;
-                const toY =
-                  SVG_PAD_Y +
-                  target.trackIndex * ROW_HEIGHT +
-                  ROW_HEIGHT / 2;
+                const from = nodeCenter(trackIdx, 0);
+                const to = nodeCenter(target.trackIndex, target.stepIndex);
                 return (
                   <line
                     key={`join-${track.id}`}
-                    x1={fromX}
-                    y1={fromY}
-                    x2={toX}
-                    y2={toY}
+                    x1={from.cx}
+                    y1={from.cy}
+                    x2={to.cx}
+                    y2={to.cy}
                     stroke={track.color}
                     strokeWidth={1}
                     strokeDasharray="3 2"
@@ -160,36 +162,55 @@ export function AssemblyMap() {
                   />
                 );
               })}
-              {/* Nodes */}
+              {/* Nodes — visible circle + larger invisible hit target */}
               {trackRows.map(({ track, steps: rowSteps }, trackIdx) =>
                 rowSteps.map((step, stepIdx) => {
-                  const cx =
-                    SVG_PAD_X + stepIdx * NODE_SPACING + NODE_SPACING / 2;
-                  const cy =
-                    SVG_PAD_Y + trackIdx * ROW_HEIGHT + ROW_HEIGHT / 2;
-                  const isHovered = hoveredStepId === step.id;
+                  const { cx, cy } = nodeCenter(trackIdx, stepIdx);
                   return (
-                    <circle
-                      key={step.id}
-                      cx={cx}
-                      cy={cy}
-                      r={isHovered ? NODE_R + 1 : NODE_R}
-                      fill={step.is_completed ? track.color : "#fff"}
-                      stroke={track.color}
-                      strokeWidth={1.5}
-                      opacity={step.is_completed ? 1 : 0.5}
-                      className="cursor-pointer"
-                      onMouseEnter={() => setHoveredStepId(step.id)}
-                      onMouseLeave={() => setHoveredStepId(null)}
-                      onClick={() => handleNodeClick(step.id)}
-                    />
+                    <g key={step.id}>
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={NODE_R}
+                        fill={step.is_completed ? track.color : "#fff"}
+                        stroke={track.color}
+                        strokeWidth={1.5}
+                        opacity={step.is_completed ? 1 : 0.5}
+                      />
+                      {/* Invisible larger hit target for hover/click */}
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={NODE_R + 5}
+                        fill="transparent"
+                        className="cursor-pointer"
+                        onMouseEnter={(e) => {
+                          const rect = (
+                            e.currentTarget.ownerSVGElement!
+                              .parentElement as HTMLElement
+                          ).getBoundingClientRect();
+                          const svgEl =
+                            e.currentTarget.ownerSVGElement!.getBoundingClientRect();
+                          setTooltip({
+                            text: step.title,
+                            x: svgEl.left - rect.left + cx,
+                            y: svgEl.top - rect.top + cy - NODE_R - 6,
+                          });
+                        }}
+                        onMouseLeave={() => setTooltip(null)}
+                        onClick={() => handleNodeClick(step.id)}
+                      />
+                    </g>
                   );
                 }),
               )}
             </svg>
-            {hoveredStep && (
-              <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-text-primary px-1.5 py-0.5 text-[9px] text-white shadow">
-                {hoveredStep.title}
+            {tooltip && (
+              <div
+                className="pointer-events-none absolute z-10 -translate-x-1/2 whitespace-nowrap rounded bg-text-primary px-1.5 py-0.5 text-[9px] text-white shadow"
+                style={{ left: tooltip.x, top: tooltip.y }}
+              >
+                {tooltip.text}
               </div>
             )}
           </div>
