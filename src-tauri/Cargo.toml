@@ -1,6 +1,6 @@
 [package]
 name = "model-builder-assistant"
-version = "0.3.3"
+version = "0.4.0"
 edition = "2021"
 
 [lib]
@@ -19,5 +19,6 @@ serde_json = "1"
 rusqlite = { version = "0.32", features = ["bundled"] }
 refinery = { version = "0.8", features = ["rusqlite"] }
 uuid = { version = "1", features = ["v4"] }
+tauri-plugin-notification = "2"
 tauri-plugin-opener = "2.5.3"
 mupdf = "0.6"

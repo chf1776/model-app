@@ -1,5 +1,6 @@
 pub mod accessories;
 pub mod build_log_entries;
+pub mod drying_timers;
 pub mod instruction_pages;
 pub mod instruction_sources;
 pub mod kit_files;

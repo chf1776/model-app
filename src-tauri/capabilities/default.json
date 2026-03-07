@@ -20,6 +20,7 @@
         { "path": "$APPDATA/**" }
       ]
     },
+    "notification:default",
     "opener:default",
     {
       "identifier": "opener:allow-open-path",

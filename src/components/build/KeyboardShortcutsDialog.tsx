@@ -67,6 +67,7 @@ export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcut
           <Section title="Building Mode">
             <ShortcutRow keys={<><Kbd>Space</Kbd> / <Kbd>Enter</Kbd></>} label="Complete step" />
             <ShortcutRow keys={<><Kbd>↑</Kbd> / <Kbd>↓</Kbd></>} label="Previous / next step" />
+            <ShortcutRow keys={<Kbd>T</Kbd>} label="Start drying timer" />
           </Section>
 
           <Section title="Editing">

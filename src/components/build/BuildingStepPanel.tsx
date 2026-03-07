@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, Camera, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Check, Camera, ChevronLeft, ChevronRight, Plus, Timer } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
@@ -255,6 +255,11 @@ export function BuildingStepPanel() {
                 <TooltipContent>Next step</TooltipContent>
               </Tooltip>
             </div>
+
+            {/* Start Timer button */}
+            {step.drying_time_min != null && step.drying_time_min > 0 && (
+              <StartTimerButton step={step} />
+            )}
 
             {/* Progress photo drop zone */}
             <button
@@ -547,6 +552,35 @@ export function BuildingStepPanel() {
         onIndexChange={setLightboxIndex}
       />
     </div>
+  );
+}
+
+// ── Start Timer Button ───────────────────────────────────────────────────────
+
+function StartTimerButton({ step }: { step: Step }) {
+  const activeTimers = useAppStore((s) => s.activeTimers);
+  const addTimer = useAppStore((s) => s.addTimer);
+
+  const hasTimer = activeTimers.some((t) => t.step_id === step.id);
+
+  const handleClick = async () => {
+    try {
+      await addTimer(step.id, step.title, step.drying_time_min!);
+      toast.success(`Timer started: ${step.drying_time_min} min`);
+    } catch (e) {
+      toast.error(`Failed to start timer: ${e}`);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={hasTimer}
+      className="flex w-full items-center justify-center gap-1.5 rounded-md border border-accent/30 px-3 py-2 text-xs font-medium text-accent transition-colors hover:bg-accent/5 disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      <Timer className="h-3.5 w-3.5" />
+      {hasTimer ? "Timer Running" : `Start Timer (${step.drying_time_min} min)`}
+    </button>
   );
 }
 

@@ -500,6 +500,16 @@ export interface BuildLogEntry {
   created_at: number;
 }
 
+// ── Drying Timers ───────────────────────────────────────────────────────────
+
+export interface DryingTimer {
+  id: string;
+  step_id: string | null;
+  label: string;
+  duration_min: number;
+  started_at: number;
+}
+
 // ── Instruction Sources ──────────────────────────────────────────────────────
 
 export interface InstructionSource {

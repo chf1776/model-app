@@ -20,8 +20,10 @@ import { BuildingStepPanel } from "@/components/build/BuildingStepPanel";
 import { CropCanvas } from "@/components/build/CropCanvas";
 import { MilestoneDialog } from "@/components/build/MilestoneDialog";
 import { RelationPill } from "@/components/build/RelationPill";
+import { TimerBubble } from "@/components/build/TimerBubble";
 import { flattenTrackSteps } from "@/components/build/tree-utils";
 import { useUploadPdf } from "@/components/build/useUploadPdf";
+import { useTimerTick } from "@/hooks/useTimerTick";
 
 export default function BuildRoute() {
   const project = useAppStore((s) => s.project);
@@ -50,6 +52,16 @@ export default function BuildRoute() {
   const pushUndo = useAppStore((s) => s.pushUndo);
   const undoLastCrop = useAppStore((s) => s.undoLastCrop);
   const completeActiveStep = useAppStore((s) => s.completeActiveStep);
+  const activeTimers = useAppStore((s) => s.activeTimers);
+  const addTimer = useAppStore((s) => s.addTimer);
+  const loadTimers = useAppStore((s) => s.loadTimers);
+
+  useTimerTick();
+
+  // Load timers on mount
+  useEffect(() => {
+    loadTimers();
+  }, [loadTimers]);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [sourceManagerOpen, setSourceManagerOpen] = useState(false);
@@ -92,6 +104,14 @@ export default function BuildRoute() {
         if ((e.key === " " || e.key === "Enter") && activeStepId) {
           e.preventDefault();
           completeActiveStep();
+          return;
+        }
+        if ((e.key === "t" || e.key === "T") && activeStepId) {
+          e.preventDefault();
+          const s = steps.find((st) => st.id === activeStepId);
+          if (s?.drying_time_min && s.drying_time_min > 0 && !activeTimers.some((t) => t.step_id === s.id)) {
+            addTimer(s.id, s.title, s.drying_time_min);
+          }
           return;
         }
         if (e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "ArrowRight" || e.key === "ArrowDown") {
@@ -193,7 +213,7 @@ export default function BuildRoute() {
       setCanvasMode, canvasMode, activeStepId, setActiveStep, activeTrackId,
       selectedStepIds, clearSelectedSteps,
       currentSourcePages, currentPageIndex, steps, addStep, pushUndo, activeProjectId, loadTracks,
-      undoLastCrop, completeActiveStep,
+      undoLastCrop, completeActiveStep, activeTimers, addTimer,
     ],
   );
 
@@ -273,6 +293,7 @@ export default function BuildRoute() {
               <div className="relative min-h-0 flex-1">
                 <CropCanvas />
                 <RelationPill />
+                <TimerBubble />
               </div>
               <NavigationBar />
             </div>

@@ -9,12 +9,14 @@ import {
   type OverviewSlice,
   createOverviewSlice,
 } from "./overview-slice";
+import { type TimerSlice, createTimerSlice } from "./timer-slice";
 
-export type AppStore = CollectionSlice & BuildSlice & UiSlice & OverviewSlice;
+export type AppStore = CollectionSlice & BuildSlice & UiSlice & OverviewSlice & TimerSlice;
 
 export const useAppStore = create<AppStore>()((...a) => ({
   ...createCollectionSlice(...a),
   ...createBuildSlice(...a),
   ...createUiSlice(...a),
   ...createOverviewSlice(...a),
+  ...createTimerSlice(...a),
 }));

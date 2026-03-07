@@ -26,6 +26,7 @@ import type {
   MilestonePhoto,
   BuildLogEntry,
   BuildLogEntryType,
+  DryingTimer,
   InstructionSource,
   InstructionPage,
   ProjectUiState,
@@ -405,6 +406,24 @@ export async function addBuildLogEntry(opts: {
     isTrackCompletion: opts.isTrackCompletion ?? null,
     trackStepCount: opts.trackStepCount ?? null,
   });
+}
+
+// ── Drying Timers ────────────────────────────────────────────────────────────
+
+export async function listDryingTimers(): Promise<DryingTimer[]> {
+  return invoke<DryingTimer[]>("list_drying_timers");
+}
+
+export async function createDryingTimer(input: {
+  step_id: string | null;
+  label: string;
+  duration_min: number;
+}): Promise<DryingTimer> {
+  return invoke<DryingTimer>("create_drying_timer", { input });
+}
+
+export async function deleteDryingTimer(id: string): Promise<void> {
+  return invoke<void>("delete_drying_timer", { id });
 }
 
 // ── Instructions ─────────────────────────────────────────────────────────────
