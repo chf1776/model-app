@@ -240,6 +240,8 @@ export function BuildingRail() {
               const incoming = incomingJoins.get(step.id);
               const children = childrenMap.get(step.id);
               const isActive = step.id === activeStepId;
+              const hasActiveChild = children?.some((c) => c.id === activeStepId) ?? false;
+              const showChildren = isActive || hasActiveChild;
               const childProgress = children
                 ? ([children.filter((c) => c.is_completed).length, children.length] as [number, number])
                 : undefined;
@@ -270,8 +272,8 @@ export function BuildingRail() {
                     onToggleComplete={() => handleToggleComplete(step)}
                   />
 
-                  {/* Sub-steps (visible when parent is active) */}
-                  {isActive && children && children.length > 0 && (
+                  {/* Sub-steps (visible when parent or any child is active) */}
+                  {showChildren && children && children.length > 0 && (
                     <div className="ml-3">
                       {children.map((child) => (
                         <BuildingStepRow

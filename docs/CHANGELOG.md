@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Reusable ImageLightbox component**: Extracted inline lightbox implementations from KitCard, BuildingStepPanel, and GalleryCard into a single shared `ImageLightbox` component with dark overlay, prev/next navigation, keyboard arrows, thumbnail strip, captions, and an action slot for contextual buttons
 
+### Fixed
+- **Crop canvas centering**: Cropped step images now center in the display area immediately instead of appearing at top-left
+- **Lightbox keyboard isolation**: Arrow keys in lightbox no longer bubble to build mode step navigation
+- **Lightbox persistence on step change**: Lightbox closes when navigating to a different step
+- **Sub-step rail visibility**: Building rail sub-steps stay expanded when a child step is active (not just the parent)
+
 ## [0.3.5] — 2026-03-07 — Overview Polish
 
 ### Added

@@ -146,12 +146,6 @@ export function CropCanvas() {
     ctx.restore();
   }, [imageLoaded, viewerZoom, getCropDimensions]);
 
-  // Update canvas position on pan (CSS transform only, no redraw)
-  useEffect(() => {
-    if (canvasRef.current) {
-      canvasRef.current.style.transform = `translate(${viewerPanX}px, ${viewerPanY}px)`;
-    }
-  }, [viewerPanX, viewerPanY]);
 
   // Wheel zoom
   const handleWheel = useCallback(
@@ -226,7 +220,11 @@ export function CropCanvas() {
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        <canvas ref={canvasRef} className="absolute left-0 top-0" />
+        <canvas
+          ref={canvasRef}
+          className="absolute left-0 top-0"
+          style={{ transform: `translate(${viewerPanX}px, ${viewerPanY}px)` }}
+        />
 
         {/* Show Full Page button */}
         <Tooltip>
