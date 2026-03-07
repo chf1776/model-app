@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router";
 import { ChevronDown, ChevronRight, Map } from "lucide-react";
 import { useAppStore } from "@/store";
 import type { Track, Step } from "@/shared/types";
@@ -20,6 +21,7 @@ export function AssemblyMap() {
   const steps = useAppStore((s) => s.steps);
   const setActiveZone = useAppStore((s) => s.setActiveZone);
   const setActiveStep = useAppStore((s) => s.setActiveStep);
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [tooltip, setTooltip] = useState<{
     text: string;
@@ -70,6 +72,7 @@ export function AssemblyMap() {
   const handleNodeClick = (stepId: string) => {
     setActiveStep(stepId);
     setActiveZone("build");
+    navigate("/build");
   };
 
   return (
@@ -183,6 +186,7 @@ export function AssemblyMap() {
                         cy={cy}
                         r={NODE_R + 5}
                         fill="transparent"
+                        pointerEvents="all"
                         className="cursor-pointer"
                         onMouseEnter={(e) => {
                           const rect = (
@@ -194,7 +198,7 @@ export function AssemblyMap() {
                           setTooltip({
                             text: step.title,
                             x: svgEl.left - rect.left + cx,
-                            y: svgEl.top - rect.top + cy - NODE_R - 6,
+                            y: svgEl.top - rect.top + cy - NODE_R - 16,
                           });
                         }}
                         onMouseLeave={() => setTooltip(null)}
@@ -207,7 +211,7 @@ export function AssemblyMap() {
             </svg>
             {tooltip && (
               <div
-                className="pointer-events-none absolute z-10 -translate-x-1/2 whitespace-nowrap rounded bg-text-primary px-1.5 py-0.5 text-[9px] text-white shadow"
+                className="pointer-events-none absolute z-10 -translate-x-1/2 select-none whitespace-nowrap rounded bg-text-primary px-1.5 py-0.5 text-[9px] text-white shadow"
                 style={{ left: tooltip.x, top: tooltip.y }}
               >
                 {tooltip.text}
