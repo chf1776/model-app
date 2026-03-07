@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Timer, ChevronUp, Plus } from "lucide-react";
+import { Timer, ChevronUp, Plus, Pin, PinOff } from "lucide-react";
 import { toast } from "sonner";
 import { useAppStore } from "@/store";
 import type { DryingTimer } from "@/shared/types";
@@ -123,6 +123,8 @@ export function TimerBubble() {
 
   // Draggable state — default bottom-right
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
+  const [pinned, setPinned] = useState(false);
+  const prevVisibleRef = useRef(false);
   const bubbleRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ startX: number; startY: number; posX: number; posY: number } | null>(null);
   const isDragging = useRef(false);
@@ -130,6 +132,15 @@ export function TimerBubble() {
 
   // Clean up window listeners if component unmounts mid-drag
   useEffect(() => () => { dragCleanupRef.current?.(); }, []);
+
+  // Reset position to default when bubble reappears (unless pinned)
+  const isVisible = activeTimers.length > 0;
+  useEffect(() => {
+    if (isVisible && !prevVisibleRef.current && !pinned) {
+      setPosition(null);
+    }
+    prevVisibleRef.current = isVisible;
+  }, [isVisible, pinned]);
 
   // Add timer form toggle
   const [showAddForm, setShowAddForm] = useState(false);
@@ -237,10 +248,10 @@ export function TimerBubble() {
     <>
       <div
         ref={bubbleRef}
-        className="absolute z-30 w-[220px] rounded-lg border border-border bg-card shadow-lg"
+        className="fixed z-50 w-[220px] rounded-lg border border-border bg-card shadow-lg"
         style={position
           ? { left: position.x, top: position.y }
-          : { right: 16, bottom: 48 }
+          : { right: 16, bottom: 16 }
         }
       >
         {/* Header — draggable */}
@@ -252,6 +263,13 @@ export function TimerBubble() {
           <span className="flex-1 text-[11px] font-semibold text-text-primary">
             Timers{activeTimers.length > 0 ? ` (${activeTimers.length})` : ""}
           </span>
+          <button
+            onClick={() => setPinned((v) => !v)}
+            className={`rounded p-0.5 ${pinned ? "text-accent" : "text-text-tertiary hover:text-accent"}`}
+            title={pinned ? "Unpin position" : "Pin position"}
+          >
+            {pinned ? <Pin className="h-3 w-3" /> : <PinOff className="h-3 w-3" />}
+          </button>
           <button
             onClick={handleToggleAddForm}
             className="rounded p-0.5 text-text-tertiary hover:text-accent"

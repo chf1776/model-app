@@ -8,6 +8,7 @@ import { useAppStore } from "@/store";
 import type { BuildMode, NavMode } from "@/store/build-slice";
 import * as api from "@/api";
 import { useUploadPdf } from "./useUploadPdf";
+import { zoomIn, zoomOut } from "./zoom-utils";
 
 interface BuildToolbarProps {
   onOpenSourceManager: () => void;
@@ -22,7 +23,6 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
   const activeTrackId = useAppStore((s) => s.activeTrackId);
   const instructionSources = useAppStore((s) => s.instructionSources);
   const viewerZoom = useAppStore((s) => s.viewerZoom);
-  const setViewerZoom = useAppStore((s) => s.setViewerZoom);
   const requestFitToView = useAppStore((s) => s.requestFitToView);
   const rotatePage = useAppStore((s) => s.rotatePage);
   const canvasMode = useAppStore((s) => s.canvasMode);
@@ -44,8 +44,8 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
 
   const handleUploadPdf = useUploadPdf();
 
-  const handleZoomIn = () => setViewerZoom(viewerZoom * 1.2);
-  const handleZoomOut = () => setViewerZoom(viewerZoom / 1.2);
+  const handleZoomIn = zoomIn;
+  const handleZoomOut = zoomOut;
   const handleFitToView = () => requestFitToView();
 
   const zoomPercent = Math.round(viewerZoom * 100);

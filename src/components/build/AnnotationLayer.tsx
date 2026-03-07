@@ -1,216 +1,49 @@
-import { useCallback, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Layer, Line, Ellipse, Arrow, Rect, Text, Group } from "react-konva";
 import { useAppStore } from "@/store";
 import type { Annotation } from "@/shared/types";
-import type Konva from "konva";
 
 const EMPTY_ANNOTATIONS: Annotation[] = [];
+
+export interface DrawPreview {
+  type: "checkmark" | "cross" | "circle" | "arrow" | "highlight" | "freehand";
+  startX: number;
+  startY: number;
+  points?: number[];
+  currentX?: number;
+  currentY?: number;
+}
 
 interface AnnotationLayerProps {
   stepId: string;
   effectiveW: number;
   effectiveH: number;
   zoom: number;
-  onRequestTextInput?: (nx: number, ny: number) => void;
+  drawPreview?: DrawPreview | null;
+  previewColor?: string;
 }
 
-const CHECKMARK_SIZE = 0.03;
-const CROSS_SIZE = 0.025;
+export const DEFAULT_CHECKMARK_SIZE = 0.06;
+export const DEFAULT_CROSS_SIZE = 0.05;
+export const DEFAULT_STROKE_WIDTH = 0.003;
+export const DEFAULT_OPACITY = 0.9;
+export const HIGHLIGHT_COLOR = "#facc15";
 const SELECTION_COLOR = "#4E7282";
 
 function toLayerX(nx: number, w: number) { return nx * w; }
 function toLayerY(ny: number, h: number) { return ny * h; }
-function toNormX(lx: number, w: number) { return lx / w; }
-function toNormY(ly: number, h: number) { return ly / h; }
 
-function getLayerPoint(
-  stage: Konva.Stage,
-  zoom: number,
-  panX: number,
-  panY: number,
-) {
-  const pointer = stage.getPointerPosition();
-  if (!pointer) return null;
-  return {
-    x: (pointer.x - panX) / zoom,
-    y: (pointer.y - panY) / zoom,
-  };
-}
-
-function makeId() {
-  return crypto.randomUUID();
-}
-
-export function AnnotationLayer({ stepId, effectiveW, effectiveH, zoom, onRequestTextInput }: AnnotationLayerProps) {
+export function AnnotationLayer({ stepId, effectiveW, effectiveH, zoom, drawPreview, previewColor }: AnnotationLayerProps) {
   const annotations = useAppStore((s) => s.stepAnnotations[stepId] ?? EMPTY_ANNOTATIONS);
   const annotationMode = useAppStore((s) => s.annotationMode);
-  const annotationColor = useAppStore((s) => s.annotationColor);
-  const addAnnotation = useAppStore((s) => s.addAnnotation);
   const removeAnnotation = useAppStore((s) => s.removeAnnotation);
-  const viewerPanX = useAppStore((s) => s.viewerPanX);
-  const viewerPanY = useAppStore((s) => s.viewerPanY);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [drawState, setDrawState] = useState<{
-    type: "circle" | "arrow" | "highlight" | "freehand";
-    startX: number;
-    startY: number;
-    points?: number[];
-    currentX?: number;
-    currentY?: number;
-  } | null>(null);
 
-  const baseAnnotation = useCallback((): Pick<Annotation, "id" | "color" | "strokeWidth" | "opacity"> => ({
-    id: makeId(),
-    color: annotationColor,
-    strokeWidth: 0.003,
-    opacity: 0.9,
-  }), [annotationColor]);
-
-  const handleMouseDown = useCallback(
-    (e: Konva.KonvaEventObject<MouseEvent>) => {
-      if (!annotationMode) return;
-      const stage = e.target.getStage();
-      if (!stage) return;
-
-      const pt = getLayerPoint(stage, zoom, viewerPanX, viewerPanY);
-      if (!pt) return;
-
-      const nx = toNormX(pt.x, effectiveW);
-      const ny = toNormY(pt.y, effectiveH);
-
-      if (annotationMode === "checkmark") {
-        addAnnotation(stepId, {
-          ...baseAnnotation(),
-          type: "checkmark",
-          x: nx,
-          y: ny,
-        });
-        setSelectedId(null);
-        return;
-      }
-
-      if (annotationMode === "cross") {
-        addAnnotation(stepId, {
-          ...baseAnnotation(),
-          type: "cross",
-          x: nx,
-          y: ny,
-        });
-        setSelectedId(null);
-        return;
-      }
-
-      if (annotationMode === "text") {
-        if (onRequestTextInput) {
-          onRequestTextInput(nx, ny);
-        }
-        return;
-      }
-
-      if (annotationMode === "freehand") {
-        setDrawState({ type: "freehand", startX: nx, startY: ny, points: [nx, ny] });
-        return;
-      }
-
-      if (annotationMode === "circle" || annotationMode === "arrow" || annotationMode === "highlight") {
-        setDrawState({ type: annotationMode, startX: nx, startY: ny, currentX: nx, currentY: ny });
-        return;
-      }
-    },
-    [annotationMode, zoom, viewerPanX, viewerPanY, effectiveW, effectiveH, stepId, addAnnotation, baseAnnotation, onRequestTextInput],
-  );
-
-  const handleMouseMove = useCallback(
-    (e: Konva.KonvaEventObject<MouseEvent>) => {
-      if (!drawState) return;
-      const stage = e.target.getStage();
-      if (!stage) return;
-      const pt = getLayerPoint(stage, zoom, viewerPanX, viewerPanY);
-      if (!pt) return;
-
-      const nx = toNormX(pt.x, effectiveW);
-      const ny = toNormY(pt.y, effectiveH);
-
-      if (drawState.type === "freehand") {
-        setDrawState((prev) => prev ? {
-          ...prev,
-          points: [...(prev.points ?? []), nx, ny],
-        } : null);
-      } else {
-        setDrawState((prev) => prev ? { ...prev, currentX: nx, currentY: ny } : null);
-      }
-    },
-    [drawState, zoom, viewerPanX, viewerPanY, effectiveW, effectiveH],
-  );
-
-  const handleMouseUp = useCallback(() => {
-    if (!drawState) return;
-
-    if (drawState.type === "circle" && drawState.currentX != null && drawState.currentY != null) {
-      const rx = Math.abs(drawState.currentX - drawState.startX) / 2;
-      const ry = Math.abs(drawState.currentY - drawState.startY) / 2;
-      if (rx > 0.002 || ry > 0.002) {
-        addAnnotation(stepId, {
-          ...baseAnnotation(),
-          type: "circle",
-          x: (drawState.startX + drawState.currentX) / 2,
-          y: (drawState.startY + drawState.currentY) / 2,
-          rx,
-          ry,
-        });
-      }
-    }
-
-    if (drawState.type === "arrow" && drawState.currentX != null && drawState.currentY != null) {
-      const dist = Math.hypot(drawState.currentX - drawState.startX, drawState.currentY - drawState.startY);
-      if (dist > 0.005) {
-        addAnnotation(stepId, {
-          ...baseAnnotation(),
-          type: "arrow",
-          x1: drawState.startX,
-          y1: drawState.startY,
-          x2: drawState.currentX,
-          y2: drawState.currentY,
-        });
-      }
-    }
-
-    if (drawState.type === "highlight" && drawState.currentX != null && drawState.currentY != null) {
-      const w = Math.abs(drawState.currentX - drawState.startX);
-      const h = Math.abs(drawState.currentY - drawState.startY);
-      if (w > 0.002 || h > 0.002) {
-        addAnnotation(stepId, {
-          ...baseAnnotation(),
-          type: "highlight",
-          x: Math.min(drawState.startX, drawState.currentX),
-          y: Math.min(drawState.startY, drawState.currentY),
-          w,
-          h,
-          opacity: 0.3,
-          color: "#facc15",
-        });
-      }
-    }
-
-    if (drawState.type === "freehand" && drawState.points && drawState.points.length > 4) {
-      addAnnotation(stepId, {
-        ...baseAnnotation(),
-        type: "freehand",
-        points: drawState.points,
-      });
-    }
-
-    setDrawState(null);
-  }, [drawState, stepId, addAnnotation, baseAnnotation]);
-
-  const handleAnnotationClick = useCallback(
-    (id: string) => {
-      if (annotationMode) return;
-      setSelectedId(selectedId === id ? null : id);
-    },
-    [annotationMode, selectedId],
-  );
+  const handleAnnotationClick = (id: string) => {
+    if (annotationMode) return;
+    setSelectedId(selectedId === id ? null : id);
+  };
 
   // Handle delete key for selected annotation
   useEffect(() => {
@@ -228,13 +61,10 @@ export function AnnotationLayer({ stepId, effectiveW, effectiveH, zoom, onReques
   }, [selectedId, stepId, removeAnnotation]);
 
   const strokeScale = 1 / zoom;
+  const color = previewColor ?? "#ef4444";
 
   return (
-    <Layer
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-    >
+    <Layer>
       {/* Render existing annotations */}
       {annotations.map((ann) => (
         <AnnotationShape
@@ -248,53 +78,107 @@ export function AnnotationLayer({ stepId, effectiveW, effectiveH, zoom, onReques
         />
       ))}
 
-      {/* Drawing preview */}
-      {drawState && drawState.type === "circle" && drawState.currentX != null && drawState.currentY != null && (
+      {/* Drawing preview — checkmark/cross drag-to-size */}
+      {drawPreview && drawPreview.type === "checkmark" && drawPreview.currentX != null && drawPreview.currentY != null && (() => {
+        const dragDist = Math.hypot(
+          (drawPreview.currentX! - drawPreview.startX) * effectiveW,
+          (drawPreview.currentY! - drawPreview.startY) * effectiveH,
+        );
+        const size = Math.max(dragDist, DEFAULT_CHECKMARK_SIZE * Math.min(effectiveW, effectiveH));
+        const cx = toLayerX(drawPreview.startX, effectiveW);
+        const cy = toLayerY(drawPreview.startY, effectiveH);
+        return (
+          <Line
+            points={[
+              cx - size * 0.4, cy,
+              cx - size * 0.1, cy + size * 0.4,
+              cx + size * 0.5, cy - size * 0.4,
+            ]}
+            stroke={color}
+            strokeWidth={3 * strokeScale}
+            lineCap="round"
+            lineJoin="round"
+            opacity={0.6}
+            dash={[6 * strokeScale, 4 * strokeScale]}
+            listening={false}
+          />
+        );
+      })()}
+      {drawPreview && drawPreview.type === "cross" && drawPreview.currentX != null && drawPreview.currentY != null && (() => {
+        const dragDist = Math.hypot(
+          (drawPreview.currentX! - drawPreview.startX) * effectiveW,
+          (drawPreview.currentY! - drawPreview.startY) * effectiveH,
+        );
+        const size = Math.max(dragDist, DEFAULT_CROSS_SIZE * Math.min(effectiveW, effectiveH));
+        const cx = toLayerX(drawPreview.startX, effectiveW);
+        const cy = toLayerY(drawPreview.startY, effectiveH);
+        return (
+          <Group listening={false}>
+            <Line
+              points={[cx - size * 0.5, cy - size * 0.5, cx + size * 0.5, cy + size * 0.5]}
+              stroke={color}
+              strokeWidth={3 * strokeScale}
+              lineCap="round"
+              opacity={0.6}
+              dash={[6 * strokeScale, 4 * strokeScale]}
+            />
+            <Line
+              points={[cx + size * 0.5, cy - size * 0.5, cx - size * 0.5, cy + size * 0.5]}
+              stroke={color}
+              strokeWidth={3 * strokeScale}
+              lineCap="round"
+              opacity={0.6}
+              dash={[6 * strokeScale, 4 * strokeScale]}
+            />
+          </Group>
+        );
+      })()}
+      {drawPreview && drawPreview.type === "circle" && drawPreview.currentX != null && drawPreview.currentY != null && (
         <Ellipse
-          x={toLayerX((drawState.startX + drawState.currentX) / 2, effectiveW)}
-          y={toLayerY((drawState.startY + drawState.currentY) / 2, effectiveH)}
-          radiusX={Math.abs(drawState.currentX - drawState.startX) / 2 * effectiveW}
-          radiusY={Math.abs(drawState.currentY - drawState.startY) / 2 * effectiveH}
-          stroke={annotationColor}
+          x={toLayerX((drawPreview.startX + drawPreview.currentX) / 2, effectiveW)}
+          y={toLayerY((drawPreview.startY + drawPreview.currentY) / 2, effectiveH)}
+          radiusX={Math.abs(drawPreview.currentX - drawPreview.startX) / 2 * effectiveW}
+          radiusY={Math.abs(drawPreview.currentY - drawPreview.startY) / 2 * effectiveH}
+          stroke={color}
           strokeWidth={3 * strokeScale}
           dash={[6 * strokeScale, 4 * strokeScale]}
           listening={false}
         />
       )}
-      {drawState && drawState.type === "arrow" && drawState.currentX != null && drawState.currentY != null && (
+      {drawPreview && drawPreview.type === "arrow" && drawPreview.currentX != null && drawPreview.currentY != null && (
         <Arrow
           points={[
-            toLayerX(drawState.startX, effectiveW),
-            toLayerY(drawState.startY, effectiveH),
-            toLayerX(drawState.currentX, effectiveW),
-            toLayerY(drawState.currentY, effectiveH),
+            toLayerX(drawPreview.startX, effectiveW),
+            toLayerY(drawPreview.startY, effectiveH),
+            toLayerX(drawPreview.currentX, effectiveW),
+            toLayerY(drawPreview.currentY, effectiveH),
           ]}
-          stroke={annotationColor}
+          stroke={color}
           strokeWidth={3 * strokeScale}
-          fill={annotationColor}
+          fill={color}
           pointerLength={10 * strokeScale}
           pointerWidth={8 * strokeScale}
           dash={[6 * strokeScale, 4 * strokeScale]}
           listening={false}
         />
       )}
-      {drawState && drawState.type === "highlight" && drawState.currentX != null && drawState.currentY != null && (
+      {drawPreview && drawPreview.type === "highlight" && drawPreview.currentX != null && drawPreview.currentY != null && (
         <Rect
-          x={toLayerX(Math.min(drawState.startX, drawState.currentX), effectiveW)}
-          y={toLayerY(Math.min(drawState.startY, drawState.currentY), effectiveH)}
-          width={Math.abs(drawState.currentX - drawState.startX) * effectiveW}
-          height={Math.abs(drawState.currentY - drawState.startY) * effectiveH}
-          fill="#facc15"
+          x={toLayerX(Math.min(drawPreview.startX, drawPreview.currentX), effectiveW)}
+          y={toLayerY(Math.min(drawPreview.startY, drawPreview.currentY), effectiveH)}
+          width={Math.abs(drawPreview.currentX - drawPreview.startX) * effectiveW}
+          height={Math.abs(drawPreview.currentY - drawPreview.startY) * effectiveH}
+          fill={HIGHLIGHT_COLOR}
           opacity={0.3}
           listening={false}
         />
       )}
-      {drawState && drawState.type === "freehand" && drawState.points && (
+      {drawPreview && drawPreview.type === "freehand" && drawPreview.points && (
         <Line
-          points={drawState.points.flatMap((v, i) =>
+          points={drawPreview.points.flatMap((v, i) =>
             i % 2 === 0 ? [v * effectiveW] : [v * effectiveH],
           )}
-          stroke={annotationColor}
+          stroke={color}
           strokeWidth={3 * strokeScale}
           tension={0.5}
           lineCap="round"
@@ -330,7 +214,7 @@ function AnnotationShape({
     case "checkmark": {
       const cx = toLayerX(ann.x, effectiveW);
       const cy = toLayerY(ann.y, effectiveH);
-      const size = CHECKMARK_SIZE * Math.min(effectiveW, effectiveH);
+      const size = ann.size ?? DEFAULT_CHECKMARK_SIZE * Math.min(effectiveW, effectiveH);
       return (
         <Group onClick={onClick} listening>
           {isSelected && (
@@ -416,7 +300,7 @@ function AnnotationShape({
     case "cross": {
       const cx = toLayerX(ann.x, effectiveW);
       const cy = toLayerY(ann.y, effectiveH);
-      const size = CROSS_SIZE * Math.min(effectiveW, effectiveH);
+      const size = ann.size ?? DEFAULT_CROSS_SIZE * Math.min(effectiveW, effectiveH);
       return (
         <Group onClick={onClick} listening>
           {isSelected && (

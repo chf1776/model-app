@@ -7,13 +7,13 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { useAppStore } from "@/store";
 import type { Step, InstructionPage } from "@/shared/types";
 import { getEffectiveDimensions } from "./tree-utils";
-import { AnnotationLayer } from "./AnnotationLayer";
+import { AnnotationLayer, DEFAULT_CHECKMARK_SIZE, DEFAULT_CROSS_SIZE, DEFAULT_STROKE_WIDTH, DEFAULT_OPACITY, HIGHLIGHT_COLOR } from "./AnnotationLayer";
+import type { DrawPreview } from "./AnnotationLayer";
+import { MIN_RELATIVE_ZOOM, MAX_RELATIVE_ZOOM } from "./zoom-utils";
 import type Konva from "konva";
 
-const MIN_ZOOM = 0.1;
-const MAX_ZOOM = 5.0;
 const ZOOM_STEP = 1.08;
-const PADDING = 24;
+const PADDING = 48;
 const ACCENT_COLOR = "#4E7282";
 
 function CropImage({
@@ -61,6 +61,11 @@ export function CropCanvas() {
   const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
   const [showFullPage, setShowFullPage] = useState(false);
   const [pendingText, setPendingText] = useState<{ nx: number; ny: number } | null>(null);
+  const [drawState, setDrawState] = useState<DrawPreview | null>(null);
+  const drawStateRef = useRef<DrawPreview | null>(null);
+  drawStateRef.current = drawState;
+  // Mutable accumulator for freehand points to avoid O(n²) spread on each mousemove
+  const freehandPointsRef = useRef<number[]>([]);
 
   const steps = useAppStore((s) => s.steps);
   const activeStepId = useAppStore((s) => s.activeStepId);
@@ -110,17 +115,24 @@ export function CropCanvas() {
     return () => ro.disconnect();
   }, []);
 
-  // Fit to view
-  const fitToViewRef = useRef(() => {});
-  fitToViewRef.current = () => {
-    if (!cropDims || stageSize.width === 0 || stageSize.height === 0) return;
+  // Base zoom = the scale at which the crop fills the viewport (100%)
+  const baseZoomRef = useRef(1);
+  const computeBaseZoom = () => {
+    if (!cropDims || stageSize.width === 0 || stageSize.height === 0) return 1;
     const scaleX = (stageSize.width - PADDING * 2) / effectiveW;
     const scaleY = (stageSize.height - PADDING * 2) / effectiveH;
-    const zoom = Math.min(scaleX, scaleY, 2.0);
-    setViewerZoom(zoom);
+    return Math.min(scaleX, scaleY);
+  };
+
+  // Fit to view (sets zoom to 1.0 = 100% = base zoom)
+  const fitToViewRef = useRef(() => {});
+  fitToViewRef.current = () => {
+    const base = computeBaseZoom();
+    baseZoomRef.current = base;
+    setViewerZoom(1.0);
     setViewerPan(
-      (stageSize.width - effectiveW * zoom) / 2,
-      (stageSize.height - effectiveH * zoom) / 2,
+      (stageSize.width - effectiveW * base) / 2,
+      (stageSize.height - effectiveH * base) / 2,
     );
   };
 
@@ -134,7 +146,7 @@ export function CropCanvas() {
     if (fitToViewTrigger > 0) fitToViewRef.current();
   }, [fitToViewTrigger]);
 
-  // Wheel zoom
+  // Wheel zoom (viewerZoom is relative: 1.0 = 100% = fit-to-view)
   const handleWheel = useCallback(
     (e: Konva.KonvaEventObject<WheelEvent>) => {
       e.evt.preventDefault();
@@ -144,21 +156,27 @@ export function CropCanvas() {
       const pointer = stage.getPointerPosition();
       if (!pointer) return;
 
+      const base = baseZoomRef.current;
+      const oldAbsolute = viewerZoom * base;
+
       const direction = e.evt.deltaY < 0 ? 1 : -1;
-      const newZoom = Math.max(
-        MIN_ZOOM,
-        Math.min(MAX_ZOOM, viewerZoom * (direction > 0 ? ZOOM_STEP : 1 / ZOOM_STEP)),
+      const newRelative = Math.max(
+        MIN_RELATIVE_ZOOM,
+        Math.min(MAX_RELATIVE_ZOOM, viewerZoom * (direction > 0 ? ZOOM_STEP : 1 / ZOOM_STEP)),
       );
 
+      if (Math.abs(newRelative - viewerZoom) < 0.001) return;
+
+      const newAbsolute = newRelative * base;
       const mousePointTo = {
-        x: (pointer.x - viewerPanX) / viewerZoom,
-        y: (pointer.y - viewerPanY) / viewerZoom,
+        x: (pointer.x - viewerPanX) / oldAbsolute,
+        y: (pointer.y - viewerPanY) / oldAbsolute,
       };
 
-      setViewerZoom(newZoom);
+      setViewerZoom(newRelative);
       setViewerPan(
-        pointer.x - mousePointTo.x * newZoom,
-        pointer.y - mousePointTo.y * newZoom,
+        pointer.x - mousePointTo.x * newAbsolute,
+        pointer.y - mousePointTo.y * newAbsolute,
       );
     },
     [viewerZoom, viewerPanX, viewerPanY, setViewerZoom, setViewerPan],
@@ -174,10 +192,157 @@ export function CropCanvas() {
     [setViewerPan],
   );
 
-  const handleRequestTextInput = useCallback(
-    (nx: number, ny: number) => setPendingText({ nx, ny }),
-    [],
+  // ── Annotation mouse handlers (on Stage so events always fire) ──────────
+
+  const getPointerNorm = useCallback(
+    (e: Konva.KonvaEventObject<MouseEvent>) => {
+      const stage = e.target.getStage();
+      if (!stage) return null;
+      const pointer = stage.getPointerPosition();
+      if (!pointer) return null;
+      const absZoom = viewerZoom * baseZoomRef.current;
+      const lx = (pointer.x - viewerPanX) / absZoom;
+      const ly = (pointer.y - viewerPanY) / absZoom;
+      return { nx: lx / effectiveW, ny: ly / effectiveH };
+    },
+    [viewerPanX, viewerPanY, viewerZoom, effectiveW, effectiveH],
   );
+
+  const handleStageMouseDown = useCallback(
+    (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (!annotationMode || !step) return;
+      const pt = getPointerNorm(e);
+      if (!pt) return;
+      const { nx, ny } = pt;
+
+      if (annotationMode === "checkmark" || annotationMode === "cross") {
+        setDrawState({ type: annotationMode, startX: nx, startY: ny, currentX: nx, currentY: ny });
+        return;
+      }
+
+      if (annotationMode === "text") {
+        setPendingText({ nx, ny });
+        return;
+      }
+
+      if (annotationMode === "freehand") {
+        freehandPointsRef.current = [nx, ny];
+        setDrawState({ type: "freehand", startX: nx, startY: ny, points: freehandPointsRef.current });
+        return;
+      }
+
+      if (annotationMode === "circle" || annotationMode === "arrow" || annotationMode === "highlight") {
+        setDrawState({ type: annotationMode, startX: nx, startY: ny, currentX: nx, currentY: ny });
+      }
+    },
+    [annotationMode, step, getPointerNorm],
+  );
+
+  const handleStageMouseMove = useCallback(
+    (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (!drawStateRef.current) return;
+      const pt = getPointerNorm(e);
+      if (!pt) return;
+      const { nx, ny } = pt;
+
+      if (drawStateRef.current.type === "freehand") {
+        freehandPointsRef.current.push(nx, ny);
+        // Trigger re-render with updated ref (same array identity, new state obj)
+        setDrawState((prev) => prev ? { ...prev, points: freehandPointsRef.current } : null);
+      } else {
+        setDrawState((prev) => prev ? { ...prev, currentX: nx, currentY: ny } : null);
+      }
+    },
+    [getPointerNorm],
+  );
+
+  const handleStageMouseUp = useCallback(() => {
+    const ds = drawStateRef.current;
+    if (!ds || !step) return;
+
+    const base = {
+      id: crypto.randomUUID(),
+      color: annotationColor,
+      strokeWidth: DEFAULT_STROKE_WIDTH,
+      opacity: DEFAULT_OPACITY,
+    };
+
+    if ((ds.type === "checkmark" || ds.type === "cross") && ds.currentX != null && ds.currentY != null) {
+      const dragDist = Math.hypot(
+        (ds.currentX - ds.startX) * effectiveW,
+        (ds.currentY - ds.startY) * effectiveH,
+      );
+      // If dragged far enough, use drag distance as size; otherwise use default (no size = default in renderer)
+      const minDim = Math.min(effectiveW, effectiveH);
+      const defaultSize = ds.type === "checkmark" ? DEFAULT_CHECKMARK_SIZE * minDim : DEFAULT_CROSS_SIZE * minDim;
+      const customSize = dragDist > defaultSize * 0.5 ? dragDist : undefined;
+      addAnnotation(step.id, {
+        ...base,
+        type: ds.type,
+        x: ds.startX,
+        y: ds.startY,
+        size: customSize,
+      });
+    }
+
+    if (ds.type === "circle" && ds.currentX != null && ds.currentY != null) {
+      const rx = Math.abs(ds.currentX - ds.startX) / 2;
+      const ry = Math.abs(ds.currentY - ds.startY) / 2;
+      if (rx > 0.002 || ry > 0.002) {
+        addAnnotation(step.id, {
+          ...base,
+          type: "circle",
+          x: (ds.startX + ds.currentX) / 2,
+          y: (ds.startY + ds.currentY) / 2,
+          rx,
+          ry,
+        });
+      }
+    }
+
+    if (ds.type === "arrow" && ds.currentX != null && ds.currentY != null) {
+      const dist = Math.hypot(ds.currentX - ds.startX, ds.currentY - ds.startY);
+      if (dist > 0.005) {
+        addAnnotation(step.id, {
+          ...base,
+          type: "arrow",
+          x1: ds.startX,
+          y1: ds.startY,
+          x2: ds.currentX,
+          y2: ds.currentY,
+        });
+      }
+    }
+
+    if (ds.type === "highlight" && ds.currentX != null && ds.currentY != null) {
+      const w = Math.abs(ds.currentX - ds.startX);
+      const h = Math.abs(ds.currentY - ds.startY);
+      if (w > 0.002 || h > 0.002) {
+        addAnnotation(step.id, {
+          ...base,
+          type: "highlight",
+          x: Math.min(ds.startX, ds.currentX),
+          y: Math.min(ds.startY, ds.currentY),
+          w,
+          h,
+          opacity: 0.3,
+          color: HIGHLIGHT_COLOR,
+        });
+      }
+    }
+
+    if (ds.type === "freehand" && freehandPointsRef.current.length > 4) {
+      addAnnotation(step.id, {
+        ...base,
+        type: "freehand",
+        points: [...freehandPointsRef.current],
+      });
+    }
+
+    setDrawState(null);
+  }, [step, annotationColor, addAnnotation, effectiveW, effectiveH]);
+
+  // ── Text annotation submit ──────────────────────────────────────────────
 
   const handleTextSubmit = useCallback(
     (text: string) => {
@@ -185,19 +350,21 @@ export function CropCanvas() {
         addAnnotation(step.id, {
           id: crypto.randomUUID(),
           color: annotationColor,
-          strokeWidth: 0.003,
-          opacity: 0.9,
+          strokeWidth: DEFAULT_STROKE_WIDTH,
+          opacity: DEFAULT_OPACITY,
           type: "text",
           x: pendingText.nx,
           y: pendingText.ny,
           text: text.trim(),
-          fontSize: 0.02,
+          fontSize: 0.06,
         });
       }
       setPendingText(null);
     },
     [pendingText, step, addAnnotation, annotationColor],
   );
+
+  // ── Early returns (after all hooks) ─────────────────────────────────────
 
   if (!step) {
     return (
@@ -218,6 +385,7 @@ export function CropCanvas() {
 
   const isDraggable = !annotationMode;
   const cursor = annotationMode ? "crosshair" : "grab";
+  const absoluteZoom = viewerZoom * baseZoomRef.current;
 
   return (
     <>
@@ -227,13 +395,16 @@ export function CropCanvas() {
             ref={stageRef}
             width={stageSize.width}
             height={stageSize.height}
-            scaleX={viewerZoom}
-            scaleY={viewerZoom}
+            scaleX={absoluteZoom}
+            scaleY={absoluteZoom}
             x={viewerPanX}
             y={viewerPanY}
             draggable={isDraggable}
             onWheel={handleWheel}
             onDragEnd={handleDragEnd}
+            onMouseDown={handleStageMouseDown}
+            onMouseMove={handleStageMouseMove}
+            onMouseUp={handleStageMouseUp}
             style={{ cursor }}
           >
             <Layer>
@@ -251,8 +422,9 @@ export function CropCanvas() {
               stepId={step.id}
               effectiveW={effectiveW}
               effectiveH={effectiveH}
-              zoom={viewerZoom}
-              onRequestTextInput={handleRequestTextInput}
+              zoom={absoluteZoom}
+              drawPreview={drawState}
+              previewColor={annotationColor}
             />
           </Stage>
         )}

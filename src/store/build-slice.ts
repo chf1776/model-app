@@ -679,7 +679,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   },
 
   setViewerZoom: (zoom) => {
-    set({ viewerZoom: Math.max(0.1, Math.min(5.0, zoom)) });
+    set({ viewerZoom: Math.max(0.05, Math.min(10.0, zoom)) });
   },
 
   setViewerPan: (x, y) => {

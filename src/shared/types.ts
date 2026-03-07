@@ -510,10 +510,10 @@ export interface AnnotationBase {
 }
 
 export type Annotation =
-  | (AnnotationBase & { type: "checkmark"; x: number; y: number })
+  | (AnnotationBase & { type: "checkmark"; x: number; y: number; size?: number })
   | (AnnotationBase & { type: "circle"; x: number; y: number; rx: number; ry: number })
   | (AnnotationBase & { type: "arrow"; x1: number; y1: number; x2: number; y2: number })
-  | (AnnotationBase & { type: "cross"; x: number; y: number })
+  | (AnnotationBase & { type: "cross"; x: number; y: number; size?: number })
   | (AnnotationBase & { type: "highlight"; x: number; y: number; w: number; h: number })
   | (AnnotationBase & { type: "freehand"; points: number[] })
   | (AnnotationBase & { type: "text"; x: number; y: number; text: string; fontSize: number });

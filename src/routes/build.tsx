@@ -28,6 +28,7 @@ import { flattenTrackSteps } from "@/components/build/tree-utils";
 import { useUploadPdf } from "@/components/build/useUploadPdf";
 import { useTimerTick } from "@/hooks/useTimerTick";
 import { getEffectiveDryingMinutes } from "@/shared/types";
+import { zoomIn, zoomOut } from "@/components/build/zoom-utils";
 
 export default function BuildRoute() {
   const project = useAppStore((s) => s.project);
@@ -36,8 +37,6 @@ export default function BuildRoute() {
   const isProcessingPdf = useAppStore((s) => s.isProcessingPdf);
   const nextPage = useAppStore((s) => s.nextPage);
   const prevPage = useAppStore((s) => s.prevPage);
-  const viewerZoom = useAppStore((s) => s.viewerZoom);
-  const setViewerZoom = useAppStore((s) => s.setViewerZoom);
   const requestFitToView = useAppStore((s) => s.requestFitToView);
   const rotatePage = useAppStore((s) => s.rotatePage);
   const activeStepId = useAppStore((s) => s.activeStepId);
@@ -164,11 +163,11 @@ export default function BuildRoute() {
         case "+":
         case "=":
           e.preventDefault();
-          setViewerZoom(viewerZoom * 1.2);
+          zoomIn();
           break;
         case "-":
           e.preventDefault();
-          setViewerZoom(viewerZoom / 1.2);
+          zoomOut();
           break;
         case "0":
           e.preventDefault();
@@ -234,7 +233,7 @@ export default function BuildRoute() {
     },
     [
       buildMode,
-      nextPage, prevPage, viewerZoom, setViewerZoom, requestFitToView, rotatePage,
+      nextPage, prevPage, requestFitToView, rotatePage,
       setCanvasMode, canvasMode, activeStepId, setActiveStep, activeTrackId,
       selectedStepIds, clearSelectedSteps,
       currentSourcePages, currentPageIndex, steps, addStep, pushUndo, activeProjectId, loadTracks,
@@ -320,7 +319,6 @@ export default function BuildRoute() {
                 {navMode === "track" ? <CropCanvas /> : <PageCanvas />}
                 {navMode === "track" && <AnnotationToolbar />}
                 <RelationPill />
-                <TimerBubble />
               </div>
               <NavigationBar />
             </div>
@@ -332,6 +330,7 @@ export default function BuildRoute() {
       </div>
 
       <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      <TimerBubble />
     </div>
   );
 }
