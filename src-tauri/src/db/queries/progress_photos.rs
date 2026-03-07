@@ -31,6 +31,27 @@ pub fn list_for_step(conn: &Connection, step_id: &str) -> Result<Vec<ProgressPho
     Ok(rows)
 }
 
+pub fn list_by_project(conn: &Connection, project_id: &str) -> Result<Vec<ProgressPhoto>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT pp.id, pp.step_id, pp.file_path, pp.captured_at, pp.created_at
+             FROM progress_photos pp
+             JOIN steps s ON pp.step_id = s.id
+             JOIN tracks t ON s.track_id = t.id
+             WHERE t.project_id = ?1
+             ORDER BY pp.created_at DESC",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let rows = stmt
+        .query_map(params![project_id], |row| map_row(row))
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    Ok(rows)
+}
+
 pub fn insert(conn: &Connection, step_id: &str, file_path: &str) -> Result<ProgressPhoto, String> {
     let id = Uuid::new_v4().to_string();
     let ts = now();

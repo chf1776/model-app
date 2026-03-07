@@ -3,7 +3,7 @@ use crate::util::now;
 use rusqlite::{params, Connection};
 use uuid::Uuid;
 
-fn row_to_paint(row: &rusqlite::Row) -> rusqlite::Result<Paint> {
+pub fn row_to_paint(row: &rusqlite::Row) -> rusqlite::Result<Paint> {
     Ok(Paint {
         id: row.get(0)?,
         brand: row.get(1)?,

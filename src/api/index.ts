@@ -89,6 +89,12 @@ export async function deleteAccessory(id: string): Promise<void> {
   return invoke<void>("delete_accessory", { id });
 }
 
+export async function listAccessoriesForProject(
+  projectId: string,
+): Promise<Accessory[]> {
+  return invoke<Accessory[]>("list_accessories_for_project", { projectId });
+}
+
 export async function listAccessoriesForKit(
   kitId: string,
 ): Promise<Accessory[]> {
@@ -117,6 +123,10 @@ export async function deletePaint(id: string): Promise<void> {
 
 export async function listPaintProjectMappings(): Promise<PaintProjectMapping[]> {
   return invoke<PaintProjectMapping[]>("list_paint_project_mappings");
+}
+
+export async function listPaintsForProject(projectId: string): Promise<Paint[]> {
+  return invoke<Paint[]>("list_paints_for_project", { projectId });
 }
 
 export async function setPaintProjects(
@@ -348,11 +358,19 @@ export async function addProgressPhoto(
   return invoke<ProgressPhoto>("add_progress_photo", { stepId, sourcePath });
 }
 
+export async function listProjectProgressPhotos(projectId: string): Promise<ProgressPhoto[]> {
+  return invoke<ProgressPhoto[]>("list_project_progress_photos", { projectId });
+}
+
 export async function listProgressPhotos(stepId: string): Promise<ProgressPhoto[]> {
   return invoke<ProgressPhoto[]>("list_progress_photos", { stepId });
 }
 
 // ── Milestone Photos ────────────────────────────────────────────────────────
+
+export async function listProjectMilestonePhotos(projectId: string): Promise<MilestonePhoto[]> {
+  return invoke<MilestonePhoto[]>("list_project_milestone_photos", { projectId });
+}
 
 export async function addMilestonePhoto(
   trackId: string,
@@ -362,6 +380,10 @@ export async function addMilestonePhoto(
 }
 
 // ── Build Log ───────────────────────────────────────────────────────────────
+
+export async function listBuildLogEntries(projectId: string): Promise<BuildLogEntry[]> {
+  return invoke<BuildLogEntry[]>("list_build_log_entries", { projectId });
+}
 
 export async function addBuildLogEntry(opts: {
   projectId: string;

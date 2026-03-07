@@ -6,6 +6,15 @@ use tauri::{Manager, State};
 use uuid::Uuid;
 
 #[tauri::command]
+pub fn list_project_milestone_photos(
+    db: State<'_, AppDb>,
+    project_id: String,
+) -> Result<Vec<MilestonePhoto>, String> {
+    let conn = db.conn()?;
+    crate::db::queries::milestone_photos::list_by_project(&conn, &project_id)
+}
+
+#[tauri::command]
 pub fn add_milestone_photo(
     app: tauri::AppHandle,
     db: State<'_, AppDb>,

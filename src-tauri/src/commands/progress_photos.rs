@@ -6,6 +6,15 @@ use tauri::{Manager, State};
 use uuid::Uuid;
 
 #[tauri::command]
+pub fn list_project_progress_photos(
+    db: State<'_, AppDb>,
+    project_id: String,
+) -> Result<Vec<ProgressPhoto>, String> {
+    let conn = db.conn()?;
+    crate::db::queries::progress_photos::list_by_project(&conn, &project_id)
+}
+
+#[tauri::command]
 pub fn list_progress_photos(
     db: State<'_, AppDb>,
     step_id: String,

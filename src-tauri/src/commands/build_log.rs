@@ -3,6 +3,15 @@ use crate::models::BuildLogEntry;
 use tauri::State;
 
 #[tauri::command]
+pub fn list_build_log_entries(
+    db: State<'_, AppDb>,
+    project_id: String,
+) -> Result<Vec<BuildLogEntry>, String> {
+    let conn = db.conn()?;
+    crate::db::queries::build_log_entries::list_by_project(&conn, &project_id)
+}
+
+#[tauri::command]
 pub fn add_build_log_entry(
     db: State<'_, AppDb>,
     project_id: String,

@@ -61,6 +61,22 @@ pub fn list_by_kit(conn: &Connection, kit_id: &str) -> Result<Vec<Accessory>, St
     Ok(rows)
 }
 
+pub fn list_by_project(conn: &Connection, project_id: &str) -> Result<Vec<Accessory>, String> {
+    let mut stmt = conn
+        .prepare(&format!(
+            "{SELECT_WITH_JOIN} WHERE a.id IN (SELECT accessory_id FROM project_accessories WHERE project_id = ?1) ORDER BY a.name"
+        ))
+        .map_err(|e| e.to_string())?;
+
+    let rows = stmt
+        .query_map(params![project_id], |row| row_to_accessory(row))
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    Ok(rows)
+}
+
 pub fn get_by_id(conn: &Connection, id: &str) -> Result<Accessory, String> {
     conn.query_row(
         &format!("{SELECT_WITH_JOIN} WHERE a.id = ?1"),

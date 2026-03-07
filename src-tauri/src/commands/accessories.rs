@@ -33,6 +33,15 @@ pub fn delete_accessory(db: State<'_, AppDb>, id: String) -> Result<(), String> 
 }
 
 #[tauri::command]
+pub fn list_accessories_for_project(
+    db: State<'_, AppDb>,
+    project_id: String,
+) -> Result<Vec<Accessory>, String> {
+    let conn = db.conn()?;
+    crate::db::queries::accessories::list_by_project(&conn, &project_id)
+}
+
+#[tauri::command]
 pub fn list_accessories_for_kit(
     db: State<'_, AppDb>,
     kit_id: String,

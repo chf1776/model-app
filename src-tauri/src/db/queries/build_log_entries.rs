@@ -23,6 +23,22 @@ fn map_row(row: &rusqlite::Row) -> rusqlite::Result<BuildLogEntry> {
 const SELECT_COLS: &str =
     "id, project_id, entry_type, body, photo_path, caption, step_id, track_id, step_number, is_track_completion, track_step_count, created_at";
 
+pub fn list_by_project(conn: &Connection, project_id: &str) -> Result<Vec<BuildLogEntry>, String> {
+    let mut stmt = conn
+        .prepare(&format!(
+            "SELECT {SELECT_COLS} FROM build_log_entries WHERE project_id = ?1 ORDER BY created_at DESC LIMIT 50"
+        ))
+        .map_err(|e| e.to_string())?;
+
+    let rows = stmt
+        .query_map(params![project_id], |row| map_row(row))
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    Ok(rows)
+}
+
 pub fn insert(
     conn: &Connection,
     project_id: &str,

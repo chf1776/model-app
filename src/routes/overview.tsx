@@ -1,8 +1,25 @@
+import { useEffect } from "react";
 import { LayoutDashboard } from "lucide-react";
 import { useAppStore } from "@/store";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AssemblyMap } from "@/components/overview/AssemblyMap";
+import { ProjectInfoCard } from "@/components/overview/ProjectInfoCard";
+import { GalleryCard } from "@/components/overview/GalleryCard";
+import { BuildLogCard } from "@/components/overview/BuildLogCard";
+import { MaterialsCard } from "@/components/overview/MaterialsCard";
 
 export default function OverviewRoute() {
   const project = useAppStore((s) => s.project);
+  const activeProjectId = useAppStore((s) => s.activeProjectId);
+  const activeZone = useAppStore((s) => s.activeZone);
+  const overviewLoading = useAppStore((s) => s.overviewLoading);
+  const loadOverviewData = useAppStore((s) => s.loadOverviewData);
+
+  useEffect(() => {
+    if (activeProjectId && activeZone === "overview") {
+      loadOverviewData(activeProjectId);
+    }
+  }, [activeProjectId, activeZone, loadOverviewData]);
 
   if (!project) {
     return (
@@ -22,27 +39,28 @@ export default function OverviewRoute() {
     );
   }
 
-  return (
-    <div className="flex h-full flex-col">
-      {/* Overview content */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="grid grid-cols-2 gap-3">
-          {["Assembly Map", "Gallery", "Build Log", "Materials"].map(
-            (title) => (
-              <div
-                key={title}
-                className="flex h-32 cursor-pointer flex-col rounded-md border border-border bg-card p-2.5 transition-colors hover:border-accent/30"
-              >
-                <span className="text-[11px] font-semibold text-text-primary">
-                  {title}
-                </span>
-                <span className="text-[10px] text-text-tertiary">
-                  Coming in Phase 3
-                </span>
-              </div>
-            ),
-          )}
+  if (overviewLoading) {
+    return (
+      <div className="flex h-full flex-col gap-2.5 overflow-hidden p-3">
+        <Skeleton className="h-20 rounded-lg" />
+        <div className="grid min-h-0 flex-1 grid-cols-2 gap-2.5">
+          <Skeleton className="rounded-lg" />
+          <Skeleton className="rounded-lg" />
+          <Skeleton className="rounded-lg" />
+          <Skeleton className="rounded-lg" />
         </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full flex-col gap-2.5 overflow-hidden p-3">
+      <AssemblyMap />
+      <div className="grid min-h-0 flex-1 grid-cols-2 gap-2.5">
+        <ProjectInfoCard />
+        <GalleryCard />
+        <BuildLogCard />
+        <MaterialsCard />
       </div>
     </div>
   );

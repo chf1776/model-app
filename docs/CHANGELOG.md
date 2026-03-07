@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.4] — 2026-03-06 — Phase 3.5: Basic Overview
+
+### Added
+- **Overview zone**: Read-only project dashboard replacing the placeholder cards
+- **Assembly Map**: Collapsible SVG visualization of tracks and steps; filled nodes for completed steps, hollow for pending; dashed join arrows between tracks; hover tooltips; click navigates to Build zone; collapsed view shows mini progress bars per track
+- **Project Info card**: Kit name, scale/category/status badges, box art thumbnail, overall progress bar
+- **Gallery card**: Merged progress + milestone photos sorted by date; row of thumbnails with overflow count
+- **Build Log card**: Recent activity timeline with colored dots per track, relative timestamps
+- **Materials card**: Linked accessories with type badges, paints with color swatches
+- **Overview data loading**: New `overview-slice` fires 5 queries in parallel on zone switch; skeleton loading state
+- **Backend queries**: `list_by_project` for build_log_entries, progress_photos, milestone_photos, accessories; `list_paints_for_project` via palette_entries JOIN
+- **5 new Tauri commands**: `list_build_log_entries`, `list_project_progress_photos`, `list_project_milestone_photos`, `list_accessories_for_project`, `list_paints_for_project`
+
 ## [0.3.3] — 2026-03-06 — Phase 3 Polish: Photos, Milestones, Relations
 
 ### Added

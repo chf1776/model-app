@@ -15,6 +15,26 @@ fn map_row(row: &rusqlite::Row) -> rusqlite::Result<MilestonePhoto> {
 
 const SELECT_COLS: &str = "id, track_id, file_path, captured_at, created_at";
 
+pub fn list_by_project(conn: &Connection, project_id: &str) -> Result<Vec<MilestonePhoto>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT mp.id, mp.track_id, mp.file_path, mp.captured_at, mp.created_at
+             FROM milestone_photos mp
+             JOIN tracks t ON mp.track_id = t.id
+             WHERE t.project_id = ?1
+             ORDER BY mp.created_at DESC",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let rows = stmt
+        .query_map(params![project_id], |row| map_row(row))
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    Ok(rows)
+}
+
 pub fn insert(
     conn: &Connection,
     track_id: &str,

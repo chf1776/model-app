@@ -1,0 +1,83 @@
+import { Package } from "lucide-react";
+import { useAppStore } from "@/store";
+import { ACCESSORY_TYPE_LABELS, ACCESSORY_TYPE_COLORS } from "@/shared/types";
+import type { AccessoryType } from "@/shared/types";
+import { OverviewCard } from "./OverviewCard";
+
+export function MaterialsCard() {
+  const accessories = useAppStore((s) => s.overviewAccessories);
+  const paints = useAppStore((s) => s.overviewPaints);
+
+  const accCount = accessories.length;
+  const paintCount = paints.length;
+  const empty = accCount === 0 && paintCount === 0;
+
+  return (
+    <OverviewCard title="Materials" icon={Package}>
+      {empty ? (
+        <div className="flex h-full items-center justify-center py-3">
+          <span className="text-[9px] text-text-tertiary">
+            No materials linked
+          </span>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {accCount > 0 && (
+            <div>
+              <p className="text-[9px] font-medium text-text-secondary">
+                {accCount} accessor{accCount === 1 ? "y" : "ies"}
+              </p>
+              <div className="mt-0.5 flex flex-wrap gap-1">
+                {accessories.slice(0, 4).map((a) => (
+                  <span
+                    key={a.id}
+                    className="rounded px-1 py-0.5 text-[8px] font-medium text-white"
+                    style={{
+                      backgroundColor:
+                        ACCESSORY_TYPE_COLORS[a.type as AccessoryType] ??
+                        "#78716C",
+                    }}
+                  >
+                    {ACCESSORY_TYPE_LABELS[a.type as AccessoryType] ?? a.type}
+                  </span>
+                ))}
+                {accCount > 4 && (
+                  <span className="text-[8px] text-text-tertiary">
+                    +{accCount - 4} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+          {paintCount > 0 && (
+            <div>
+              <p className="text-[9px] font-medium text-text-secondary">
+                {paintCount} paint{paintCount === 1 ? "" : "s"}
+              </p>
+              <div className="mt-0.5 flex flex-wrap gap-1">
+                {paints.slice(0, 6).map((p) => (
+                  <span key={p.id} className="flex items-center gap-0.5">
+                    {p.color && (
+                      <span
+                        className="inline-block h-2 w-2 rounded-full border border-border"
+                        style={{ backgroundColor: p.color }}
+                      />
+                    )}
+                    <span className="text-[8px] text-text-secondary">
+                      {p.name}
+                    </span>
+                  </span>
+                ))}
+                {paintCount > 6 && (
+                  <span className="text-[8px] text-text-tertiary">
+                    +{paintCount - 6} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </OverviewCard>
+  );
+}

@@ -1,3 +1,4 @@
+use crate::models::Paint;
 use crate::util::now;
 use rusqlite::{params, Connection};
 use serde::Serialize;
@@ -32,6 +33,29 @@ pub fn list_all_paint_mappings(conn: &Connection) -> Result<Vec<PaletteMapping>,
                 project_name: row.get(2)?,
             })
         })
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    Ok(rows)
+}
+
+pub fn list_paints_for_project(conn: &Connection, project_id: &str) -> Result<Vec<Paint>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT p.id, p.brand, p.name, p.reference_code, p.paint_type, p.finish, p.color,
+                    p.color_family, p.status, p.price, p.currency, p.buy_url, p.price_updated_at,
+                    p.notes, p.created_at, p.updated_at
+             FROM paints p
+             JOIN palette_entries pe ON pe.paint_id = p.id
+             WHERE pe.project_id = ?1
+             GROUP BY p.id
+             ORDER BY p.name",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let rows = stmt
+        .query_map(params![project_id], |row| super::paints::row_to_paint(row))
         .map_err(|e| e.to_string())?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;
