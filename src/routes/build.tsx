@@ -24,6 +24,7 @@ import { TimerBubble } from "@/components/build/TimerBubble";
 import { flattenTrackSteps } from "@/components/build/tree-utils";
 import { useUploadPdf } from "@/components/build/useUploadPdf";
 import { useTimerTick } from "@/hooks/useTimerTick";
+import { getEffectiveDryingMinutes } from "@/shared/types";
 
 export default function BuildRoute() {
   const project = useAppStore((s) => s.project);
@@ -109,8 +110,13 @@ export default function BuildRoute() {
         if ((e.key === "t" || e.key === "T") && activeStepId) {
           e.preventDefault();
           const s = steps.find((st) => st.id === activeStepId);
-          if (s?.drying_time_min && s.drying_time_min > 0 && !activeTimers.some((t) => t.step_id === s.id)) {
-            addTimer(s.id, s.title, s.drying_time_min);
+          if (s && !activeTimers.some((t) => t.step_id === s.id)) {
+            const mins = getEffectiveDryingMinutes(s);
+            if (mins) {
+              addTimer(s.id, s.title, mins);
+            } else {
+              toast.info("Use the Start Timer button to enter a duration");
+            }
           }
           return;
         }

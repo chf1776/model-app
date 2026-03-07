@@ -14,7 +14,7 @@ interface CropLayerProps {
  * Convert image-space crop coordinates to effective (post-rotation) space
  * for rendering on the canvas.
  */
-function imageToEffective(
+export function imageToEffective(
   cropX: number,
   cropY: number,
   cropW: number,

@@ -5,7 +5,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { useAppStore } from "@/store";
 import * as api from "@/api";
 import { useCropDrawing } from "@/hooks/useCropDrawing";
-import { CropLayer } from "./CropLayer";
+import { CropLayer, imageToEffective } from "./CropLayer";
 import type Konva from "konva";
 
 const MIN_ZOOM = 0.1;
@@ -53,6 +53,7 @@ export function InstructionCanvas() {
   const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasFitRef = useRef(false);
+  const prevFocusCropRef = useRef(0);
 
   const activeProjectId = useAppStore((s) => s.activeProjectId);
   const currentSourcePages = useAppStore((s) => s.currentSourcePages);
@@ -63,6 +64,7 @@ export function InstructionCanvas() {
   const setViewerZoom = useAppStore((s) => s.setViewerZoom);
   const setViewerPan = useAppStore((s) => s.setViewerPan);
   const fitToViewTrigger = useAppStore((s) => s.fitToViewTrigger);
+  const focusCropTrigger = useAppStore((s) => s.focusCropTrigger);
   const canvasMode = useAppStore((s) => s.canvasMode);
 
   const currentPage = currentSourcePages[currentPageIndex];
@@ -127,9 +129,9 @@ export function InstructionCanvas() {
     setViewerPan(panX, panY);
   };
 
-  // Auto-fit on page change
+  // Auto-fit on page change (skip if focus-crop will handle it)
   useEffect(() => {
-    if (currentPage) {
+    if (currentPage && focusCropTrigger === prevFocusCropRef.current) {
       fitToViewRef.current();
       hasFitRef.current = true;
     }
@@ -156,6 +158,32 @@ export function InstructionCanvas() {
       fitToViewRef.current();
     }
   }, [fitToViewTrigger]);
+
+  // Center on active step's crop region when triggered
+  useEffect(() => {
+    prevFocusCropRef.current = focusCropTrigger;
+    if (focusCropTrigger === 0 || stageSize.width === 0) return;
+    const { activeStepId, steps: allSteps } = useAppStore.getState();
+    const step = activeStepId ? allSteps.find((s) => s.id === activeStepId) : null;
+    if (!step || step.crop_x == null || step.crop_y == null || step.crop_w == null || step.crop_h == null || !currentPage) return;
+
+    const eff = imageToEffective(
+      step.crop_x, step.crop_y, step.crop_w, step.crop_h,
+      currentPage.rotation, currentPage.width, currentPage.height,
+    );
+
+    const padding = 60;
+    const availW = stageSize.width - padding * 2;
+    const availH = stageSize.height - padding * 2;
+    const zoom = Math.min(availW / eff.width, availH / eff.height, 2);
+    const cropCenterX = eff.x + eff.width / 2;
+    const cropCenterY = eff.y + eff.height / 2;
+    const panX = stageSize.width / 2 - cropCenterX * zoom;
+    const panY = stageSize.height / 2 - cropCenterY * zoom;
+
+    setViewerZoom(zoom);
+    setViewerPan(panX, panY);
+  }, [focusCropTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debounced save view state
   const debouncedSave = useCallback(

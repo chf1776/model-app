@@ -10,16 +10,15 @@ import {
 
 export interface TimerSlice {
   activeTimers: DryingTimer[];
-  timerBubbleExpanded: boolean;
+  timerTickCount: number;
   loadTimers: () => Promise<void>;
   addTimer: (
     stepId: string | null,
     label: string,
     durationMin: number,
-  ) => Promise<void>;
+  ) => Promise<DryingTimer>;
   removeTimer: (id: string) => Promise<void>;
   tickTimers: () => void;
-  setTimerBubbleExpanded: (expanded: boolean) => void;
 }
 
 async function fireNotification(title: string, body: string) {
@@ -42,8 +41,7 @@ export const createTimerSlice: StateCreator<AppStore, [], [], TimerSlice> = (
   get,
 ) => ({
   activeTimers: [],
-  timerBubbleExpanded: false,
-
+  timerTickCount: 0,
   loadTimers: async () => {
     const timers = await api.listDryingTimers();
     const now = Math.floor(Date.now() / 1000);
@@ -74,7 +72,7 @@ export const createTimerSlice: StateCreator<AppStore, [], [], TimerSlice> = (
           })
           .catch(() => {});
       }
-      api.deleteDryingTimer(t.id).catch(() => {});
+      api.deleteDryingTimer(t.id).catch((e) => console.warn("Failed to delete expired timer:", e));
     }
   },
 
@@ -85,6 +83,7 @@ export const createTimerSlice: StateCreator<AppStore, [], [], TimerSlice> = (
       duration_min: durationMin,
     });
     set((s) => ({ activeTimers: [...s.activeTimers, timer] }));
+    return timer;
   },
 
   removeTimer: async (id) => {
@@ -108,9 +107,13 @@ export const createTimerSlice: StateCreator<AppStore, [], [], TimerSlice> = (
       }
     }
 
-    if (expired.length === 0) return;
+    if (expired.length === 0) {
+      // Still increment tick so UI re-renders countdowns
+      set((s) => ({ timerTickCount: s.timerTickCount + 1 }));
+      return;
+    }
 
-    set({ activeTimers: remaining });
+    set((s) => ({ activeTimers: remaining, timerTickCount: s.timerTickCount + 1 }));
 
     for (const t of expired) {
       fireNotification("Timer Complete", `${t.label} is done drying`);
@@ -123,11 +126,8 @@ export const createTimerSlice: StateCreator<AppStore, [], [], TimerSlice> = (
           })
           .catch(() => {});
       }
-      api.deleteDryingTimer(t.id).catch(() => {});
+      api.deleteDryingTimer(t.id).catch((e) => console.warn("Failed to delete expired timer:", e));
     }
   },
 
-  setTimerBubbleExpanded: (expanded) => {
-    set({ timerBubbleExpanded: expanded });
-  },
 });

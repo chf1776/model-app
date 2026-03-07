@@ -232,12 +232,11 @@ You can see the build structure, track progress visually, and get a quick summar
 
 **Goal**: The full building experience — annotations, timers, page mode, and all workflow tools. Builds on the core loop from Phase 3.
 
-### Drying timers (deferred from Phase 3)
-- Global timer service: Zustand slice (`activeTimers`, `addTimer`, `removeTimer`, `tickTimers`), setInterval-driven
-- Start Timer button in step panel (uses step's `drying_time_min`); `T` keyboard shortcut
-- Floating draggable bubble on canvas; position persists across sessions
-- Collapsed: all timer rows with progress bars; Expanded: full controls + "+ Add timer"
-- OS notification on completion; bubble pulses; completions auto-logged in build log
+### ~~Drying timers~~ DONE (Phase 4A — v0.4.0)
+- ~~Global timer service: Zustand slice with setInterval tick, OS notifications, build log integration~~
+- ~~Auto-start on step completion with adhesive-based defaults; Start Timer button; T shortcut~~
+- ~~Floating draggable bubble with cancel-on-hover, track colors, adhesive labels, click-to-navigate~~
+- ~~Focus-on-crop: clicking a step in setup mode centers canvas on crop region~~
 
 ### Annotation tools
 - **Checkmarks**: click anywhere on instruction image to place a checkmark (no toolbar); persists on step

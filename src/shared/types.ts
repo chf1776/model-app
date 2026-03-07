@@ -510,6 +510,27 @@ export interface DryingTimer {
   started_at: number;
 }
 
+// Practical "safe to handle" times based on manufacturer specs and modeller consensus
+export const ADHESIVE_DEFAULT_MINUTES: Partial<Record<AdhesiveType, number>> = {
+  liquid_cement: 10,    // extra-thin poly cement: 5–10 min handling time
+  tube_cement: 20,      // thick poly cement: 15–20 min handling time
+  ca_thin: 2,           // thin CA: sets 1–3 sec, safe to handle ~2 min
+  ca_medium_thick: 5,   // medium/thick CA: sets 10–60 sec, safe ~5 min
+  epoxy: 30,            // 5-min epoxy: sets 5–10 min, safe to handle ~30 min
+  pva: 30,              // PVA/white glue: firm hold in ~30 min
+};
+
+export function getEffectiveDryingMinutes(step: Step): number | null {
+  if (step.drying_time_min && step.drying_time_min > 0) return step.drying_time_min;
+  if (step.adhesive_type) return ADHESIVE_DEFAULT_MINUTES[step.adhesive_type] ?? null;
+  return null;
+}
+
+export function parsePositiveMinutes(input: string): number | null {
+  const n = parseInt(input, 10);
+  return n > 0 ? n : null;
+}
+
 // ── Instruction Sources ──────────────────────────────────────────────────────
 
 export interface InstructionSource {

@@ -1,5 +1,6 @@
 import type { StateCreator } from "zustand";
 import type { Project, InstructionSource, InstructionPage, Track, Step, Tag, StepRelation, ReferenceImage } from "@/shared/types";
+import { getEffectiveDryingMinutes } from "@/shared/types";
 import type { AppStore } from "./index";
 import * as api from "@/api";
 import { toast } from "sonner";
@@ -92,6 +93,7 @@ export interface BuildSlice {
   viewerPanX: number;
   viewerPanY: number;
   fitToViewTrigger: number;
+  focusCropTrigger: number;
   setViewerZoom: (zoom: number) => void;
   setViewerPan: (x: number, y: number) => void;
   resetViewerState: () => void;
@@ -160,6 +162,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   // Viewer state
   ...DEFAULT_VIEWER_STATE,
   fitToViewTrigger: 0,
+  focusCropTrigger: 0,
 
   // Canvas mode
   canvasMode: "view" as CanvasMode,
@@ -357,6 +360,10 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         // Reset viewer so CropCanvas re-centers on the new step
         if (state.buildMode === "building") {
           Object.assign(update, DEFAULT_VIEWER_STATE);
+        }
+        // In setup mode, trigger canvas to center on the crop region
+        if (state.buildMode === "setup" && step.crop_x != null) {
+          update.focusCropTrigger = state.focusCropTrigger + 1;
         }
         set(update);
         // Persist track change to DB
@@ -624,6 +631,21 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
             entryType: "step_complete",
             stepId: step.id,
             trackId: step.track_id,
+          }).catch(() => {});
+        }
+
+        // Auto-start drying timer if step has adhesive/drying time
+        const dryingMin = getEffectiveDryingMinutes(step);
+        const alreadyHasTimer = get().activeTimers.some((t) => t.step_id === step.id);
+        if (dryingMin && !alreadyHasTimer) {
+          get().addTimer(step.id, step.title, dryingMin).then((created) => {
+            toast.info(`Drying timer started: ${dryingMin} min`, {
+              action: {
+                label: "Dismiss",
+                onClick: () => { get().removeTimer(created.id); },
+              },
+              duration: 5000,
+            });
           }).catch(() => {});
         }
 

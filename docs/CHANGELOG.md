@@ -16,17 +16,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Lightbox persistence on step change**: Lightbox closes when navigating to a different step
 - **Sub-step rail visibility**: Building rail sub-steps stay expanded when a child step is active (not just the parent)
 
-## [0.4.0] — 2026-03-07 — Drying Timers (Phase 4A)
+## [0.4.0] — 2026-03-07 — Drying Timers & Setup Focus (Phase 4A)
 
 ### Added
 - **Drying timers**: Start countdown timers for steps with drying times — tracks cure times with visual countdown in a floating bubble overlay
-- **Timer bubble**: Draggable floating card on the canvas showing all active timers with circular progress indicators and MM:SS countdown
+- **Timer bubble**: Draggable floating card on the canvas showing all active timers with circular progress indicators, MM:SS countdown, track color dots, adhesive type labels, and click-to-navigate
+- **Auto-start timers**: Completing a step with adhesive/drying time automatically starts a timer with a dismissable toast notification
+- **Adhesive default durations**: Research-based defaults for each adhesive type (liquid cement 10m, tube cement 20m, CA thin 2m, CA medium/thick 5m, epoxy 30m, PVA 30m)
+- **Cancel timer on hover**: Hovering the progress circle shows a red X; clicking opens a confirmation dialog
 - **OS notifications**: Desktop notification fires when a timer completes (via tauri-plugin-notification)
 - **Build log integration**: Timer completions automatically logged as build log entries
 - **Crash recovery**: Expired timers detected on app relaunch with "expired while away" notification
-- **Add custom timer**: Expanded bubble includes inline form to create ad-hoc timers with custom label and duration
-- **Start Timer button**: Appears in BuildingStepPanel for steps with `drying_time_min` set, disabled when timer already running
-- **T keyboard shortcut**: Start drying timer for active step in building mode
+- **Add custom timer**: Plus button in bubble header opens inline form to create ad-hoc timers with custom label and duration
+- **Start Timer button**: Always visible in BuildingStepPanel — one-click for preset durations, manual input for custom
+- **T keyboard shortcut**: Start drying timer for active step in building mode (uses adhesive defaults)
+- **Focus on crop in setup mode**: Clicking a step in the track rail centers and zooms the canvas on that step's crop region
 - **Timer slice**: New Zustand store slice (`timer-slice.ts`) with 1-second tick interval, automatic cleanup on expiry
 
 ## [0.3.5] — 2026-03-07 — Overview Polish
