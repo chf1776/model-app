@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { Check, Circle, MoveRight, X, Highlighter, Pencil, Type, Trash2, Undo2 } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useAppStore } from "@/store";
-import type { AnnotationTool } from "@/shared/types";
+import type { Annotation, AnnotationTool } from "@/shared/types";
+
+const EMPTY_ANNOTATIONS: Annotation[] = [];
 
 const TOOLS: { tool: AnnotationTool; icon: React.ReactNode; label: string; key: string }[] = [
   { tool: "checkmark", icon: <Check className="h-3.5 w-3.5" />, label: "Checkmark", key: "1" },
@@ -30,7 +32,7 @@ export function AnnotationToolbar() {
   const setAnnotationColor = useAppStore((s) => s.setAnnotationColor);
   const annotationToolbarVisible = useAppStore((s) => s.annotationToolbarVisible);
   const activeStepId = useAppStore((s) => s.activeStepId);
-  const annotations = useAppStore((s) => s.activeStepId ? (s.stepAnnotations[s.activeStepId] ?? []) : []);
+  const annotations = useAppStore((s) => s.activeStepId ? (s.stepAnnotations[s.activeStepId] ?? EMPTY_ANNOTATIONS) : EMPTY_ANNOTATIONS);
   const removeAnnotation = useAppStore((s) => s.removeAnnotation);
   const steps = useAppStore((s) => s.steps);
 

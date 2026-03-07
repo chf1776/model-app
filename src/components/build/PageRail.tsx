@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect } from "react";
+import { useMemo, useRef, useEffect, forwardRef } from "react";
 import { ChevronDown, Check } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAppStore } from "@/store";
@@ -129,8 +129,6 @@ export function PageRail() {
 }
 
 // ── Page Row ────────────────────────────────────────────────────────────────
-
-import { forwardRef } from "react";
 
 interface PageRowProps {
   page: InstructionPage;

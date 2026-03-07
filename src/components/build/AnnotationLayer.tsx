@@ -4,6 +4,8 @@ import { useAppStore } from "@/store";
 import type { Annotation } from "@/shared/types";
 import type Konva from "konva";
 
+const EMPTY_ANNOTATIONS: Annotation[] = [];
+
 interface AnnotationLayerProps {
   stepId: string;
   effectiveW: number;
@@ -40,7 +42,7 @@ function makeId() {
 }
 
 export function AnnotationLayer({ stepId, effectiveW, effectiveH, zoom, onRequestTextInput }: AnnotationLayerProps) {
-  const annotations = useAppStore((s) => s.stepAnnotations[stepId] ?? []);
+  const annotations = useAppStore((s) => s.stepAnnotations[stepId] ?? EMPTY_ANNOTATIONS);
   const annotationMode = useAppStore((s) => s.annotationMode);
   const annotationColor = useAppStore((s) => s.annotationColor);
   const addAnnotation = useAppStore((s) => s.addAnnotation);
