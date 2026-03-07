@@ -174,23 +174,6 @@ export function CropCanvas() {
     [setViewerPan],
   );
 
-  if (!step) {
-    return (
-      <div className="flex h-full items-center justify-center text-xs text-text-tertiary">
-        Select a step to view
-      </div>
-    );
-  }
-
-  if (!hasCrop || !page) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-2 text-text-tertiary">
-        <p className="text-sm font-medium">{step.title}</p>
-        <p className="text-xs">No crop region defined</p>
-      </div>
-    );
-  }
-
   const handleRequestTextInput = useCallback(
     (nx: number, ny: number) => setPendingText({ nx, ny }),
     [],
@@ -215,6 +198,23 @@ export function CropCanvas() {
     },
     [pendingText, step, addAnnotation, annotationColor],
   );
+
+  if (!step) {
+    return (
+      <div className="flex h-full items-center justify-center text-xs text-text-tertiary">
+        Select a step to view
+      </div>
+    );
+  }
+
+  if (!hasCrop || !page) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-2 text-text-tertiary">
+        <p className="text-sm font-medium">{step.title}</p>
+        <p className="text-xs">No crop region defined</p>
+      </div>
+    );
+  }
 
   const isDraggable = !annotationMode;
   const cursor = annotationMode ? "crosshair" : "grab";
