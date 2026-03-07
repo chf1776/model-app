@@ -49,7 +49,6 @@ pub fn list_paints_for_project(conn: &Connection, project_id: &str) -> Result<Ve
              FROM paints p
              JOIN palette_entries pe ON pe.paint_id = p.id
              WHERE pe.project_id = ?1
-             GROUP BY p.id
              ORDER BY p.name",
         )
         .map_err(|e| e.to_string())?;

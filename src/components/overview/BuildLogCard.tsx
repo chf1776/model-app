@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { ScrollText } from "lucide-react";
 import { useAppStore } from "@/store";
 import type { BuildLogEntry } from "@/shared/types";
@@ -37,8 +38,11 @@ export function BuildLogCard() {
   const tracks = useAppStore((s) => s.tracks);
   const entries = buildLog.slice(0, MAX_ENTRIES);
 
-  const trackColorMap: Record<string, string> = {};
-  for (const t of tracks) trackColorMap[t.id] = t.color;
+  const trackColorMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const t of tracks) map[t.id] = t.color;
+    return map;
+  }, [tracks]);
 
   return (
     <OverviewCard

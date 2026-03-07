@@ -52,7 +52,8 @@ export const createOverviewSlice: StateCreator<
         overviewPaints: paints,
         overviewLoading: false,
       });
-    } catch {
+    } catch (err) {
+      console.error("Failed to load overview data:", err);
       set({ overviewLoading: false });
     }
   },

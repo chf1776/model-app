@@ -64,7 +64,7 @@ pub fn list_by_kit(conn: &Connection, kit_id: &str) -> Result<Vec<Accessory>, St
 pub fn list_by_project(conn: &Connection, project_id: &str) -> Result<Vec<Accessory>, String> {
     let mut stmt = conn
         .prepare(&format!(
-            "{SELECT_WITH_JOIN} WHERE a.id IN (SELECT accessory_id FROM project_accessories WHERE project_id = ?1) ORDER BY a.name"
+            "{SELECT_WITH_JOIN} JOIN project_accessories pa ON a.id = pa.accessory_id WHERE pa.project_id = ?1 ORDER BY a.name"
         ))
         .map_err(|e| e.to_string())?;
 

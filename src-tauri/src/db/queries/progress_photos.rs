@@ -39,7 +39,8 @@ pub fn list_by_project(conn: &Connection, project_id: &str) -> Result<Vec<Progre
              JOIN steps s ON pp.step_id = s.id
              JOIN tracks t ON s.track_id = t.id
              WHERE t.project_id = ?1
-             ORDER BY pp.created_at DESC",
+             ORDER BY pp.created_at DESC
+             LIMIT 20",
         )
         .map_err(|e| e.to_string())?;
 

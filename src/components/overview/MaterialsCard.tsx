@@ -4,6 +4,9 @@ import { ACCESSORY_TYPE_LABELS, ACCESSORY_TYPE_COLORS } from "@/shared/types";
 import type { AccessoryType } from "@/shared/types";
 import { OverviewCard } from "./OverviewCard";
 
+const MAX_ACCESSORIES = 4;
+const MAX_PAINTS = 6;
+
 export function MaterialsCard() {
   const accessories = useAppStore((s) => s.overviewAccessories);
   const paints = useAppStore((s) => s.overviewPaints);
@@ -28,7 +31,7 @@ export function MaterialsCard() {
                 {accCount} accessor{accCount === 1 ? "y" : "ies"}
               </p>
               <div className="mt-0.5 flex flex-wrap gap-1">
-                {accessories.slice(0, 4).map((a) => (
+                {accessories.slice(0, MAX_ACCESSORIES).map((a) => (
                   <span
                     key={a.id}
                     className="rounded px-1 py-0.5 text-[8px] font-medium text-white"
@@ -41,9 +44,9 @@ export function MaterialsCard() {
                     {ACCESSORY_TYPE_LABELS[a.type as AccessoryType] ?? a.type}
                   </span>
                 ))}
-                {accCount > 4 && (
+                {accCount > MAX_ACCESSORIES && (
                   <span className="text-[8px] text-text-tertiary">
-                    +{accCount - 4} more
+                    +{accCount - MAX_ACCESSORIES} more
                   </span>
                 )}
               </div>
@@ -55,7 +58,7 @@ export function MaterialsCard() {
                 {paintCount} paint{paintCount === 1 ? "" : "s"}
               </p>
               <div className="mt-0.5 flex flex-wrap gap-1">
-                {paints.slice(0, 6).map((p) => (
+                {paints.slice(0, MAX_PAINTS).map((p) => (
                   <span key={p.id} className="flex items-center gap-0.5">
                     {p.color && (
                       <span
@@ -68,9 +71,9 @@ export function MaterialsCard() {
                     </span>
                   </span>
                 ))}
-                {paintCount > 6 && (
+                {paintCount > MAX_PAINTS && (
                   <span className="text-[8px] text-text-tertiary">
-                    +{paintCount - 6} more
+                    +{paintCount - MAX_PAINTS} more
                   </span>
                 )}
               </div>

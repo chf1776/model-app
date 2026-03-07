@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Camera } from "lucide-react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useAppStore } from "@/store";
@@ -14,10 +15,14 @@ export function GalleryCard() {
   const progressPhotos = useAppStore((s) => s.overviewProgressPhotos);
   const milestonePhotos = useAppStore((s) => s.overviewMilestonePhotos);
 
-  const allPhotos: PhotoEntry[] = [
-    ...progressPhotos.map((p) => ({ ...p, _kind: "progress" as const })),
-    ...milestonePhotos.map((p) => ({ ...p, _kind: "milestone" as const })),
-  ].sort((a, b) => b.created_at - a.created_at);
+  const allPhotos = useMemo<PhotoEntry[]>(
+    () =>
+      [
+        ...progressPhotos.map((p) => ({ ...p, _kind: "progress" as const })),
+        ...milestonePhotos.map((p) => ({ ...p, _kind: "milestone" as const })),
+      ].sort((a, b) => b.created_at - a.created_at),
+    [progressPhotos, milestonePhotos],
+  );
 
   const totalCount = allPhotos.length;
   const visible = allPhotos.slice(0, MAX_THUMBNAILS);

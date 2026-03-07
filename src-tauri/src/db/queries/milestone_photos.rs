@@ -22,7 +22,8 @@ pub fn list_by_project(conn: &Connection, project_id: &str) -> Result<Vec<Milest
              FROM milestone_photos mp
              JOIN tracks t ON mp.track_id = t.id
              WHERE t.project_id = ?1
-             ORDER BY mp.created_at DESC",
+             ORDER BY mp.created_at DESC
+             LIMIT 20",
         )
         .map_err(|e| e.to_string())?;
 
