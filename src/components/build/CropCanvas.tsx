@@ -353,7 +353,7 @@ export function CropCanvas() {
     }
 
     setDrawState(null);
-  }, [step, annotationColor, addAnnotation, effectiveW, effectiveH]);
+  }, [step, annotationColor, annotationStrokeWidth, addAnnotation, effectiveW, effectiveH]);
 
   // ── Escape cancels mid-draw ─────────────────────────────────────────────
 
@@ -388,7 +388,7 @@ export function CropCanvas() {
       }
       setPendingText(null);
     },
-    [pendingText, step, addAnnotation, annotationColor],
+    [pendingText, step, addAnnotation, annotationColor, annotationStrokeWidth],
   );
 
   // ── Early returns (after all hooks) ─────────────────────────────────────
@@ -412,7 +412,6 @@ export function CropCanvas() {
 
   const isDraggable = !annotationMode;
   const cursor = annotationMode === "text" ? "text"
-    : annotationMode === "freehand" ? "crosshair"
     : annotationMode ? "crosshair"
     : "grab";
   const absoluteZoom = viewerZoom * baseZoomRef.current;

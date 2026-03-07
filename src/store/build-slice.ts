@@ -8,6 +8,23 @@ import { flattenTrackSteps } from "@/components/build/tree-utils";
 
 export type CanvasMode = "view" | "crop";
 export type BuildMode = "setup" | "building";
+
+const MAX_ANNOTATION_UNDO = 50;
+
+/** Push current annotations to undo stack and clear redo. Returns partial state for set(). */
+function annotationUndoSnapshot(
+  s: { annotationUndoStacks: Record<string, Annotation[][]>; annotationRedoStacks: Record<string, Annotation[][]> },
+  stepId: string,
+  current: Annotation[],
+) {
+  return {
+    annotationUndoStacks: {
+      ...s.annotationUndoStacks,
+      [stepId]: [...(s.annotationUndoStacks[stepId] ?? []), current].slice(-MAX_ANNOTATION_UNDO),
+    },
+    annotationRedoStacks: { ...s.annotationRedoStacks, [stepId]: [] },
+  };
+}
 export type NavMode = "track" | "page";
 
 export interface BuildSlice {
@@ -77,6 +94,7 @@ export interface BuildSlice {
   saveAnnotationsDebounced: (stepId: string) => void;
   addAnnotation: (stepId: string, annotation: Annotation) => void;
   removeAnnotation: (stepId: string, annotationId: string) => void;
+  clearAnnotations: (stepId: string) => void;
   updateAnnotation: (stepId: string, annotationId: string, updates: Partial<Annotation>) => void;
   setAnnotationMode: (mode: AnnotationTool) => void;
   setAnnotationColor: (color: string) => void;
@@ -582,15 +600,8 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   addAnnotation: (stepId, annotation) => {
     const current = get().stepAnnotations[stepId] ?? [];
     set((s) => ({
-      stepAnnotations: {
-        ...s.stepAnnotations,
-        [stepId]: [...current, annotation],
-      },
-      annotationUndoStacks: {
-        ...s.annotationUndoStacks,
-        [stepId]: [...(s.annotationUndoStacks[stepId] ?? []), current].slice(-50),
-      },
-      annotationRedoStacks: { ...s.annotationRedoStacks, [stepId]: [] },
+      stepAnnotations: { ...s.stepAnnotations, [stepId]: [...current, annotation] },
+      ...annotationUndoSnapshot(s, stepId, current),
     }));
     get().saveAnnotationsDebounced(stepId);
   },
@@ -598,15 +609,18 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   removeAnnotation: (stepId, annotationId) => {
     const current = get().stepAnnotations[stepId] ?? [];
     set((s) => ({
-      stepAnnotations: {
-        ...s.stepAnnotations,
-        [stepId]: current.filter((a) => a.id !== annotationId),
-      },
-      annotationUndoStacks: {
-        ...s.annotationUndoStacks,
-        [stepId]: [...(s.annotationUndoStacks[stepId] ?? []), current].slice(-50),
-      },
-      annotationRedoStacks: { ...s.annotationRedoStacks, [stepId]: [] },
+      stepAnnotations: { ...s.stepAnnotations, [stepId]: current.filter((a) => a.id !== annotationId) },
+      ...annotationUndoSnapshot(s, stepId, current),
+    }));
+    get().saveAnnotationsDebounced(stepId);
+  },
+
+  clearAnnotations: (stepId) => {
+    const current = get().stepAnnotations[stepId] ?? [];
+    if (current.length === 0) return;
+    set((s) => ({
+      stepAnnotations: { ...s.stepAnnotations, [stepId]: [] },
+      ...annotationUndoSnapshot(s, stepId, current),
     }));
     get().saveAnnotationsDebounced(stepId);
   },
@@ -620,11 +634,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
           a.id === annotationId ? { ...a, ...updates } as Annotation : a,
         ),
       },
-      annotationUndoStacks: {
-        ...s.annotationUndoStacks,
-        [stepId]: [...(s.annotationUndoStacks[stepId] ?? []), current].slice(-50),
-      },
-      annotationRedoStacks: { ...s.annotationRedoStacks, [stepId]: [] },
+      ...annotationUndoSnapshot(s, stepId, current),
     }));
     get().saveAnnotationsDebounced(stepId);
   },
