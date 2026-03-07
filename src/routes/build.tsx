@@ -18,6 +18,9 @@ import { NavigationBar } from "@/components/build/NavigationBar";
 import { BuildingRail } from "@/components/build/BuildingRail";
 import { BuildingStepPanel } from "@/components/build/BuildingStepPanel";
 import { CropCanvas } from "@/components/build/CropCanvas";
+import { AnnotationToolbar } from "@/components/build/AnnotationToolbar";
+import { PageRail } from "@/components/build/PageRail";
+import { PageCanvas } from "@/components/build/PageCanvas";
 import { MilestoneDialog } from "@/components/build/MilestoneDialog";
 import { RelationPill } from "@/components/build/RelationPill";
 import { TimerBubble } from "@/components/build/TimerBubble";
@@ -56,6 +59,10 @@ export default function BuildRoute() {
   const activeTimers = useAppStore((s) => s.activeTimers);
   const addTimer = useAppStore((s) => s.addTimer);
   const loadTimers = useAppStore((s) => s.loadTimers);
+  const annotationToolbarVisible = useAppStore((s) => s.annotationToolbarVisible);
+  const setAnnotationToolbarVisible = useAppStore((s) => s.setAnnotationToolbarVisible);
+  const setAnnotationMode = useAppStore((s) => s.setAnnotationMode);
+  const navMode = useAppStore((s) => s.navMode);
 
   useTimerTick();
 
@@ -105,6 +112,23 @@ export default function BuildRoute() {
         if ((e.key === " " || e.key === "Enter") && activeStepId) {
           e.preventDefault();
           completeActiveStep();
+          return;
+        }
+        if (e.key === "a" || e.key === "A") {
+          e.preventDefault();
+          const s = activeStepId ? steps.find((st) => st.id === activeStepId) : null;
+          if (s && s.crop_x != null) {
+            const newVisible = !annotationToolbarVisible;
+            setAnnotationToolbarVisible(newVisible);
+            if (!newVisible) setAnnotationMode(null);
+          }
+          return;
+        }
+        if (annotationToolbarVisible && e.key >= "1" && e.key <= "7") {
+          e.preventDefault();
+          const toolMap = ["checkmark", "circle", "arrow", "cross", "highlight", "freehand", "text"] as const;
+          const idx = parseInt(e.key) - 1;
+          setAnnotationMode(toolMap[idx]);
           return;
         }
         if ((e.key === "t" || e.key === "T") && activeStepId) {
@@ -220,6 +244,7 @@ export default function BuildRoute() {
       selectedStepIds, clearSelectedSteps,
       currentSourcePages, currentPageIndex, steps, addStep, pushUndo, activeProjectId, loadTracks,
       undoLastCrop, completeActiveStep, activeTimers, addTimer,
+      annotationToolbarVisible, setAnnotationToolbarVisible, setAnnotationMode,
     ],
   );
 
@@ -293,11 +318,12 @@ export default function BuildRoute() {
           </>
         ) : (
           <>
-            <BuildingRail />
+            {navMode === "track" ? <BuildingRail /> : <PageRail />}
 
             <div className="relative flex min-w-0 flex-1 flex-col bg-[#E8E4DF]">
               <div className="relative min-h-0 flex-1">
-                <CropCanvas />
+                {navMode === "track" ? <CropCanvas /> : <PageCanvas />}
+                {navMode === "track" && <AnnotationToolbar />}
                 <RelationPill />
                 <TimerBubble />
               </div>

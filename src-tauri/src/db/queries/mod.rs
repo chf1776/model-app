@@ -1,4 +1,5 @@
 pub mod accessories;
+pub mod annotations;
 pub mod build_log_entries;
 pub mod drying_timers;
 pub mod instruction_pages;

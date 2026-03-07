@@ -1,7 +1,9 @@
 import { useRef, useEffect, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { useAppStore } from "@/store";
 import type { Step, InstructionPage } from "@/shared/types";
 import { getEffectiveDimensions } from "./tree-utils";
+import { drawAnnotationsOnCanvas } from "./annotation-draw";
 
 const THUMB_H = 36;
 
@@ -33,6 +35,7 @@ interface StepThumbnailProps {
 export function StepThumbnail({ step, page, isActive, isCompleted }: StepThumbnailProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ w: THUMB_H, h: THUMB_H });
+  const annotations = useAppStore((s) => s.stepAnnotations[step.id]);
 
   const hasCrop =
     step.crop_x != null &&
@@ -79,10 +82,15 @@ export function StepThumbnail({ step, page, isActive, isCompleted }: StepThumbna
         cropH * scale,
       );
       ctx.restore();
+
+      // Draw annotations on top
+      if (annotations?.length) {
+        drawAnnotationsOnCanvas(ctx, annotations, drawW, drawH);
+      }
     });
 
     return () => { aborted = true; };
-  }, [page, hasCrop, step.crop_x, step.crop_y, step.crop_w, step.crop_h]);
+  }, [page, hasCrop, step.crop_x, step.crop_y, step.crop_w, step.crop_h, annotations]);
 
   if (!hasCrop || !page) {
     return (

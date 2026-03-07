@@ -165,6 +165,16 @@ pub fn save_active_track(
 }
 
 #[tauri::command]
+pub fn save_nav_mode(
+    db: State<'_, AppDb>,
+    project_id: String,
+    nav_mode: String,
+) -> Result<(), String> {
+    let conn = db.conn()?;
+    crate::db::queries::project_ui_state::save_nav_mode(&conn, &project_id, &nav_mode)
+}
+
+#[tauri::command]
 pub fn set_page_rotation(
     db: State<'_, AppDb>,
     page_id: String,

@@ -1,11 +1,11 @@
-import { Upload, ZoomIn, ZoomOut, Maximize2, FileStack, RotateCw, MousePointer, Crop, RectangleHorizontal, Keyboard, Settings2, Hammer } from "lucide-react";
+import { Upload, ZoomIn, ZoomOut, Maximize2, FileStack, RotateCw, MousePointer, Crop, RectangleHorizontal, Keyboard, Settings2, Hammer, List, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { SegmentedPill } from "@/components/shared/SegmentedPill";
 import { useAppStore } from "@/store";
-import type { BuildMode } from "@/store/build-slice";
+import type { BuildMode, NavMode } from "@/store/build-slice";
 import * as api from "@/api";
 import { useUploadPdf } from "./useUploadPdf";
 
@@ -27,6 +27,8 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
   const rotatePage = useAppStore((s) => s.rotatePage);
   const canvasMode = useAppStore((s) => s.canvasMode);
   const setCanvasMode = useAppStore((s) => s.setCanvasMode);
+  const navMode = useAppStore((s) => s.navMode);
+  const setNavMode = useAppStore((s) => s.setNavMode);
   const currentSourcePages = useAppStore((s) => s.currentSourcePages);
   const currentPageIndex = useAppStore((s) => s.currentPageIndex);
   const steps = useAppStore((s) => s.steps);
@@ -93,6 +95,21 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
         value={buildMode}
         onChange={setBuildMode}
       />
+
+      {buildMode === "building" && instructionSources.length > 0 && (
+        <>
+          <Separator orientation="vertical" className="h-[14px]" />
+          <SegmentedPill
+            size="sm"
+            items={[
+              { value: "track" as NavMode, label: "Steps", icon: <List className="h-3 w-3" /> },
+              { value: "page" as NavMode, label: "Pages", icon: <FileText className="h-3 w-3" /> },
+            ]}
+            value={navMode}
+            onChange={setNavMode}
+          />
+        </>
+      )}
 
       <Separator orientation="vertical" className="h-[14px]" />
 

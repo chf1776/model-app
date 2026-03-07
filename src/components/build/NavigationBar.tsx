@@ -9,10 +9,15 @@ export function NavigationBar() {
   const activeStepId = useAppStore((s) => s.activeStepId);
   const activeTrackId = useAppStore((s) => s.activeTrackId);
   const setActiveStep = useAppStore((s) => s.setActiveStep);
+  const navMode = useAppStore((s) => s.navMode);
 
   const activeTrack = tracks.find((t) => t.id === activeTrackId);
 
-  // Flat list: root1 → children → root2 → children → ...
+  if (navMode === "page") {
+    return <PageNavigationBar />;
+  }
+
+  // Track mode navigation
   const flatSteps = useMemo(
     () => flattenTrackSteps(steps, activeTrackId),
     [steps, activeTrackId],
@@ -65,6 +70,57 @@ export function NavigationBar() {
       <button
         onClick={goNext}
         disabled={currentIndex >= flatSteps.length - 1}
+        className="rounded p-0.5 text-text-tertiary hover:bg-muted hover:text-text-secondary disabled:opacity-30 disabled:hover:bg-transparent"
+      >
+        <ChevronRight className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
+function PageNavigationBar() {
+  const currentSourcePages = useAppStore((s) => s.currentSourcePages);
+  const currentPageIndex = useAppStore((s) => s.currentPageIndex);
+  const setCurrentPageIndex = useAppStore((s) => s.setCurrentPageIndex);
+  const steps = useAppStore((s) => s.steps);
+
+  const currentPage = currentSourcePages[currentPageIndex];
+  const pageSteps = currentPage
+    ? steps.filter((s) => s.source_page_id === currentPage.id)
+    : [];
+  const completedCount = pageSteps.filter((s) => s.is_completed).length;
+
+  const goPrev = () => {
+    if (currentPageIndex > 0) setCurrentPageIndex(currentPageIndex - 1);
+  };
+  const goNext = () => {
+    if (currentPageIndex < currentSourcePages.length - 1) setCurrentPageIndex(currentPageIndex + 1);
+  };
+
+  if (currentSourcePages.length === 0) return null;
+
+  return (
+    <div className="flex h-[30px] items-center justify-center gap-2 border-t border-border bg-background/80 backdrop-blur-sm">
+      <button
+        onClick={goPrev}
+        disabled={currentPageIndex <= 0}
+        className="rounded p-0.5 text-text-tertiary hover:bg-muted hover:text-text-secondary disabled:opacity-30 disabled:hover:bg-transparent"
+      >
+        <ChevronLeft className="h-3.5 w-3.5" />
+      </button>
+      <span className="flex items-center gap-1.5 text-[11px] text-text-secondary">
+        <span className="tabular-nums">
+          Page {currentPageIndex + 1} of {currentSourcePages.length}
+        </span>
+        {pageSteps.length > 0 && (
+          <span className="text-text-tertiary">
+            ({completedCount}/{pageSteps.length} steps)
+          </span>
+        )}
+      </span>
+      <button
+        onClick={goNext}
+        disabled={currentPageIndex >= currentSourcePages.length - 1}
         className="rounded p-0.5 text-text-tertiary hover:bg-muted hover:text-text-secondary disabled:opacity-30 disabled:hover:bg-transparent"
       >
         <ChevronRight className="h-3.5 w-3.5" />

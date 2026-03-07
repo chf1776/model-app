@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import type { Project, InstructionSource, InstructionPage, Track, Step, Tag, StepRelation, ReferenceImage } from "@/shared/types";
+import type { Project, InstructionSource, InstructionPage, Track, Step, Tag, StepRelation, ReferenceImage, Annotation, AnnotationTool } from "@/shared/types";
 import { getEffectiveDryingMinutes } from "@/shared/types";
 import type { AppStore } from "./index";
 import * as api from "@/api";
@@ -8,6 +8,7 @@ import { flattenTrackSteps } from "@/components/build/tree-utils";
 
 export type CanvasMode = "view" | "crop";
 export type BuildMode = "setup" | "building";
+export type NavMode = "track" | "page";
 
 export interface BuildSlice {
   activeProjectId: string | null;
@@ -67,6 +68,20 @@ export interface BuildSlice {
   updateReferenceImageStore: (img: ReferenceImage) => void;
   removeReferenceImageStore: (stepId: string, id: string) => void;
 
+  // Annotations
+  annotationMode: AnnotationTool;
+  annotationColor: string;
+  annotationToolbarVisible: boolean;
+  stepAnnotations: Record<string, Annotation[]>;
+  loadAnnotations: (stepId: string) => Promise<void>;
+  saveAnnotationsDebounced: (stepId: string) => void;
+  addAnnotation: (stepId: string, annotation: Annotation) => void;
+  removeAnnotation: (stepId: string, annotationId: string) => void;
+  updateAnnotation: (stepId: string, annotationId: string, updates: Partial<Annotation>) => void;
+  setAnnotationMode: (mode: AnnotationTool) => void;
+  setAnnotationColor: (color: string) => void;
+  setAnnotationToolbarVisible: (visible: boolean) => void;
+
   // Undo
   undoStack: string[];
   pushUndo: (stepId: string) => void;
@@ -104,6 +119,10 @@ export interface BuildSlice {
   setBuildMode: (mode: BuildMode) => void;
   completeActiveStep: () => Promise<void>;
 
+  // Nav mode
+  navMode: NavMode;
+  setNavMode: (mode: NavMode) => void;
+
   // Milestone
   pendingMilestone: { trackId: string; trackName: string; trackColor: string } | null;
   dismissMilestone: () => void;
@@ -135,7 +154,12 @@ const DEFAULT_BUILD_STATE = {
   stepTags: {} as Record<string, Tag[]>,
   stepRelations: {} as Record<string, StepRelation[]>,
   stepReferenceImages: {} as Record<string, ReferenceImage[]>,
+  stepAnnotations: {} as Record<string, Annotation[]>,
+  annotationMode: null as AnnotationTool,
+  annotationColor: "#ef4444",
+  annotationToolbarVisible: false,
   buildMode: "setup" as BuildMode,
+  navMode: "track" as NavMode,
   pendingMilestone: null as { trackId: string; trackName: string; trackColor: string } | null,
 };
 
@@ -203,6 +227,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       project,
       ...DEFAULT_BUILD_STATE,
       buildMode: uiState.build_mode === "building" ? "building" : "setup",
+      navMode: uiState.nav_mode === "page" ? "page" : "track",
       activeTrackId: uiState.active_track_id ?? null,
       canvasMode: "view" as CanvasMode,
       ...DEFAULT_PAGE_STATE,
@@ -231,6 +256,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         activeProjectId: project.id,
         project,
         buildMode: uiState.build_mode === "building" ? "building" : "setup",
+        navMode: uiState.nav_mode === "page" ? "page" : "track",
         activeTrackId: uiState.active_track_id ?? null,
       });
       // Fire all loads in parallel
@@ -360,6 +386,10 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         // Reset viewer so CropCanvas re-centers on the new step
         if (state.buildMode === "building") {
           Object.assign(update, DEFAULT_VIEWER_STATE);
+          // Load annotations for building mode
+          if (step.crop_x != null && !state.stepAnnotations[step.id]) {
+            setTimeout(() => get().loadAnnotations(step.id), 0);
+          }
         }
         // In setup mode, trigger canvas to center on the crop region
         if (state.buildMode === "setup" && step.crop_x != null) {
@@ -507,6 +537,73 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       },
     }));
   },
+
+  // ── Annotations ─────────────────────────────────────────────────────────
+
+  loadAnnotations: async (stepId) => {
+    try {
+      const result = await api.getAnnotations(stepId);
+      if (result) {
+        const parsed: Annotation[] = JSON.parse(result.data);
+        set((s) => ({ stepAnnotations: { ...s.stepAnnotations, [stepId]: parsed } }));
+      } else {
+        set((s) => ({ stepAnnotations: { ...s.stepAnnotations, [stepId]: [] } }));
+      }
+    } catch {
+      set((s) => ({ stepAnnotations: { ...s.stepAnnotations, [stepId]: [] } }));
+    }
+  },
+
+  saveAnnotationsDebounced: (() => {
+    const timers = new Map<string, ReturnType<typeof setTimeout>>();
+    return (stepId: string) => {
+      const existing = timers.get(stepId);
+      if (existing) clearTimeout(existing);
+      timers.set(stepId, setTimeout(() => {
+        timers.delete(stepId);
+        const annotations = get().stepAnnotations[stepId];
+        if (annotations) {
+          api.saveAnnotations(stepId, JSON.stringify(annotations)).catch(() => {});
+        }
+      }, 500));
+    };
+  })(),
+
+  addAnnotation: (stepId, annotation) => {
+    set((s) => ({
+      stepAnnotations: {
+        ...s.stepAnnotations,
+        [stepId]: [...(s.stepAnnotations[stepId] ?? []), annotation],
+      },
+    }));
+    get().saveAnnotationsDebounced(stepId);
+  },
+
+  removeAnnotation: (stepId, annotationId) => {
+    set((s) => ({
+      stepAnnotations: {
+        ...s.stepAnnotations,
+        [stepId]: (s.stepAnnotations[stepId] ?? []).filter((a) => a.id !== annotationId),
+      },
+    }));
+    get().saveAnnotationsDebounced(stepId);
+  },
+
+  updateAnnotation: (stepId, annotationId, updates) => {
+    set((s) => ({
+      stepAnnotations: {
+        ...s.stepAnnotations,
+        [stepId]: (s.stepAnnotations[stepId] ?? []).map((a) =>
+          a.id === annotationId ? { ...a, ...updates } as Annotation : a,
+        ),
+      },
+    }));
+    get().saveAnnotationsDebounced(stepId);
+  },
+
+  setAnnotationMode: (mode) => set({ annotationMode: mode }),
+  setAnnotationColor: (color) => set({ annotationColor: color }),
+  setAnnotationToolbarVisible: (visible) => set({ annotationToolbarVisible: visible }),
 
   loadInstructionSources: async (projectId) => {
     const sources = await api.listInstructionSources(projectId);
@@ -723,11 +820,40 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       }
     }
 
+    // Clear annotation toolbar when switching modes
+    if (mode === "setup") {
+      updates.annotationToolbarVisible = false;
+      updates.annotationMode = null as AnnotationTool;
+    }
+
     set(updates);
+
+    // Load annotations for active step when entering building mode
+    if (mode === "building") {
+      const activeId = (updates as Record<string, unknown>).activeStepId as string ?? state.activeStepId;
+      if (activeId) {
+        const step = state.steps.find((s) => s.id === activeId);
+        if (step?.crop_x != null && !state.stepAnnotations[activeId]) {
+          get().loadAnnotations(activeId);
+        }
+      }
+    }
     try {
       await api.saveBuildMode(projectId, mode);
     } catch (e) {
       toast.error(`Failed to save build mode: ${e}`);
+    }
+  },
+
+  setNavMode: async (mode) => {
+    const projectId = get().activeProjectId;
+    set({ navMode: mode });
+    if (projectId) {
+      try {
+        await api.saveNavMode(projectId, mode);
+      } catch (e) {
+        toast.error(`Failed to save nav mode: ${e}`);
+      }
     }
   },
 

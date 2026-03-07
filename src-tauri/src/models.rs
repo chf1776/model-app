@@ -450,6 +450,16 @@ pub struct CreateDryingTimerInput {
     pub duration_min: i32,
 }
 
+// ── Annotations ─────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StepAnnotations {
+    pub step_id: String,
+    pub data: String,
+    pub updated_at: i64,
+    pub created_at: i64,
+}
+
 // ── Project UI State ────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

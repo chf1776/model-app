@@ -68,6 +68,9 @@ export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcut
             <ShortcutRow keys={<><Kbd>Space</Kbd> / <Kbd>Enter</Kbd></>} label="Complete step" />
             <ShortcutRow keys={<><Kbd>↑</Kbd> / <Kbd>↓</Kbd></>} label="Previous / next step" />
             <ShortcutRow keys={<Kbd>T</Kbd>} label="Start drying timer" />
+            <ShortcutRow keys={<Kbd>A</Kbd>} label="Toggle annotations toolbar" />
+            <ShortcutRow keys={<><Kbd>1</Kbd>-<Kbd>7</Kbd></>} label="Select annotation tool" />
+            <ShortcutRow keys={<Kbd>Del</Kbd>} label="Delete selected annotation" />
           </Section>
 
           <Section title="Editing">

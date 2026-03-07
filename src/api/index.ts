@@ -27,6 +27,7 @@ import type {
   BuildLogEntry,
   BuildLogEntryType,
   DryingTimer,
+  StepAnnotations,
   InstructionSource,
   InstructionPage,
   ProjectUiState,
@@ -426,6 +427,16 @@ export async function deleteDryingTimer(id: string): Promise<void> {
   return invoke<void>("delete_drying_timer", { id });
 }
 
+// ── Annotations ──────────────────────────────────────────────────────────────
+
+export async function getAnnotations(stepId: string): Promise<StepAnnotations | null> {
+  return invoke<StepAnnotations | null>("get_annotations", { stepId });
+}
+
+export async function saveAnnotations(stepId: string, data: string): Promise<StepAnnotations> {
+  return invoke<StepAnnotations>("save_annotations", { stepId, data });
+}
+
 // ── Instructions ─────────────────────────────────────────────────────────────
 
 export async function listInstructionSources(
@@ -489,6 +500,13 @@ export async function saveActiveTrack(
   activeTrackId: string | null,
 ): Promise<void> {
   return invoke<void>("save_active_track", { projectId, activeTrackId });
+}
+
+export async function saveNavMode(
+  projectId: string,
+  navMode: string,
+): Promise<void> {
+  return invoke<void>("save_nav_mode", { projectId, navMode });
 }
 
 export async function saveViewState(

@@ -1,10 +1,14 @@
 import { useRef, useEffect, useState, useCallback } from "react";
+import { Stage, Layer, Rect, Image as KonvaImage } from "react-konva";
+import useImage from "use-image";
 import { Expand } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useAppStore } from "@/store";
 import type { Step, InstructionPage } from "@/shared/types";
 import { getEffectiveDimensions } from "./tree-utils";
+import { AnnotationLayer } from "./AnnotationLayer";
+import type Konva from "konva";
 
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 5.0;
@@ -12,23 +16,64 @@ const ZOOM_STEP = 1.08;
 const PADDING = 24;
 const ACCENT_COLOR = "#4E7282";
 
+function CropImage({
+  src,
+  cropX,
+  cropY,
+  cropW,
+  cropH,
+  rotation,
+}: {
+  src: string;
+  cropX: number;
+  cropY: number;
+  cropW: number;
+  cropH: number;
+  rotation: number;
+}) {
+  const [image] = useImage(src, "anonymous");
+  if (!image) return null;
+
+  const offsetX = cropW / 2;
+  const offsetY = cropH / 2;
+  const isSwapped = rotation === 90 || rotation === 270;
+  const x = isSwapped ? cropH / 2 : cropW / 2;
+  const y = isSwapped ? cropW / 2 : cropH / 2;
+
+  return (
+    <KonvaImage
+      image={image}
+      crop={{ x: cropX, y: cropY, width: cropW, height: cropH }}
+      width={cropW}
+      height={cropH}
+      rotation={rotation}
+      offsetX={offsetX}
+      offsetY={offsetY}
+      x={x}
+      y={y}
+    />
+  );
+}
+
 export function CropCanvas() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<Konva.Stage>(null);
+  const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
+  const [showFullPage, setShowFullPage] = useState(false);
+  const [pendingText, setPendingText] = useState<{ nx: number; ny: number } | null>(null);
+
   const steps = useAppStore((s) => s.steps);
   const activeStepId = useAppStore((s) => s.activeStepId);
   const currentSourcePages = useAppStore((s) => s.currentSourcePages);
   const viewerZoom = useAppStore((s) => s.viewerZoom);
-  const setViewerZoom = useAppStore((s) => s.setViewerZoom);
   const viewerPanX = useAppStore((s) => s.viewerPanX);
   const viewerPanY = useAppStore((s) => s.viewerPanY);
+  const setViewerZoom = useAppStore((s) => s.setViewerZoom);
   const setViewerPan = useAppStore((s) => s.setViewerPan);
   const fitToViewTrigger = useAppStore((s) => s.fitToViewTrigger);
-
-  const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const imgRef = useRef<HTMLImageElement | null>(null);
-  const [showFullPage, setShowFullPage] = useState(false);
+  const annotationMode = useAppStore((s) => s.annotationMode);
+  const annotationColor = useAppStore((s) => s.annotationColor);
+  const addAnnotation = useAppStore((s) => s.addAnnotation);
 
   const step = activeStepId ? steps.find((s) => s.id === activeStepId) ?? null : null;
   const page = step?.source_page_id
@@ -42,155 +87,92 @@ export function CropCanvas() {
     step.crop_w != null &&
     step.crop_h != null;
 
-  // Observe container size
+  const imageSrc = page ? convertFileSrc(page.file_path) : null;
+  const rotation = page?.rotation ?? 0;
+
+  // Effective dimensions
+  const cropDims = hasCrop && step
+    ? getEffectiveDimensions(step.crop_w!, step.crop_h!, rotation)
+    : null;
+  const effectiveW = cropDims?.effectiveW ?? 0;
+  const effectiveH = cropDims?.effectiveH ?? 0;
+
+  // ResizeObserver
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
       const { width, height } = entries[0].contentRect;
-      setContainerSize({ w: width, h: height });
+      setStageSize({ width, height });
     });
     ro.observe(el);
+    setStageSize({ width: el.clientWidth, height: el.clientHeight });
     return () => ro.disconnect();
   }, []);
 
-  // Compute effective crop dimensions
-  const getCropDimensions = useCallback(() => {
-    if (!step || !hasCrop || !page) return null;
-    const rotation = page.rotation ?? 0;
-    const cropW = step.crop_w!;
-    const cropH = step.crop_h!;
-    const { effectiveW, effectiveH, rad } = getEffectiveDimensions(cropW, cropH, rotation);
-    return {
-      effectiveW,
-      effectiveH,
-      cropX: step.crop_x!,
-      cropY: step.crop_y!,
-      cropW,
-      cropH,
-      rad,
-    };
-  }, [step, hasCrop, page]);
-
-  // Fit crop to view
-  const fitToView = useCallback(() => {
-    const dims = getCropDimensions();
-    if (!dims || containerSize.w === 0 || containerSize.h === 0) return;
-    const { effectiveW, effectiveH } = dims;
-    const scaleX = (containerSize.w - PADDING * 2) / effectiveW;
-    const scaleY = (containerSize.h - PADDING * 2) / effectiveH;
+  // Fit to view
+  const fitToViewRef = useRef(() => {});
+  fitToViewRef.current = () => {
+    if (!cropDims || stageSize.width === 0 || stageSize.height === 0) return;
+    const scaleX = (stageSize.width - PADDING * 2) / effectiveW;
+    const scaleY = (stageSize.height - PADDING * 2) / effectiveH;
     const zoom = Math.min(scaleX, scaleY, 2.0);
     setViewerZoom(zoom);
     setViewerPan(
-      (containerSize.w - effectiveW * zoom) / 2,
-      (containerSize.h - effectiveH * zoom) / 2,
+      (stageSize.width - effectiveW * zoom) / 2,
+      (stageSize.height - effectiveH * zoom) / 2,
     );
-  }, [getCropDimensions, containerSize, setViewerZoom, setViewerPan]);
+  };
 
-  // Load image when step/page changes
+  // Auto-fit on step change
   useEffect(() => {
-    if (!page) {
-      setImageLoaded(false);
-      return;
-    }
-    setImageLoaded(false);
-    const img = new Image();
-    img.onload = () => {
-      imgRef.current = img;
-      setImageLoaded(true);
-    };
-    img.src = convertFileSrc(page.file_path);
-    return () => {
-      img.src = "";
-      imgRef.current = null;
-    };
-  }, [page?.id, page?.file_path]);
+    if (hasCrop && page) fitToViewRef.current();
+  }, [activeStepId, hasCrop, page?.id, stageSize.width, stageSize.height]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-fit on step change or container resize
+  // Respond to explicit fit-to-view requests
   useEffect(() => {
-    if (imageLoaded) fitToView();
-  }, [activeStepId, imageLoaded, containerSize.w, containerSize.h, fitToViewTrigger, fitToView]);
-
-  // Draw crop on canvas (only on zoom/image change, NOT on pan)
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const img = imgRef.current;
-    const dims = getCropDimensions();
-    if (!canvas || !img || !dims) return;
-
-    const { effectiveW, effectiveH, cropX, cropY, cropW, cropH, rad } = dims;
-    const drawW = Math.round(effectiveW * viewerZoom);
-    const drawH = Math.round(effectiveH * viewerZoom);
-
-    // Only resize canvas when dimensions actually change
-    if (canvas.width !== drawW || canvas.height !== drawH) {
-      canvas.width = drawW;
-      canvas.height = drawH;
-    }
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, drawW, drawH);
-    ctx.save();
-    ctx.translate(drawW / 2, drawH / 2);
-    ctx.rotate(rad);
-    ctx.drawImage(
-      img,
-      cropX, cropY, cropW, cropH,
-      (-cropW * viewerZoom) / 2,
-      (-cropH * viewerZoom) / 2,
-      cropW * viewerZoom,
-      cropH * viewerZoom,
-    );
-    ctx.restore();
-  }, [imageLoaded, viewerZoom, getCropDimensions]);
-
+    if (fitToViewTrigger > 0) fitToViewRef.current();
+  }, [fitToViewTrigger]);
 
   // Wheel zoom
   const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
-      e.preventDefault();
-      const factor = e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP;
-      const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, viewerZoom * factor));
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      const ratio = newZoom / viewerZoom;
+    (e: Konva.KonvaEventObject<WheelEvent>) => {
+      e.evt.preventDefault();
+      const stage = stageRef.current;
+      if (!stage) return;
+
+      const pointer = stage.getPointerPosition();
+      if (!pointer) return;
+
+      const direction = e.evt.deltaY < 0 ? 1 : -1;
+      const newZoom = Math.max(
+        MIN_ZOOM,
+        Math.min(MAX_ZOOM, viewerZoom * (direction > 0 ? ZOOM_STEP : 1 / ZOOM_STEP)),
+      );
+
+      const mousePointTo = {
+        x: (pointer.x - viewerPanX) / viewerZoom,
+        y: (pointer.y - viewerPanY) / viewerZoom,
+      };
+
       setViewerZoom(newZoom);
       setViewerPan(
-        mx - (mx - viewerPanX) * ratio,
-        my - (my - viewerPanY) * ratio,
+        pointer.x - mousePointTo.x * newZoom,
+        pointer.y - mousePointTo.y * newZoom,
       );
     },
     [viewerZoom, viewerPanX, viewerPanY, setViewerZoom, setViewerPan],
   );
 
   // Drag to pan
-  const dragState = useRef<{ startX: number; startY: number; panX: number; panY: number } | null>(null);
-
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      if (e.button !== 0) return;
-      dragState.current = { startX: e.clientX, startY: e.clientY, panX: viewerPanX, panY: viewerPanY };
-    },
-    [viewerPanX, viewerPanY],
-  );
-
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent) => {
-      if (!dragState.current) return;
-      const dx = e.clientX - dragState.current.startX;
-      const dy = e.clientY - dragState.current.startY;
-      setViewerPan(dragState.current.panX + dx, dragState.current.panY + dy);
+  const handleDragEnd = useCallback(
+    (e: Konva.KonvaEventObject<DragEvent>) => {
+      const stage = e.target;
+      if (stage !== stageRef.current) return;
+      setViewerPan(stage.x(), stage.y());
     },
     [setViewerPan],
   );
-
-  const handleMouseUp = useCallback(() => {
-    dragState.current = null;
-  }, []);
 
   if (!step) {
     return (
@@ -209,22 +191,101 @@ export function CropCanvas() {
     );
   }
 
+  const handleRequestTextInput = useCallback(
+    (nx: number, ny: number) => setPendingText({ nx, ny }),
+    [],
+  );
+
+  const handleTextSubmit = useCallback(
+    (text: string) => {
+      if (pendingText && text.trim() && step) {
+        addAnnotation(step.id, {
+          id: crypto.randomUUID(),
+          color: annotationColor,
+          strokeWidth: 0.003,
+          opacity: 0.9,
+          type: "text",
+          x: pendingText.nx,
+          y: pendingText.ny,
+          text: text.trim(),
+          fontSize: 0.02,
+        });
+      }
+      setPendingText(null);
+    },
+    [pendingText, step, addAnnotation, annotationColor],
+  );
+
+  const isDraggable = !annotationMode;
+  const cursor = annotationMode ? "crosshair" : "grab";
+
   return (
     <>
-      <div
-        ref={containerRef}
-        className="relative h-full w-full cursor-grab overflow-hidden active:cursor-grabbing"
-        onWheel={handleWheel}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-      >
-        <canvas
-          ref={canvasRef}
-          className="absolute left-0 top-0"
-          style={{ transform: `translate(${viewerPanX}px, ${viewerPanY}px)` }}
-        />
+      <div ref={containerRef} className="relative h-full w-full overflow-hidden">
+        {stageSize.width > 0 && imageSrc && (
+          <Stage
+            ref={stageRef}
+            width={stageSize.width}
+            height={stageSize.height}
+            scaleX={viewerZoom}
+            scaleY={viewerZoom}
+            x={viewerPanX}
+            y={viewerPanY}
+            draggable={isDraggable}
+            onWheel={handleWheel}
+            onDragEnd={handleDragEnd}
+            style={{ cursor }}
+          >
+            <Layer>
+              <Rect width={effectiveW} height={effectiveH} fill="#FFFFFF" />
+              <CropImage
+                src={imageSrc}
+                cropX={step.crop_x!}
+                cropY={step.crop_y!}
+                cropW={step.crop_w!}
+                cropH={step.crop_h!}
+                rotation={rotation}
+              />
+            </Layer>
+            <AnnotationLayer
+              stepId={step.id}
+              effectiveW={effectiveW}
+              effectiveH={effectiveH}
+              zoom={viewerZoom}
+              onRequestTextInput={handleRequestTextInput}
+            />
+          </Stage>
+        )}
+
+        {/* Text annotation input */}
+        {pendingText && (
+          <div className="absolute left-1/2 top-2 z-20 -translate-x-1/2">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const input = e.currentTarget.querySelector("input");
+                handleTextSubmit(input?.value ?? "");
+              }}
+              className="flex items-center gap-1 rounded-lg border border-border bg-background/95 px-2 py-1 shadow-md backdrop-blur-sm"
+            >
+              <input
+                autoFocus
+                type="text"
+                placeholder="Enter text..."
+                className="w-40 bg-transparent text-xs text-text-primary outline-none"
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    e.stopPropagation();
+                    setPendingText(null);
+                  }
+                }}
+              />
+              <button type="submit" className="rounded bg-accent px-2 py-0.5 text-[10px] text-white hover:bg-accent-hover">
+                Add
+              </button>
+            </form>
+          </div>
+        )}
 
         {/* Show Full Page button */}
         <Tooltip>
@@ -242,7 +303,6 @@ export function CropCanvas() {
         </Tooltip>
       </div>
 
-      {/* Full page modal */}
       {showFullPage && page && (
         <FullPageModal
           page={page}
@@ -280,7 +340,6 @@ function FullPageModal({
         page.width, page.height, rotation,
       );
 
-      // Fit to 90% of viewport
       const maxW = window.innerWidth * 0.9;
       const maxH = window.innerHeight * 0.9;
       const scale = Math.min(maxW / effW, maxH / effH, 1);
@@ -303,7 +362,6 @@ function FullPageModal({
       );
       ctx.restore();
 
-      // Draw crop highlight
       if (step.crop_x != null && step.crop_y != null && step.crop_w != null && step.crop_h != null) {
         ctx.save();
         ctx.translate(drawW / 2, drawH / 2);
@@ -315,7 +373,6 @@ function FullPageModal({
         ctx.strokeStyle = ACCENT_COLOR;
         ctx.lineWidth = 2;
         ctx.strokeRect(cx, cy, cw, ch);
-        // Dim everything outside
         ctx.fillStyle = "rgba(0,0,0,0.3)";
         const hw = (page.width * scale) / 2;
         const hh = (page.height * scale) / 2;

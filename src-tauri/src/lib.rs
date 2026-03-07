@@ -60,6 +60,7 @@ pub fn run() {
             commands::instructions::get_project_ui_state,
             commands::instructions::save_view_state,
             commands::instructions::save_build_mode,
+            commands::instructions::save_nav_mode,
             commands::instructions::save_active_track,
             commands::tracks::list_tracks,
             commands::tracks::create_track,
@@ -95,6 +96,8 @@ pub fn run() {
             commands::drying_timers::list_drying_timers,
             commands::drying_timers::create_drying_timer,
             commands::drying_timers::delete_drying_timer,
+            commands::annotations::get_annotations,
+            commands::annotations::save_annotations,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

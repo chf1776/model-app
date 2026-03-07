@@ -15,6 +15,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Lightbox keyboard isolation**: Arrow keys in lightbox no longer bubble to build mode step navigation
 - **Lightbox persistence on step change**: Lightbox closes when navigating to a different step
 - **Sub-step rail visibility**: Building rail sub-steps stay expanded when a child step is active (not just the parent)
+- **Annotation event listener leak**: AnnotationLayer keyboard listener now uses useEffect with proper cleanup instead of attaching/detaching on every render
+- **Annotation debounce per-step**: Saving annotations for one step no longer cancels the pending save for another step
+- **Annotation toolbar subscription**: Narrowed store subscription to only the active step's annotations instead of the entire annotations map
+- **Native dialogs replaced**: Text annotation prompt and clear-all confirm replaced with inline HTML input and two-click confirmation pattern
+- **PageCanvas memoization**: Added useMemo for pageSteps and trackMap to prevent unnecessary recalculation
+
+## [0.4.2] — 2026-03-07 — Page Mode (Phase 4C)
+
+### Added
+- **Page navigation mode**: Toggle between Steps and Pages view in building mode via toolbar segmented pill
+- **PageRail**: Left panel showing numbered page list with per-page step counts and completion indicators; clicking a page shows its steps inline
+- **PageCanvas**: Full instruction page view with colored interactive crop regions showing step boundaries, completion status, and click-to-navigate
+- **Page NavigationBar**: "Page N of M" with step completion counts in page mode
+- **Nav mode persistence**: Page/track preference saved per project via `nav_mode` column in `project_ui_state`
+
+## [0.4.1] — 2026-03-07 — Annotations (Phase 4B)
+
+### Added
+- **Annotation system**: 7 annotation tools for marking up instruction images in building mode — checkmark, circle, arrow, cross, highlight, freehand, and text
+- **CropCanvas Konva migration**: Rewrote building mode CropCanvas from Canvas 2D API to react-konva for interactive annotation support while preserving zoom/pan/fit-to-view behavior
+- **AnnotationLayer**: Konva layer rendering annotations with normalized coordinates, selection, and drawing previews
+- **AnnotationToolbar**: Floating toolbar with tool buttons (1-7), color swatches (6 presets), undo last, and clear all
+- **Annotation persistence**: Annotations saved per-step to `annotations` table as JSON blob with 500ms debounced auto-save
+- **Thumbnail compositing**: Annotations rendered on step thumbnails in BuildingRail via Canvas 2D draw helpers
+- **Keyboard shortcuts**: `A` toggles annotation toolbar, `1`-`7` selects annotation tool, `Delete`/`Backspace` removes selected annotation
+- **Backend CRUD**: Rust queries and Tauri commands for annotation get/upsert (uses existing `annotations` table)
 
 ## [0.4.0] — 2026-03-07 — Drying Timers & Setup Focus (Phase 4A)
 
