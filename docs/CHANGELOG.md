@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Reusable ImageLightbox component**: Extracted inline lightbox implementations from KitCard, BuildingStepPanel, and GalleryCard into a single shared `ImageLightbox` component with dark overlay, prev/next navigation, keyboard arrows, thumbnail strip, captions, and an action slot for contextual buttons
+
 ## [0.3.5] — 2026-03-07 — Overview Polish
 
 ### Added

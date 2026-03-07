@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, Camera } from "lucide-react";
+import { Check, Camera, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { open } from "@tauri-apps/plugin-dialog";
 import { toast } from "sonner";
 import { useAppStore } from "@/store";
 import * as api from "@/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ImageLightbox } from "@/components/shared/ImageLightbox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,12 +22,13 @@ import {
 import { ADHESIVE_TYPE_LABELS, IMAGE_FILE_FILTER } from "@/shared/types";
 import type { Step } from "@/shared/types";
 import { StepCompletionMarker } from "./StepCompletionMarker";
-import { parseStepRelations } from "./tree-utils";
+import { parseStepRelations, flattenTrackSteps } from "./tree-utils";
 
 export function BuildingStepPanel() {
   const steps = useAppStore((s) => s.steps);
   const tracks = useAppStore((s) => s.tracks);
   const activeStepId = useAppStore((s) => s.activeStepId);
+  const activeTrackId = useAppStore((s) => s.activeTrackId);
   const setActiveStep = useAppStore((s) => s.setActiveStep);
   const updateStepStore = useAppStore((s) => s.updateStepStore);
   const completeActiveStep = useAppStore((s) => s.completeActiveStep);
@@ -37,6 +40,7 @@ export function BuildingStepPanel() {
   const loadStepRelations = useAppStore((s) => s.loadStepRelations);
   const stepReferenceImages = useAppStore((s) => s.stepReferenceImages);
   const loadStepReferenceImages = useAppStore((s) => s.loadStepReferenceImages);
+  const addReferenceImageStore = useAppStore((s) => s.addReferenceImageStore);
 
   const step = activeStepId ? steps.find((s) => s.id === activeStepId) ?? null : null;
   const track = step ? tracks.find((t) => t.id === step.track_id) : null;
@@ -54,6 +58,45 @@ export function BuildingStepPanel() {
     () => (step ? steps.filter((s) => s.parent_step_id === step.id) : []),
     [steps, step?.id],
   );
+
+  // Prev/next navigation
+  const flatSteps = useMemo(
+    () => flattenTrackSteps(steps, activeTrackId),
+    [steps, activeTrackId],
+  );
+  const currentIndex = flatSteps.findIndex((s) => s.id === activeStepId);
+  const canGoPrev = currentIndex > 0;
+  const canGoNext = currentIndex >= 0 && currentIndex < flatSteps.length - 1;
+  const goPrev = () => { if (canGoPrev) setActiveStep(flatSteps[currentIndex - 1].id); };
+  const goNext = () => { if (canGoNext) setActiveStep(flatSteps[currentIndex + 1].id); };
+
+  // Drag-drop for progress photos
+  const [dragOver, setDragOver] = useState(false);
+
+  useEffect(() => {
+    if (!step) return;
+    const unlisten = getCurrentWebview().onDragDropEvent((event) => {
+      if (event.payload.type === "enter" || event.payload.type === "over") {
+        setDragOver(true);
+      } else if (event.payload.type === "drop") {
+        setDragOver(false);
+        const paths = event.payload.paths;
+        const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp"];
+        const imagePath = paths.find((p) => {
+          const ext = p.split(".").pop()?.toLowerCase() ?? "";
+          return IMAGE_EXTENSIONS.includes(ext);
+        });
+        if (imagePath) {
+          api.addProgressPhoto(step.id, imagePath)
+            .then(() => toast.success("Progress photo saved"))
+            .catch((e) => toast.error(`Failed to save photo: ${e}`));
+        }
+      } else if (event.payload.type === "leave") {
+        setDragOver(false);
+      }
+    });
+    return () => { unlisten.then((fn) => fn()); };
+  }, [step?.id]);
 
   if (!step) return null;
 
@@ -75,6 +118,22 @@ export function BuildingStepPanel() {
     incomingBlocksAccess.length > 0;
 
   const [uncompleteOpen, setUncompleteOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  // Reset lightbox when step changes
+  useEffect(() => {
+    setLightboxIndex(null);
+  }, [step?.id]);
+
+  const lightboxImages = useMemo(
+    () =>
+      referenceImages.map((img) => ({
+        src: convertFileSrc(img.file_path),
+        alt: img.caption ?? "Reference",
+        caption: img.caption ?? undefined,
+      })),
+    [referenceImages],
+  );
 
   const handleComplete = () => {
     if (step.is_completed) {
@@ -95,6 +154,22 @@ export function BuildingStepPanel() {
         toast.success("Progress photo saved");
       } catch (e) {
         toast.error(`Failed to save photo: ${e}`);
+      }
+    }
+  };
+
+  const handleAddReference = async () => {
+    const path = await open({
+      multiple: false,
+      filters: [IMAGE_FILE_FILTER],
+    });
+    if (path) {
+      try {
+        const img = await api.addReferenceImage(step.id, path, null);
+        addReferenceImageStore(img);
+        toast.success("Reference image added");
+      } catch (e) {
+        toast.error(`Failed to add reference: ${e}`);
       }
     }
   };
@@ -142,7 +217,20 @@ export function BuildingStepPanel() {
               </div>
             </div>
 
-            <div className="flex gap-1.5">
+            {/* Nav + Complete row */}
+            <div className="flex items-center gap-1.5">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={goPrev}
+                    disabled={!canGoPrev}
+                    className="flex items-center justify-center rounded-md border border-border px-1.5 py-2 text-text-secondary hover:bg-muted/50 hover:text-accent disabled:opacity-30 disabled:hover:bg-transparent"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Previous step</TooltipContent>
+              </Tooltip>
               <button
                 onClick={handleComplete}
                 className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${
@@ -157,15 +245,29 @@ export function BuildingStepPanel() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={handleAddProgressPhoto}
-                    className="flex items-center justify-center rounded-md border border-border px-2 py-2 text-text-secondary hover:bg-muted/50 hover:text-accent"
+                    onClick={goNext}
+                    disabled={!canGoNext}
+                    className="flex items-center justify-center rounded-md border border-border px-1.5 py-2 text-text-secondary hover:bg-muted/50 hover:text-accent disabled:opacity-30 disabled:hover:bg-transparent"
                   >
-                    <Camera className="h-3.5 w-3.5" />
+                    <ChevronRight className="h-3.5 w-3.5" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent>Add progress photo</TooltipContent>
+                <TooltipContent>Next step</TooltipContent>
               </Tooltip>
             </div>
+
+            {/* Progress photo drop zone */}
+            <button
+              onClick={handleAddProgressPhoto}
+              className={`flex w-full items-center justify-center gap-2 rounded-md border border-dashed px-3 py-2.5 text-[11px] transition-colors ${
+                dragOver
+                  ? "border-accent bg-accent/5 text-accent"
+                  : "border-border text-text-tertiary hover:border-accent hover:text-accent"
+              }`}
+            >
+              <Camera className="h-3.5 w-3.5" />
+              {dragOver ? "Drop image here" : "Click or drag a progress photo"}
+            </button>
           </div>
 
           {/* Section 2: Quantity Tracker */}
@@ -374,34 +476,48 @@ export function BuildingStepPanel() {
             </>
           )}
 
-          {/* Section 8: Reference Images */}
-          {referenceImages.length > 0 && (
-            <>
-              <Divider />
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-1.5">
-                  <SectionLabel>References</SectionLabel>
-                  <span className="rounded-full bg-muted px-1.5 text-[9px] text-text-tertiary">
-                    {referenceImages.length}
-                  </span>
-                </div>
-                <div className="columns-2 gap-1.5">
-                  {referenceImages.map((img) => (
-                    <div key={img.id} className="mb-1.5 break-inside-avoid">
-                      <img
-                        src={convertFileSrc(img.file_path)}
-                        alt={img.caption ?? "Reference"}
-                        className="w-full rounded border border-border"
-                      />
-                      {img.caption && (
-                        <p className="mt-0.5 text-[9px] text-text-tertiary">{img.caption}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
+          {/* Section 8: Reference Images (always visible) */}
+          <Divider />
+          <div className="group/refs space-y-1.5">
+            <div className="flex items-center gap-1.5">
+              <SectionLabel>References</SectionLabel>
+              {referenceImages.length > 0 && (
+                <span className="rounded-full bg-muted px-1.5 text-[9px] text-text-tertiary">
+                  {referenceImages.length}
+                </span>
+              )}
+              <button
+                onClick={handleAddReference}
+                className="rounded p-0.5 text-text-tertiary opacity-0 transition-opacity hover:bg-muted hover:text-accent group-hover/refs:opacity-100"
+              >
+                <Plus className="h-3 w-3" />
+              </button>
+            </div>
+            {referenceImages.length > 0 ? (
+              <div className="columns-2 gap-1.5">
+                {referenceImages.map((img) => (
+                  <div
+                    key={img.id}
+                    className="mb-1.5 cursor-pointer break-inside-avoid rounded border border-border transition-colors hover:border-accent/50"
+                    onClick={() => setLightboxIndex(referenceImages.indexOf(img))}
+                  >
+                    <img
+                      src={convertFileSrc(img.file_path)}
+                      alt={img.caption ?? "Reference"}
+                      className="w-full rounded"
+                    />
+                    {img.caption && (
+                      <p className="mt-0.5 px-1 pb-0.5 text-[9px] text-text-tertiary">{img.caption}</p>
+                    )}
+                  </div>
+                ))}
               </div>
-            </>
-          )}
+            ) : (
+              <p className="text-[9px] text-text-tertiary">
+                No references yet
+              </p>
+            )}
+          </div>
         </div>
       </ScrollArea>
 
@@ -421,6 +537,15 @@ export function BuildingStepPanel() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Reference image lightbox */}
+      <ImageLightbox
+        images={lightboxImages}
+        index={lightboxIndex ?? 0}
+        open={lightboxIndex !== null}
+        onOpenChange={(open) => !open && setLightboxIndex(null)}
+        onIndexChange={setLightboxIndex}
+      />
     </div>
   );
 }

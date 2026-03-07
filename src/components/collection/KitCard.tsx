@@ -4,12 +4,7 @@ import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { Play, ChevronDown, Pencil, Plus, FileText, ImageIcon, Paperclip } from "lucide-react";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogTitle,
-  DialogOverlay,
-  DialogPortal,
-} from "@/components/ui/dialog";
+import { ImageLightbox } from "@/components/shared/ImageLightbox";
 import type { Kit, Accessory, KitFile } from "@/shared/types";
 import {
   STATUS_COLORS,
@@ -394,22 +389,14 @@ export function KitCard({
 
       {/* Box art lightbox */}
       {kit.box_art_path && (
-        <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
-          <DialogPortal>
-            <DialogOverlay className="bg-black/70" />
-            <div
-              className="fixed inset-0 z-50 flex cursor-pointer items-center justify-center"
-              onClick={() => setLightboxOpen(false)}
-            >
-              <DialogTitle className="sr-only">{kit.name} box art</DialogTitle>
-              <img
-                src={convertFileSrc(kit.box_art_path)}
-                alt={kit.name}
-                className="max-h-[85vh] max-w-[85vw] rounded-lg object-contain"
-              />
-            </div>
-          </DialogPortal>
-        </Dialog>
+        <ImageLightbox
+          images={[{ src: convertFileSrc(kit.box_art_path), alt: kit.name }]}
+          index={0}
+          open={lightboxOpen}
+          onOpenChange={setLightboxOpen}
+          onIndexChange={() => {}}
+          title={`${kit.name} box art`}
+        />
       )}
     </div>
   );
