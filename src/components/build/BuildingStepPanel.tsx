@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, Camera } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { toast } from "sonner";
@@ -153,13 +154,17 @@ export function BuildingStepPanel() {
                 <Check className="h-3.5 w-3.5" />
                 {step.is_completed ? "Completed" : "Complete"}
               </button>
-              <button
-                onClick={handleAddProgressPhoto}
-                className="flex items-center justify-center rounded-md border border-border px-2 py-2 text-text-secondary hover:bg-muted/50 hover:text-accent"
-                title="Add progress photo"
-              >
-                <Camera className="h-3.5 w-3.5" />
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleAddProgressPhoto}
+                    className="flex items-center justify-center rounded-md border border-border px-2 py-2 text-text-secondary hover:bg-muted/50 hover:text-accent"
+                  >
+                    <Camera className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Add progress photo</TooltipContent>
+              </Tooltip>
             </div>
           </div>
 

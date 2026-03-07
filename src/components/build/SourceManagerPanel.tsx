@@ -1,4 +1,5 @@
 import { FileText, Trash2, RefreshCw, X, Upload } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -106,23 +107,31 @@ export function SourceManagerPanel({ onClose }: SourceManagerPanelProps) {
 
               <div className="flex shrink-0 items-center gap-0.5 opacity-0 group-hover:opacity-100">
                 {source.page_count === 0 && (
-                  <button
-                    onClick={() => handleProcess(source.id)}
-                    className="rounded p-1 text-text-tertiary hover:bg-muted hover:text-accent"
-                    title="Process PDF"
-                  >
-                    <RefreshCw className="h-3 w-3" />
-                  </button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => handleProcess(source.id)}
+                        className="rounded p-1 text-text-tertiary hover:bg-muted hover:text-accent"
+                      >
+                        <RefreshCw className="h-3 w-3" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Process PDF</TooltipContent>
+                  </Tooltip>
                 )}
 
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <button
-                      className="rounded p-1 text-text-tertiary hover:bg-red-50 hover:text-red-500"
-                      title="Delete source"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          className="rounded p-1 text-text-tertiary hover:bg-red-50 hover:text-red-500"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>Delete source</TooltipContent>
+                    </Tooltip>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>

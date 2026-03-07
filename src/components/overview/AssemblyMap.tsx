@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { ChevronDown, ChevronRight, Map } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useAppStore } from "@/store";
 import type { Track, Step } from "@/shared/types";
 
@@ -23,11 +24,6 @@ export function AssemblyMap() {
   const setActiveStep = useAppStore((s) => s.setActiveStep);
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
-  const [tooltip, setTooltip] = useState<{
-    text: string;
-    x: number;
-    y: number;
-  } | null>(null);
 
   const trackRows: TrackRow[] = useMemo(() => {
     return tracks.map((track) => ({
@@ -165,58 +161,41 @@ export function AssemblyMap() {
                   />
                 );
               })}
-              {/* Nodes — visible circle + larger invisible hit target */}
+              {/* Nodes */}
               {trackRows.map(({ track, steps: rowSteps }, trackIdx) =>
                 rowSteps.map((step, stepIdx) => {
                   const { cx, cy } = nodeCenter(trackIdx, stepIdx);
                   return (
-                    <g key={step.id}>
-                      <circle
-                        cx={cx}
-                        cy={cy}
-                        r={NODE_R}
-                        fill={step.is_completed ? track.color : "#fff"}
-                        stroke={track.color}
-                        strokeWidth={1.5}
-                        opacity={step.is_completed ? 1 : 0.5}
-                      />
-                      {/* Invisible larger hit target for hover/click */}
-                      <circle
-                        cx={cx}
-                        cy={cy}
-                        r={NODE_R + 5}
-                        fill="transparent"
-                        pointerEvents="all"
-                        className="cursor-pointer"
-                        onMouseEnter={(e) => {
-                          const rect = (
-                            e.currentTarget.ownerSVGElement!
-                              .parentElement as HTMLElement
-                          ).getBoundingClientRect();
-                          const svgEl =
-                            e.currentTarget.ownerSVGElement!.getBoundingClientRect();
-                          setTooltip({
-                            text: step.title,
-                            x: svgEl.left - rect.left + cx,
-                            y: svgEl.top - rect.top + cy - NODE_R - 16,
-                          });
-                        }}
-                        onMouseLeave={() => setTooltip(null)}
-                        onClick={() => handleNodeClick(step.id)}
-                      />
-                    </g>
+                    <Tooltip key={step.id}>
+                      <TooltipTrigger asChild>
+                        <g
+                          className="cursor-pointer"
+                          onClick={() => handleNodeClick(step.id)}
+                        >
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r={NODE_R}
+                            fill={step.is_completed ? track.color : "#fff"}
+                            stroke={track.color}
+                            strokeWidth={1.5}
+                            opacity={step.is_completed ? 1 : 0.5}
+                          />
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r={NODE_R + 5}
+                            fill="transparent"
+                            pointerEvents="all"
+                          />
+                        </g>
+                      </TooltipTrigger>
+                      <TooltipContent>{step.title}</TooltipContent>
+                    </Tooltip>
                   );
                 }),
               )}
             </svg>
-            {tooltip && (
-              <div
-                className="pointer-events-none absolute z-10 -translate-x-1/2 select-none whitespace-nowrap rounded bg-text-primary px-1.5 py-0.5 text-[9px] text-white shadow"
-                style={{ left: tooltip.x, top: tooltip.y }}
-              >
-                {tooltip.text}
-              </div>
-            )}
           </div>
         )
       )}

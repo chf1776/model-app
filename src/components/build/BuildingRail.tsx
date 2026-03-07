@@ -1,5 +1,6 @@
 import { useMemo, useRef, useEffect, useState, forwardRef } from "react";
 import { ChevronDown, Check, ArrowRight, ArrowDown } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   AlertDialog,
@@ -394,11 +395,15 @@ const BuildingStepRow = forwardRef<HTMLButtonElement, BuildingStepRowProps>(
 
         {/* Pre-paint dot */}
         {step.pre_paint && (
-          <span
-            className="h-[5px] w-[5px] shrink-0 rounded-full"
-            style={{ backgroundColor: "#C4913A" }}
-            title="Pre-paint"
-          />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span
+                className="h-[5px] w-[5px] shrink-0 rounded-full"
+                style={{ backgroundColor: "#C4913A" }}
+              />
+            </TooltipTrigger>
+            <TooltipContent>Pre-paint</TooltipContent>
+          </Tooltip>
         )}
       </button>
     );

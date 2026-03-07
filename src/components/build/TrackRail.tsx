@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { Plus, Route, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import {
   DndContext,
@@ -571,37 +572,49 @@ export function TrackRail() {
         <div className="flex items-center gap-0.5">
           {tracks.length > 0 && (
             <>
-              <button
-                onClick={expandAllTracks}
-                className={`flex h-5 w-5 items-center justify-center rounded ${
-                  expandedTrackIds.length === tracks.length
-                    ? "bg-black/10 text-text-secondary"
-                    : "text-text-tertiary hover:bg-black/5 hover:text-text-secondary"
-                }`}
-                title="Expand all"
-              >
-                <ChevronsDownUp className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={collapseAllTracks}
-                className={`flex h-5 w-5 items-center justify-center rounded ${
-                  expandedTrackIds.length === 0
-                    ? "bg-black/10 text-text-secondary"
-                    : "text-text-tertiary hover:bg-black/5 hover:text-text-secondary"
-                }`}
-                title="Collapse all"
-              >
-                <ChevronsUpDown className="h-3.5 w-3.5" />
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={expandAllTracks}
+                    className={`flex h-5 w-5 items-center justify-center rounded ${
+                      expandedTrackIds.length === tracks.length
+                        ? "bg-black/10 text-text-secondary"
+                        : "text-text-tertiary hover:bg-black/5 hover:text-text-secondary"
+                    }`}
+                  >
+                    <ChevronsDownUp className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Expand all</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={collapseAllTracks}
+                    className={`flex h-5 w-5 items-center justify-center rounded ${
+                      expandedTrackIds.length === 0
+                        ? "bg-black/10 text-text-secondary"
+                        : "text-text-tertiary hover:bg-black/5 hover:text-text-secondary"
+                    }`}
+                  >
+                    <ChevronsUpDown className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Collapse all</TooltipContent>
+              </Tooltip>
             </>
           )}
-          <button
-            onClick={() => setAddOpen(true)}
-            className="flex h-5 w-5 items-center justify-center rounded text-text-tertiary hover:bg-black/5 hover:text-text-secondary"
-            title="Add track"
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setAddOpen(true)}
+                className="flex h-5 w-5 items-center justify-center rounded text-text-tertiary hover:bg-black/5 hover:text-text-secondary"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Add track</TooltipContent>
+          </Tooltip>
         </div>
       </div>
 

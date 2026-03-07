@@ -1,4 +1,5 @@
 import { LayoutList, LayoutGrid, ChevronsUpDown, ChevronsDownUp } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useAppStore } from "@/store";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -41,20 +42,28 @@ export function PaintsToolbar() {
 
       {/* Expand/collapse all */}
       <div className="flex items-center gap-0.5">
-        <button
-          onClick={() => setPaintGroupExpandedBase(true)}
-          className="rounded p-1 text-text-tertiary hover:text-text-secondary"
-          title="Expand all groups"
-        >
-          <ChevronsUpDown className="h-3 w-3" />
-        </button>
-        <button
-          onClick={() => setPaintGroupExpandedBase(false)}
-          className="rounded p-1 text-text-tertiary hover:text-text-secondary"
-          title="Collapse all groups"
-        >
-          <ChevronsDownUp className="h-3 w-3" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => setPaintGroupExpandedBase(true)}
+              className="rounded p-1 text-text-tertiary hover:text-text-secondary"
+            >
+              <ChevronsUpDown className="h-3 w-3" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>Expand all groups</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => setPaintGroupExpandedBase(false)}
+              className="rounded p-1 text-text-tertiary hover:text-text-secondary"
+            >
+              <ChevronsDownUp className="h-3 w-3" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>Collapse all groups</TooltipContent>
+        </Tooltip>
       </div>
 
       {/* Search */}

@@ -2,6 +2,7 @@ import { Upload, ZoomIn, ZoomOut, Maximize2, FileStack, RotateCw, MousePointer, 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { SegmentedPill } from "@/components/shared/SegmentedPill";
 import { useAppStore } from "@/store";
 import type { BuildMode } from "@/store/build-slice";
@@ -123,38 +124,50 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
           {buildMode === "setup" && (
             <>
               <div className="flex items-center rounded-md border border-border">
-                <button
-                  onClick={() => setCanvasMode("view")}
-                  className={`rounded-l-[5px] px-1.5 py-1 ${
-                    canvasMode === "view"
-                      ? "bg-accent text-white"
-                      : "text-text-tertiary hover:bg-muted hover:text-text-secondary"
-                  }`}
-                  title="View mode (V)"
-                >
-                  <MousePointer className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => setCanvasMode("crop")}
-                  className={`rounded-r-[5px] px-1.5 py-1 ${
-                    canvasMode === "crop"
-                      ? "bg-accent text-white"
-                      : "text-text-tertiary hover:bg-muted hover:text-text-secondary"
-                  }`}
-                  title="Crop mode (C)"
-                >
-                  <Crop className="h-3.5 w-3.5" />
-                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => setCanvasMode("view")}
+                      className={`rounded-l-[5px] px-1.5 py-1 ${
+                        canvasMode === "view"
+                          ? "bg-accent text-white"
+                          : "text-text-tertiary hover:bg-muted hover:text-text-secondary"
+                      }`}
+                    >
+                      <MousePointer className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>View mode (V)</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => setCanvasMode("crop")}
+                      className={`rounded-r-[5px] px-1.5 py-1 ${
+                        canvasMode === "crop"
+                          ? "bg-accent text-white"
+                          : "text-text-tertiary hover:bg-muted hover:text-text-secondary"
+                      }`}
+                    >
+                      <Crop className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Crop mode (C)</TooltipContent>
+                </Tooltip>
               </div>
 
               {/* Full page button */}
-              <button
-                onClick={handleFullPage}
-                className="rounded p-1 text-text-tertiary hover:bg-muted hover:text-text-secondary"
-                title="Full page step (F)"
-              >
-                <RectangleHorizontal className="h-3.5 w-3.5" />
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleFullPage}
+                    className="rounded p-1 text-text-tertiary hover:bg-muted hover:text-text-secondary"
+                  >
+                    <RectangleHorizontal className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Full page step (F)</TooltipContent>
+              </Tooltip>
 
               <Separator orientation="vertical" className="h-[14px]" />
 
@@ -190,20 +203,28 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
             >
               <ZoomIn className="h-3.5 w-3.5" />
             </button>
-            <button
-              onClick={handleFitToView}
-              className="rounded p-1 text-text-tertiary hover:bg-muted hover:text-text-secondary"
-              title="Fit to view"
-            >
-              <Maximize2 className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={rotatePage}
-              className="rounded p-1 text-text-tertiary hover:bg-muted hover:text-text-secondary"
-              title="Rotate page (R)"
-            >
-              <RotateCw className="h-3.5 w-3.5" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleFitToView}
+                  className="rounded p-1 text-text-tertiary hover:bg-muted hover:text-text-secondary"
+                >
+                  <Maximize2 className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Fit to view</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={rotatePage}
+                  className="rounded p-1 text-text-tertiary hover:bg-muted hover:text-text-secondary"
+                >
+                  <RotateCw className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Rotate page (R)</TooltipContent>
+            </Tooltip>
           </div>
 
           <Separator orientation="vertical" className="h-[14px]" />
@@ -212,13 +233,17 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
 
       {/* Shortcuts button — both modes */}
       {onOpenShortcuts && (
-        <button
-          onClick={onOpenShortcuts}
-          className="rounded p-1 text-text-tertiary hover:bg-muted hover:text-text-secondary"
-          title="Keyboard shortcuts (?)"
-        >
-          <Keyboard className="h-3.5 w-3.5" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onOpenShortcuts}
+              className="rounded p-1 text-text-tertiary hover:bg-muted hover:text-text-secondary"
+            >
+              <Keyboard className="h-3.5 w-3.5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>Keyboard shortcuts (?)</TooltipContent>
+        </Tooltip>
       )}
 
       {/* Upload button — setup only */}
