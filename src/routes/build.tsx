@@ -92,10 +92,22 @@ export default function BuildRoute() {
         return;
       }
 
-      // Ctrl/Cmd+Z: undo last crop
+      // Ctrl/Cmd+Shift+Z: redo annotation (building mode only)
+      if (e.key === "z" && (e.ctrlKey || e.metaKey) && e.shiftKey) {
+        e.preventDefault();
+        if (buildMode === "building" && activeStepId) {
+          useAppStore.getState().redoAnnotation(activeStepId);
+        }
+        return;
+      }
+      // Ctrl/Cmd+Z: undo annotation (building) or undo last crop (setup)
       if (e.key === "z" && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
         e.preventDefault();
-        undoLastCrop();
+        if (buildMode === "building" && activeStepId) {
+          useAppStore.getState().undoAnnotation(activeStepId);
+        } else {
+          undoLastCrop();
+        }
         return;
       }
 

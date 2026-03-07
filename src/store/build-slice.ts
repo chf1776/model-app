@@ -1,6 +1,6 @@
 import type { StateCreator } from "zustand";
 import type { Project, InstructionSource, InstructionPage, Track, Step, Tag, StepRelation, ReferenceImage, Annotation, AnnotationTool } from "@/shared/types";
-import { getEffectiveDryingMinutes } from "@/shared/types";
+import { getEffectiveDryingMinutes, ANNOTATION_TOOL_LABELS } from "@/shared/types";
 import type { AppStore } from "./index";
 import * as api from "@/api";
 import { toast } from "sonner";
@@ -71,6 +71,7 @@ export interface BuildSlice {
   // Annotations
   annotationMode: AnnotationTool;
   annotationColor: string;
+  annotationStrokeWidth: number;
   stepAnnotations: Record<string, Annotation[]>;
   loadAnnotations: (stepId: string) => Promise<void>;
   saveAnnotationsDebounced: (stepId: string) => void;
@@ -79,6 +80,12 @@ export interface BuildSlice {
   updateAnnotation: (stepId: string, annotationId: string, updates: Partial<Annotation>) => void;
   setAnnotationMode: (mode: AnnotationTool) => void;
   setAnnotationColor: (color: string) => void;
+  setAnnotationStrokeWidth: (width: number) => void;
+  // Annotation undo/redo (per-step snapshot stacks)
+  annotationUndoStacks: Record<string, Annotation[][]>;
+  annotationRedoStacks: Record<string, Annotation[][]>;
+  undoAnnotation: (stepId: string) => void;
+  redoAnnotation: (stepId: string) => void;
   // Undo
   undoStack: string[];
   pushUndo: (stepId: string) => void;
@@ -154,6 +161,9 @@ const DEFAULT_BUILD_STATE = {
   stepAnnotations: {} as Record<string, Annotation[]>,
   annotationMode: null as AnnotationTool,
   annotationColor: "#ef4444",
+  annotationStrokeWidth: 0.003,
+  annotationUndoStacks: {} as Record<string, Annotation[][]>,
+  annotationRedoStacks: {} as Record<string, Annotation[][]>,
   buildMode: "setup" as BuildMode,
   navMode: "track" as NavMode,
   pendingMilestone: null as { trackId: string; trackName: string; trackColor: string } | null,
@@ -386,6 +396,10 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
           if (step.crop_x != null && !state.stepAnnotations[step.id]) {
             setTimeout(() => get().loadAnnotations(step.id), 0);
           }
+          // Toast reminder when annotation tool persists across step change
+          if (state.annotationMode && state.activeStepId && state.activeStepId !== id) {
+            toast.info(`${ANNOTATION_TOOL_LABELS[state.annotationMode]} tool active`, { duration: 1500 });
+          }
         }
         // In setup mode, trigger canvas to center on the crop region
         if (state.buildMode === "setup" && step.crop_x != null) {
@@ -566,39 +580,96 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   })(),
 
   addAnnotation: (stepId, annotation) => {
+    const current = get().stepAnnotations[stepId] ?? [];
     set((s) => ({
       stepAnnotations: {
         ...s.stepAnnotations,
-        [stepId]: [...(s.stepAnnotations[stepId] ?? []), annotation],
+        [stepId]: [...current, annotation],
       },
+      annotationUndoStacks: {
+        ...s.annotationUndoStacks,
+        [stepId]: [...(s.annotationUndoStacks[stepId] ?? []), current].slice(-50),
+      },
+      annotationRedoStacks: { ...s.annotationRedoStacks, [stepId]: [] },
     }));
     get().saveAnnotationsDebounced(stepId);
   },
 
   removeAnnotation: (stepId, annotationId) => {
+    const current = get().stepAnnotations[stepId] ?? [];
     set((s) => ({
       stepAnnotations: {
         ...s.stepAnnotations,
-        [stepId]: (s.stepAnnotations[stepId] ?? []).filter((a) => a.id !== annotationId),
+        [stepId]: current.filter((a) => a.id !== annotationId),
       },
+      annotationUndoStacks: {
+        ...s.annotationUndoStacks,
+        [stepId]: [...(s.annotationUndoStacks[stepId] ?? []), current].slice(-50),
+      },
+      annotationRedoStacks: { ...s.annotationRedoStacks, [stepId]: [] },
     }));
     get().saveAnnotationsDebounced(stepId);
   },
 
   updateAnnotation: (stepId, annotationId, updates) => {
+    const current = get().stepAnnotations[stepId] ?? [];
     set((s) => ({
       stepAnnotations: {
         ...s.stepAnnotations,
-        [stepId]: (s.stepAnnotations[stepId] ?? []).map((a) =>
+        [stepId]: current.map((a) =>
           a.id === annotationId ? { ...a, ...updates } as Annotation : a,
         ),
       },
+      annotationUndoStacks: {
+        ...s.annotationUndoStacks,
+        [stepId]: [...(s.annotationUndoStacks[stepId] ?? []), current].slice(-50),
+      },
+      annotationRedoStacks: { ...s.annotationRedoStacks, [stepId]: [] },
     }));
     get().saveAnnotationsDebounced(stepId);
   },
 
   setAnnotationMode: (mode) => set({ annotationMode: mode }),
   setAnnotationColor: (color) => set({ annotationColor: color }),
+  setAnnotationStrokeWidth: (width) => set({ annotationStrokeWidth: width }),
+
+  undoAnnotation: (stepId) => {
+    const undoStack = get().annotationUndoStacks[stepId] ?? [];
+    if (undoStack.length === 0) return;
+    const current = get().stepAnnotations[stepId] ?? [];
+    const previous = undoStack[undoStack.length - 1];
+    set((s) => ({
+      stepAnnotations: { ...s.stepAnnotations, [stepId]: previous },
+      annotationUndoStacks: {
+        ...s.annotationUndoStacks,
+        [stepId]: undoStack.slice(0, -1),
+      },
+      annotationRedoStacks: {
+        ...s.annotationRedoStacks,
+        [stepId]: [...(s.annotationRedoStacks[stepId] ?? []), current],
+      },
+    }));
+    get().saveAnnotationsDebounced(stepId);
+  },
+
+  redoAnnotation: (stepId) => {
+    const redoStack = get().annotationRedoStacks[stepId] ?? [];
+    if (redoStack.length === 0) return;
+    const current = get().stepAnnotations[stepId] ?? [];
+    const next = redoStack[redoStack.length - 1];
+    set((s) => ({
+      stepAnnotations: { ...s.stepAnnotations, [stepId]: next },
+      annotationRedoStacks: {
+        ...s.annotationRedoStacks,
+        [stepId]: redoStack.slice(0, -1),
+      },
+      annotationUndoStacks: {
+        ...s.annotationUndoStacks,
+        [stepId]: [...(s.annotationUndoStacks[stepId] ?? []), current],
+      },
+    }));
+    get().saveAnnotationsDebounced(stepId);
+  },
   loadInstructionSources: async (projectId) => {
     const sources = await api.listInstructionSources(projectId);
     set({ instructionSources: sources });

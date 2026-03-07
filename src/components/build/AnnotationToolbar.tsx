@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Check, Circle, MoveRight, X, Highlighter, Pencil, Type, Trash2, Undo2 } from "lucide-react";
+import { Check, Circle, MoveRight, X, Highlighter, Pencil, Type, Trash2, Undo2, Redo2 } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useAppStore } from "@/store";
 import type { Annotation, AnnotationTool } from "@/shared/types";
@@ -25,14 +25,26 @@ const COLOR_SWATCHES = [
   "#171717", // black
 ];
 
+const STROKE_PRESETS: { label: string; value: number; thickness: number }[] = [
+  { label: "Thin", value: 0.002, thickness: 1 },
+  { label: "Medium", value: 0.003, thickness: 2 },
+  { label: "Thick", value: 0.005, thickness: 3 },
+];
+
 export function AnnotationToolbar() {
   const annotationMode = useAppStore((s) => s.annotationMode);
   const setAnnotationMode = useAppStore((s) => s.setAnnotationMode);
   const annotationColor = useAppStore((s) => s.annotationColor);
   const setAnnotationColor = useAppStore((s) => s.setAnnotationColor);
+  const annotationStrokeWidth = useAppStore((s) => s.annotationStrokeWidth);
+  const setAnnotationStrokeWidth = useAppStore((s) => s.setAnnotationStrokeWidth);
   const activeStepId = useAppStore((s) => s.activeStepId);
   const annotations = useAppStore((s) => s.activeStepId ? (s.stepAnnotations[s.activeStepId] ?? EMPTY_ANNOTATIONS) : EMPTY_ANNOTATIONS);
   const removeAnnotation = useAppStore((s) => s.removeAnnotation);
+  const undoAnnotation = useAppStore((s) => s.undoAnnotation);
+  const redoAnnotation = useAppStore((s) => s.redoAnnotation);
+  const undoStack = useAppStore((s) => s.activeStepId ? (s.annotationUndoStacks[s.activeStepId] ?? []) : []);
+  const redoStack = useAppStore((s) => s.activeStepId ? (s.annotationRedoStacks[s.activeStepId] ?? []) : []);
   const steps = useAppStore((s) => s.steps);
 
   const step = activeStepId ? steps.find((s) => s.id === activeStepId) : null;
@@ -50,9 +62,14 @@ export function AnnotationToolbar() {
   if (!hasCrop || !activeStepId) return null;
 
   const handleUndo = () => {
-    if (annotations.length > 0) {
-      const last = annotations[annotations.length - 1];
-      removeAnnotation(activeStepId, last.id);
+    if (undoStack.length > 0) {
+      undoAnnotation(activeStepId);
+    }
+  };
+
+  const handleRedo = () => {
+    if (redoStack.length > 0) {
+      redoAnnotation(activeStepId);
     }
   };
 
@@ -115,18 +132,60 @@ export function AnnotationToolbar() {
       {/* Separator */}
       <div className="mx-0.5 h-4 w-px bg-border" />
 
+      {/* Stroke width presets */}
+      {STROKE_PRESETS.map(({ label, value, thickness }) => (
+        <Tooltip key={label}>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => setAnnotationStrokeWidth(value)}
+              className={`flex items-center justify-center rounded p-1.5 transition-colors ${
+                annotationStrokeWidth === value
+                  ? "bg-accent/15 text-accent"
+                  : "text-text-tertiary hover:bg-muted hover:text-text-secondary"
+              }`}
+            >
+              <div
+                className="rounded-full bg-current"
+                style={{ width: thickness * 3 + 2, height: thickness * 3 + 2 }}
+              />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
+      ))}
+
+      {/* Separator */}
+      <div className="mx-0.5 h-4 w-px bg-border" />
+
       {/* Undo */}
       <Tooltip>
         <TooltipTrigger asChild>
           <button
             onClick={handleUndo}
-            disabled={annotations.length === 0}
-            className="rounded p-1.5 text-text-tertiary hover:bg-muted hover:text-text-secondary disabled:opacity-30"
+            disabled={undoStack.length === 0}
+            className="flex items-center gap-0.5 rounded p-1.5 text-text-tertiary hover:bg-muted hover:text-text-secondary disabled:opacity-30"
           >
             <Undo2 className="h-3.5 w-3.5" />
+            {annotations.length > 0 && (
+              <span className="text-[9px] tabular-nums">{annotations.length}</span>
+            )}
           </button>
         </TooltipTrigger>
-        <TooltipContent>Undo last</TooltipContent>
+        <TooltipContent>Undo (⌘Z)</TooltipContent>
+      </Tooltip>
+
+      {/* Redo */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={handleRedo}
+            disabled={redoStack.length === 0}
+            className="rounded p-1.5 text-text-tertiary hover:bg-muted hover:text-text-secondary disabled:opacity-30"
+          >
+            <Redo2 className="h-3.5 w-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>Redo (⌘⇧Z)</TooltipContent>
       </Tooltip>
 
       {/* Clear */}

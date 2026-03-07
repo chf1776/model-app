@@ -1,7 +1,5 @@
 import type { Annotation } from "@/shared/types";
-
-const CHECKMARK_SIZE = 0.03;
-const CROSS_SIZE = 0.025;
+import { DEFAULT_CHECKMARK_SIZE, DEFAULT_CROSS_SIZE } from "./AnnotationLayer";
 
 export function drawAnnotationsOnCanvas(
   ctx: CanvasRenderingContext2D,
@@ -20,7 +18,7 @@ export function drawAnnotationsOnCanvas(
 
     switch (ann.type) {
       case "checkmark":
-        drawCheckmark(ctx, ann.x * canvasW, ann.y * canvasH, canvasW, canvasH);
+        drawCheckmark(ctx, ann.x * canvasW, ann.y * canvasH, ann.size ?? DEFAULT_CHECKMARK_SIZE * Math.min(canvasW, canvasH));
         break;
       case "circle":
         drawCircle(ctx, ann.x * canvasW, ann.y * canvasH, ann.rx * canvasW, ann.ry * canvasH);
@@ -29,7 +27,7 @@ export function drawAnnotationsOnCanvas(
         drawArrow(ctx, ann.x1 * canvasW, ann.y1 * canvasH, ann.x2 * canvasW, ann.y2 * canvasH);
         break;
       case "cross":
-        drawCross(ctx, ann.x * canvasW, ann.y * canvasH, canvasW, canvasH);
+        drawCross(ctx, ann.x * canvasW, ann.y * canvasH, ann.size ?? DEFAULT_CROSS_SIZE * Math.min(canvasW, canvasH));
         break;
       case "highlight":
         drawHighlight(ctx, ann.x * canvasW, ann.y * canvasH, ann.w * canvasW, ann.h * canvasH);
@@ -45,8 +43,7 @@ export function drawAnnotationsOnCanvas(
   }
 }
 
-function drawCheckmark(ctx: CanvasRenderingContext2D, cx: number, cy: number, cw: number, ch: number) {
-  const size = CHECKMARK_SIZE * Math.min(cw, ch);
+function drawCheckmark(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number) {
   ctx.beginPath();
   ctx.moveTo(cx - size * 0.4, cy);
   ctx.lineTo(cx - size * 0.1, cy + size * 0.4);
@@ -75,8 +72,7 @@ function drawArrow(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: nu
   ctx.fill();
 }
 
-function drawCross(ctx: CanvasRenderingContext2D, cx: number, cy: number, cw: number, ch: number) {
-  const size = CROSS_SIZE * Math.min(cw, ch);
+function drawCross(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number) {
   ctx.beginPath();
   ctx.moveTo(cx - size * 0.5, cy - size * 0.5);
   ctx.lineTo(cx + size * 0.5, cy + size * 0.5);

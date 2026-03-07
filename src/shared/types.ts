@@ -520,6 +520,16 @@ export type Annotation =
 
 export type AnnotationTool = "checkmark" | "circle" | "arrow" | "cross" | "highlight" | "freehand" | "text" | null;
 
+export const ANNOTATION_TOOL_LABELS: Record<Exclude<AnnotationTool, null>, string> = {
+  checkmark: "Checkmark",
+  circle: "Circle",
+  arrow: "Arrow",
+  cross: "Cross",
+  highlight: "Highlight",
+  freehand: "Freehand",
+  text: "Text",
+};
+
 export interface StepAnnotations {
   step_id: string;
   data: string;

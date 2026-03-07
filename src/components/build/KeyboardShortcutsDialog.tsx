@@ -71,10 +71,12 @@ export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcut
             <ShortcutRow keys={<Kbd>A</Kbd>} label="Deselect annotation tool" />
             <ShortcutRow keys={<><Kbd>1</Kbd>-<Kbd>7</Kbd></>} label="Select annotation tool" />
             <ShortcutRow keys={<Kbd>Del</Kbd>} label="Delete selected annotation" />
+            <ShortcutRow keys={<Kbd>Esc</Kbd>} label="Cancel mid-draw" />
           </Section>
 
           <Section title="Editing">
-            <ShortcutRow keys={<><Kbd>{modKey}</Kbd> <Kbd>Z</Kbd></>} label="Undo last crop" />
+            <ShortcutRow keys={<><Kbd>{modKey}</Kbd> <Kbd>Z</Kbd></>} label="Undo (crop or annotation)" />
+            <ShortcutRow keys={<><Kbd>{modKey}</Kbd> <Kbd>⇧</Kbd> <Kbd>Z</Kbd></>} label="Redo annotation" />
             <ShortcutRow keys={<><Kbd>{modKey}</Kbd> click</>} label="Multi-select steps" />
             <ShortcutRow keys={<Kbd>?</Kbd>} label="Show shortcuts" />
           </Section>

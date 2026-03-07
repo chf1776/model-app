@@ -7,7 +7,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { useAppStore } from "@/store";
 import type { Step, InstructionPage } from "@/shared/types";
 import { getEffectiveDimensions } from "./tree-utils";
-import { AnnotationLayer, DEFAULT_CHECKMARK_SIZE, DEFAULT_CROSS_SIZE, DEFAULT_STROKE_WIDTH, DEFAULT_OPACITY, HIGHLIGHT_COLOR } from "./AnnotationLayer";
+import { AnnotationLayer, DEFAULT_CHECKMARK_SIZE, DEFAULT_CROSS_SIZE, DEFAULT_OPACITY, HIGHLIGHT_COLOR } from "./AnnotationLayer";
 import type { DrawPreview } from "./AnnotationLayer";
 import { MIN_RELATIVE_ZOOM, MAX_RELATIVE_ZOOM } from "./zoom-utils";
 import type Konva from "konva";
@@ -79,6 +79,7 @@ export function CropCanvas() {
   const annotationMode = useAppStore((s) => s.annotationMode);
   const annotationColor = useAppStore((s) => s.annotationColor);
   const addAnnotation = useAppStore((s) => s.addAnnotation);
+  const annotationStrokeWidth = useAppStore((s) => s.annotationStrokeWidth);
 
   const step = activeStepId ? steps.find((s) => s.id === activeStepId) ?? null : null;
   const page = step?.source_page_id
@@ -147,6 +148,7 @@ export function CropCanvas() {
   }, [fitToViewTrigger]);
 
   // Wheel zoom (viewerZoom is relative: 1.0 = 100% = fit-to-view)
+  // Handles both scroll-wheel (discrete steps) and trackpad pinch (ctrlKey + smooth deltaY)
   const handleWheel = useCallback(
     (e: Konva.KonvaEventObject<WheelEvent>) => {
       e.evt.preventDefault();
@@ -159,11 +161,22 @@ export function CropCanvas() {
       const base = baseZoomRef.current;
       const oldAbsolute = viewerZoom * base;
 
-      const direction = e.evt.deltaY < 0 ? 1 : -1;
-      const newRelative = Math.max(
-        MIN_RELATIVE_ZOOM,
-        Math.min(MAX_RELATIVE_ZOOM, viewerZoom * (direction > 0 ? ZOOM_STEP : 1 / ZOOM_STEP)),
-      );
+      let newRelative: number;
+      if (e.evt.ctrlKey) {
+        // Trackpad pinch: ctrlKey is set, deltaY is continuous
+        const zoomFactor = 1 - e.evt.deltaY * 0.01;
+        newRelative = Math.max(
+          MIN_RELATIVE_ZOOM,
+          Math.min(MAX_RELATIVE_ZOOM, viewerZoom * zoomFactor),
+        );
+      } else {
+        // Scroll wheel: discrete steps
+        const direction = e.evt.deltaY < 0 ? 1 : -1;
+        newRelative = Math.max(
+          MIN_RELATIVE_ZOOM,
+          Math.min(MAX_RELATIVE_ZOOM, viewerZoom * (direction > 0 ? ZOOM_STEP : 1 / ZOOM_STEP)),
+        );
+      }
 
       if (Math.abs(newRelative - viewerZoom) < 0.001) return;
 
@@ -263,7 +276,7 @@ export function CropCanvas() {
     const base = {
       id: crypto.randomUUID(),
       color: annotationColor,
-      strokeWidth: DEFAULT_STROKE_WIDTH,
+      strokeWidth: annotationStrokeWidth,
       opacity: DEFAULT_OPACITY,
     };
 
@@ -342,6 +355,20 @@ export function CropCanvas() {
     setDrawState(null);
   }, [step, annotationColor, addAnnotation, effectiveW, effectiveH]);
 
+  // ── Escape cancels mid-draw ─────────────────────────────────────────────
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && drawStateRef.current) {
+        e.preventDefault();
+        e.stopPropagation();
+        setDrawState(null);
+      }
+    };
+    window.addEventListener("keydown", handleEscape, true); // capture phase
+    return () => window.removeEventListener("keydown", handleEscape, true);
+  }, []);
+
   // ── Text annotation submit ──────────────────────────────────────────────
 
   const handleTextSubmit = useCallback(
@@ -350,7 +377,7 @@ export function CropCanvas() {
         addAnnotation(step.id, {
           id: crypto.randomUUID(),
           color: annotationColor,
-          strokeWidth: DEFAULT_STROKE_WIDTH,
+          strokeWidth: annotationStrokeWidth,
           opacity: DEFAULT_OPACITY,
           type: "text",
           x: pendingText.nx,
@@ -384,7 +411,10 @@ export function CropCanvas() {
   }
 
   const isDraggable = !annotationMode;
-  const cursor = annotationMode ? "crosshair" : "grab";
+  const cursor = annotationMode === "text" ? "text"
+    : annotationMode === "freehand" ? "crosshair"
+    : annotationMode ? "crosshair"
+    : "grab";
   const absoluteZoom = viewerZoom * baseZoomRef.current;
 
   return (

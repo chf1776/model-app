@@ -37,8 +37,14 @@ export function AnnotationLayer({ stepId, effectiveW, effectiveH, zoom, drawPrev
   const annotations = useAppStore((s) => s.stepAnnotations[stepId] ?? EMPTY_ANNOTATIONS);
   const annotationMode = useAppStore((s) => s.annotationMode);
   const removeAnnotation = useAppStore((s) => s.removeAnnotation);
+  const updateAnnotation = useAppStore((s) => s.updateAnnotation);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Clear selection when entering draw mode
+  useEffect(() => {
+    if (annotationMode) setSelectedId(null);
+  }, [annotationMode]);
 
   const handleAnnotationClick = (id: string) => {
     if (annotationMode) return;
@@ -75,6 +81,27 @@ export function AnnotationLayer({ stepId, effectiveW, effectiveH, zoom, drawPrev
           strokeScale={strokeScale}
           isSelected={ann.id === selectedId}
           onClick={() => handleAnnotationClick(ann.id)}
+          isSelectable={!annotationMode}
+          isDraggable={!annotationMode}
+          onDragEnd={(dx, dy) => {
+            const nx = dx / effectiveW;
+            const ny = dy / effectiveH;
+            if (ann.type === "arrow") {
+              updateAnnotation(stepId, ann.id, {
+                x1: ann.x1 + nx, y1: ann.y1 + ny,
+                x2: ann.x2 + nx, y2: ann.y2 + ny,
+              } as Partial<Annotation>);
+            } else if (ann.type === "freehand") {
+              updateAnnotation(stepId, ann.id, {
+                points: ann.points.map((v, i) => i % 2 === 0 ? v + nx : v + ny),
+              } as Partial<Annotation>);
+            } else {
+              updateAnnotation(stepId, ann.id, {
+                x: (ann as { x: number }).x + nx,
+                y: (ann as { y: number }).y + ny,
+              } as Partial<Annotation>);
+            }
+          }}
         />
       ))}
 
@@ -199,6 +226,9 @@ function AnnotationShape({
   strokeScale,
   isSelected,
   onClick,
+  isSelectable,
+  isDraggable,
+  onDragEnd,
 }: {
   annotation: Annotation;
   effectiveW: number;
@@ -206,7 +236,26 @@ function AnnotationShape({
   strokeScale: number;
   isSelected: boolean;
   onClick: () => void;
+  isSelectable: boolean;
+  isDraggable: boolean;
+  onDragEnd: (dx: number, dy: number) => void;
 }) {
+  const handleDragEnd = (e: import("konva/lib/Node").KonvaEventObject<DragEvent>) => {
+    const node = e.target;
+    const dx = node.x();
+    const dy = node.y();
+    // Reset node position (we update via store, not Konva position)
+    node.x(0);
+    node.y(0);
+    if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+      onDragEnd(dx, dy);
+    }
+  };
+
+  const hoverHandlers = isSelectable ? {
+    onMouseEnter: () => { document.body.style.cursor = "pointer"; },
+    onMouseLeave: () => { document.body.style.cursor = ""; },
+  } : {};
   const sw = ann.strokeWidth * effectiveW;
   const selStroke = isSelected ? 2 * strokeScale : 0;
 
@@ -216,7 +265,7 @@ function AnnotationShape({
       const cy = toLayerY(ann.y, effectiveH);
       const size = ann.size ?? DEFAULT_CHECKMARK_SIZE * Math.min(effectiveW, effectiveH);
       return (
-        <Group onClick={onClick} listening>
+        <Group onClick={onClick} draggable={isDraggable} onDragEnd={handleDragEnd} {...hoverHandlers} listening>
           {isSelected && (
             <Rect
               x={cx - size * 0.8}
@@ -248,7 +297,7 @@ function AnnotationShape({
 
     case "circle": {
       return (
-        <Group onClick={onClick} listening>
+        <Group onClick={onClick} draggable={isDraggable} onDragEnd={handleDragEnd} {...hoverHandlers} listening>
           {isSelected && (
             <Ellipse
               x={toLayerX(ann.x, effectiveW)}
@@ -277,7 +326,7 @@ function AnnotationShape({
 
     case "arrow": {
       return (
-        <Group onClick={onClick} listening>
+        <Group onClick={onClick} draggable={isDraggable} onDragEnd={handleDragEnd} {...hoverHandlers} listening>
           <Arrow
             points={[
               toLayerX(ann.x1, effectiveW),
@@ -302,7 +351,7 @@ function AnnotationShape({
       const cy = toLayerY(ann.y, effectiveH);
       const size = ann.size ?? DEFAULT_CROSS_SIZE * Math.min(effectiveW, effectiveH);
       return (
-        <Group onClick={onClick} listening>
+        <Group onClick={onClick} draggable={isDraggable} onDragEnd={handleDragEnd} {...hoverHandlers} listening>
           {isSelected && (
             <Rect
               x={cx - size * 0.8}
@@ -337,57 +386,57 @@ function AnnotationShape({
 
     case "highlight": {
       return (
-        <Rect
-          x={toLayerX(ann.x, effectiveW)}
-          y={toLayerY(ann.y, effectiveH)}
-          width={ann.w * effectiveW}
-          height={ann.h * effectiveH}
-          fill={ann.color}
-          opacity={ann.opacity}
-          stroke={isSelected ? SELECTION_COLOR : undefined}
-          strokeWidth={isSelected ? selStroke : 0}
-          dash={isSelected ? [4 * strokeScale, 3 * strokeScale] : undefined}
-          onClick={onClick}
-          listening
-        />
+        <Group onClick={onClick} draggable={isDraggable} onDragEnd={handleDragEnd} {...hoverHandlers} listening>
+          <Rect
+            x={toLayerX(ann.x, effectiveW)}
+            y={toLayerY(ann.y, effectiveH)}
+            width={ann.w * effectiveW}
+            height={ann.h * effectiveH}
+            fill={ann.color}
+            opacity={ann.opacity}
+            stroke={isSelected ? SELECTION_COLOR : undefined}
+            strokeWidth={isSelected ? selStroke : 0}
+            dash={isSelected ? [4 * strokeScale, 3 * strokeScale] : undefined}
+          />
+        </Group>
       );
     }
 
     case "freehand": {
       return (
-        <Line
-          points={ann.points.flatMap((v, i) =>
-            i % 2 === 0 ? [v * effectiveW] : [v * effectiveH],
-          )}
-          stroke={isSelected ? SELECTION_COLOR : ann.color}
-          strokeWidth={Math.max(sw, 2 * strokeScale) + (isSelected ? 1 * strokeScale : 0)}
-          tension={0.5}
-          lineCap="round"
-          lineJoin="round"
-          opacity={ann.opacity}
-          hitStrokeWidth={12 * strokeScale}
-          onClick={onClick}
-          listening
-        />
+        <Group onClick={onClick} draggable={isDraggable} onDragEnd={handleDragEnd} {...hoverHandlers} listening>
+          <Line
+            points={ann.points.flatMap((v, i) =>
+              i % 2 === 0 ? [v * effectiveW] : [v * effectiveH],
+            )}
+            stroke={isSelected ? SELECTION_COLOR : ann.color}
+            strokeWidth={Math.max(sw, 2 * strokeScale) + (isSelected ? 1 * strokeScale : 0)}
+            tension={0.5}
+            lineCap="round"
+            lineJoin="round"
+            opacity={ann.opacity}
+            hitStrokeWidth={12 * strokeScale}
+          />
+        </Group>
       );
     }
 
     case "text": {
       const fontSize = ann.fontSize * effectiveH;
       return (
-        <Text
-          x={toLayerX(ann.x, effectiveW)}
-          y={toLayerY(ann.y, effectiveH)}
-          text={ann.text}
-          fontSize={fontSize}
-          fill={ann.color}
-          opacity={ann.opacity}
-          fontStyle="bold"
-          stroke={isSelected ? SELECTION_COLOR : undefined}
-          strokeWidth={isSelected ? 1 * strokeScale : 0}
-          onClick={onClick}
-          listening
-        />
+        <Group onClick={onClick} draggable={isDraggable} onDragEnd={handleDragEnd} {...hoverHandlers} listening>
+          <Text
+            x={toLayerX(ann.x, effectiveW)}
+            y={toLayerY(ann.y, effectiveH)}
+            text={ann.text}
+            fontSize={fontSize}
+            fill={ann.color}
+            opacity={ann.opacity}
+            fontStyle="bold"
+            stroke={isSelected ? SELECTION_COLOR : undefined}
+            strokeWidth={isSelected ? 1 * strokeScale : 0}
+          />
+        </Group>
       );
     }
 

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useAppStore } from "@/store";
+import { ANNOTATION_TOOL_LABELS } from "@/shared/types";
 import { flattenTrackSteps, getStepLabel } from "./tree-utils";
 
 export function NavigationBar() {
@@ -19,6 +20,7 @@ function TrackNavigationBar() {
   const activeStepId = useAppStore((s) => s.activeStepId);
   const activeTrackId = useAppStore((s) => s.activeTrackId);
   const setActiveStep = useAppStore((s) => s.setActiveStep);
+  const annotationMode = useAppStore((s) => s.annotationMode);
 
   const activeTrack = tracks.find((t) => t.id === activeTrackId);
 
@@ -69,6 +71,11 @@ function TrackNavigationBar() {
             />
             <span className="text-text-tertiary">{activeTrack.name}</span>
           </>
+        )}
+        {annotationMode && (
+          <span className="text-accent">
+            {ANNOTATION_TOOL_LABELS[annotationMode]}
+          </span>
         )}
       </span>
       <button
