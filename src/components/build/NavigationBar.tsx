@@ -4,20 +4,24 @@ import { useAppStore } from "@/store";
 import { flattenTrackSteps, getStepLabel } from "./tree-utils";
 
 export function NavigationBar() {
-  const steps = useAppStore((s) => s.steps);
-  const tracks = useAppStore((s) => s.tracks);
-  const activeStepId = useAppStore((s) => s.activeStepId);
-  const activeTrackId = useAppStore((s) => s.activeTrackId);
-  const setActiveStep = useAppStore((s) => s.setActiveStep);
   const navMode = useAppStore((s) => s.navMode);
-
-  const activeTrack = tracks.find((t) => t.id === activeTrackId);
 
   if (navMode === "page") {
     return <PageNavigationBar />;
   }
 
-  // Track mode navigation
+  return <TrackNavigationBar />;
+}
+
+function TrackNavigationBar() {
+  const steps = useAppStore((s) => s.steps);
+  const tracks = useAppStore((s) => s.tracks);
+  const activeStepId = useAppStore((s) => s.activeStepId);
+  const activeTrackId = useAppStore((s) => s.activeTrackId);
+  const setActiveStep = useAppStore((s) => s.setActiveStep);
+
+  const activeTrack = tracks.find((t) => t.id === activeTrackId);
+
   const flatSteps = useMemo(
     () => flattenTrackSteps(steps, activeTrackId),
     [steps, activeTrackId],
