@@ -188,21 +188,31 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
 
           {/* Zoom controls — both modes */}
           <div className="flex items-center gap-0.5">
-            <button
-              onClick={handleZoomOut}
-              className="rounded p-1 text-text-tertiary hover:bg-muted hover:text-text-secondary"
-            >
-              <ZoomOut className="h-3.5 w-3.5" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleZoomOut}
+                  className="rounded p-1 text-text-tertiary hover:bg-muted hover:text-text-secondary"
+                >
+                  <ZoomOut className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Zoom out</TooltipContent>
+            </Tooltip>
             <span className="min-w-[36px] text-center font-mono text-[10px] tabular-nums text-text-tertiary">
               {zoomPercent}%
             </span>
-            <button
-              onClick={handleZoomIn}
-              className="rounded p-1 text-text-tertiary hover:bg-muted hover:text-text-secondary"
-            >
-              <ZoomIn className="h-3.5 w-3.5" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleZoomIn}
+                  className="rounded p-1 text-text-tertiary hover:bg-muted hover:text-text-secondary"
+                >
+                  <ZoomIn className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Zoom in</TooltipContent>
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
