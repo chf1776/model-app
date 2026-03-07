@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { Expand } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useAppStore } from "@/store";
 import type { Step, InstructionPage } from "@/shared/types";
@@ -228,13 +229,19 @@ export function CropCanvas() {
         <canvas ref={canvasRef} className="absolute left-0 top-0" />
 
         {/* Show Full Page button */}
-        <button
-          onClick={() => setShowFullPage(true)}
-          className="absolute right-2 top-2 rounded bg-black/40 p-1.5 text-white/80 hover:bg-black/60 hover:text-white"
-          title="Show full page"
-        >
-          <Expand className="h-3.5 w-3.5" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => setShowFullPage(true)}
+              className="absolute right-2 top-2 rounded bg-black/40 p-1.5 text-white/80 hover:bg-black/60 hover:text-white"
+            >
+              <Expand className="h-3.5 w-3.5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top" sideOffset={6}>
+            Show full page
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       {/* Full page modal */}

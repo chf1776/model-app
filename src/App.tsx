@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppShell } from "@/components/shared/AppShell";
 import CollectionRoute from "@/routes/collection";
 import BuildRoute from "@/routes/build";
@@ -14,18 +15,20 @@ declare global {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route element={<AppShell />}>
-          <Route path="/collection" element={<CollectionRoute />} />
-          <Route path="/build" element={<BuildRoute />} />
-          <Route path="/overview" element={<OverviewRoute />} />
-          <Route path="/settings" element={<SettingsRoute />} />
-          <Route path="*" element={<Navigate to="/collection" replace />} />
-        </Route>
-      </Routes>
-      <Toaster position="bottom-right" />
-    </BrowserRouter>
+    <TooltipProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="/collection" element={<CollectionRoute />} />
+            <Route path="/build" element={<BuildRoute />} />
+            <Route path="/overview" element={<OverviewRoute />} />
+            <Route path="/settings" element={<SettingsRoute />} />
+            <Route path="*" element={<Navigate to="/collection" replace />} />
+          </Route>
+        </Routes>
+        <Toaster position="bottom-right" />
+      </BrowserRouter>
+    </TooltipProvider>
   );
 }
 
