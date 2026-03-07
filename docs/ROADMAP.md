@@ -141,11 +141,11 @@ You can import a full instruction manual, crop every step, organize into tracks 
 
 ---
 
-## Phase 3: Building Mode — Core Loop
+## Phase 3: Building Mode — Core Loop (COMPLETE — v0.3.0–v0.3.3)
 
 **Goal**: Actually build from the app. Work through steps, mark them complete, capture photos. The core loop is end-to-end.
 
-### 3A: Mode Toggle + Layout + Navigation
+### 3A (COMPLETE): Mode Toggle + Layout + Navigation — v0.3.0
 - Setup/Building toggle: SegmentedPill in toolbar with Settings2/Hammer icons
 - `build_mode` persisted in `project_ui_state` (DB), hydrated on project load
 - Building mode hides setup-only tools (crop, full page, sources, upload PDF)
@@ -157,7 +157,7 @@ You can import a full instruction manual, crop every step, organize into tracks 
 - Empty states: "Add steps in Setup mode to start building" when no steps; single track hides dropdown
 - State persistence: resume restores active step, active track, zoom, pan, build mode (add `active_track_id` to `project_ui_state`)
 
-### 3B: Building Rail + Canvas
+### 3B (COMPLETE): Building Rail + Canvas — v0.3.1–v0.3.2
 - **Building rail (single-track view)** with Popover dropdown selector in header
 - Track selector: 8px color dot + bold name + done/total count; completed tracks show checkmark in success green
 - Dropdown shows project-wide total at top (e.g. "8/24 overall")
@@ -175,7 +175,7 @@ You can import a full instruction manual, crop every step, organize into tracks 
 - Steps without crops: placeholder with step title centered
 - Step transitions: subtle crossfade between steps
 
-### 3C: Step Panel + Completion Flow
+### 3C (COMPLETE): Step Panel + Completion Flow — v0.3.2–v0.3.3
 - **Step Panel (right, 280px)**: all step context + completion action. Only sections with data are rendered:
   - Step header + Complete button (Start Timer button hidden until Phase 4)
   - Quantity tracker (pips + count + +/-)
@@ -399,7 +399,7 @@ A fully polished, complete app. Finish a build, export a shareable document, eve
 | 1A | Foundation | App shell, basic kit management, project creation |
 | 1B | Collection Completeness | Paint shelf, accessories, wishlist system |
 | 2A–2H | Setup Mode | PDF import, crop tool, track/step organization, tags, references, relations, quantity |
-| **3** | **Building — Core** | **Working build loop (critical path)** |
+| ~~3~~ | ~~Building — Core~~ | ~~Working build loop (critical path)~~ DONE |
 | 3.5 | Basic Overview | Read-only assembly map, compact summary cards |
 | 4 | Building — Enrichment | Annotations, references, timers, page mode |
 | 5 | Overview — Full | Expand/collapse cards, gallery, build log composer, materials management |

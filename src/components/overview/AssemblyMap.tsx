@@ -1,8 +1,8 @@
 import { useState, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router";
 import { ChevronDown, ChevronRight, Map } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useAppStore } from "@/store";
+import { useNavigateToStep } from "@/hooks/useNavigateToStep";
 import type { Track, Step } from "@/shared/types";
 
 const ROW_HEIGHT = 24;
@@ -20,9 +20,8 @@ interface TrackRow {
 export function AssemblyMap() {
   const tracks = useAppStore((s) => s.tracks);
   const steps = useAppStore((s) => s.steps);
-  const setActiveZone = useAppStore((s) => s.setActiveZone);
-  const setActiveStep = useAppStore((s) => s.setActiveStep);
-  const navigate = useNavigate();
+  const activeStepId = useAppStore((s) => s.activeStepId);
+  const navigateToStep = useNavigateToStep();
   const [collapsed, setCollapsed] = useState(false);
 
   const trackRows: TrackRow[] = useMemo(() => {
@@ -65,11 +64,7 @@ export function AssemblyMap() {
     [],
   );
 
-  const handleNodeClick = (stepId: string) => {
-    setActiveStep(stepId);
-    setActiveZone("build");
-    navigate("/build");
-  };
+  const handleNodeClick = navigateToStep;
 
   return (
     <div className="shrink-0 rounded-lg border border-border bg-card">
@@ -99,20 +94,25 @@ export function AssemblyMap() {
                 ? (track.completed_count / track.step_count) * 100
                 : 0;
             return (
-              <div
-                key={track.id}
-                className="h-[3px] w-3 overflow-hidden rounded-full"
-                style={{ backgroundColor: track.color + "40" }}
-                title={`${track.name}: ${Math.round(pct)}%`}
-              >
-                <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${pct}%`,
-                    backgroundColor: track.color,
-                  }}
-                />
-              </div>
+              <Tooltip key={track.id}>
+                <TooltipTrigger asChild>
+                  <div
+                    className="h-[3px] w-3 overflow-hidden rounded-full"
+                    style={{ backgroundColor: track.color + "40" }}
+                  >
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${pct}%`,
+                        backgroundColor: track.color,
+                      }}
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {track.name}: {Math.round(pct)}%
+                </TooltipContent>
+              </Tooltip>
             );
           })}
         </div>
@@ -172,6 +172,17 @@ export function AssemblyMap() {
                           className="cursor-pointer"
                           onClick={() => handleNodeClick(step.id)}
                         >
+                          {step.id === activeStepId && (
+                            <circle
+                              cx={cx}
+                              cy={cy}
+                              r={NODE_R + 3}
+                              fill="none"
+                              stroke="var(--color-accent)"
+                              strokeWidth={1.5}
+                              opacity={0.6}
+                            />
+                          )}
                           <circle
                             cx={cx}
                             cy={cy}

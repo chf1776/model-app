@@ -19,9 +19,13 @@ export function MaterialsCard() {
     <OverviewCard title="Materials" icon={Package}>
       {empty ? (
         <div className="flex h-full items-center justify-center py-3">
-          <span className="text-[9px] text-text-tertiary">
-            No materials linked
-          </span>
+          <div className="flex flex-col items-center text-text-tertiary">
+            <Package className="mb-1 h-4 w-4 opacity-40" />
+            <span className="text-[9px]">No materials linked</span>
+            <span className="mt-0.5 text-[8px] opacity-60">
+              Link accessories and paints in Collection
+            </span>
+          </div>
         </div>
       ) : (
         <div className="space-y-1.5">

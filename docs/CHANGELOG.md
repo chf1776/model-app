@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.5] — 2026-03-07 — Overview Polish
+
+### Added
+- **Build Log improvements**: Entries grouped by day (Today/Yesterday/date), show step titles in labels (e.g. "Completed 'Hull Assembly'"), clickable entries navigate to step in Build zone
+- **Gallery lightbox**: Click any thumbnail to open full-size photo in a dialog; shows date, photo type, and "Go to step" link for progress photos
+- **Assembly map active step marker**: Accent-colored ring highlights the currently active step node
+- **Project Info enhancements**: "Started X ago" and "Last activity X ago" timestamps; per-track progress bars with tooltips when multiple tracks exist
+- **Empty state hints**: All four overview cards now show icon + actionable guidance text (e.g. "Complete steps in Build mode to see history")
+- **`useNavigateToStep` hook**: Shared navigate-to-step-in-build-zone pattern extracted from 3 components
+- **`relativeTime` utility**: Shared relative timestamp formatter in `src/shared/format.ts`
+
+### Changed
+- Collapsed assembly map mini progress bars use Radix tooltips instead of native `title` attributes
+- Build Log subtitle uses proper pluralization ("1 entry" vs "N entries")
+- ProjectInfoCard uses targeted Zustand selector for last activity timestamp
+
 ## [0.3.4] — 2026-03-06 — Phase 3.5: Basic Overview
 
 ### Added
