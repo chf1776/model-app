@@ -7,15 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-- **Reusable ImageLightbox component**: Extracted inline lightbox implementations from KitCard, BuildingStepPanel, and GalleryCard into a single shared `ImageLightbox` component with dark overlay, prev/next navigation, keyboard arrows, thumbnail strip, captions, and an action slot for contextual buttons
+### Added
+- **Drag to reposition annotations**: Click to select an annotation, then drag to move it — works for all 7 shape types including arrows (both endpoints) and freehand (all points)
+- **Undo/redo for annotations**: Per-step undo/redo stacks (50 levels deep) with ⌘Z/⌘⇧Z keyboard shortcuts and undo/redo buttons in toolbar
+- **Stroke width presets**: Thin/Medium/Thick stroke buttons in annotation toolbar for controlling line weight
+- **Trackpad pinch-to-zoom**: Smooth pinch gesture support on trackpad (via ctrlKey detection) in crop canvas
+- **Escape cancels mid-draw**: Press Escape to abort an in-progress annotation draw (circle, arrow, highlight, freehand)
+- **Active tool label in nav bar**: Current annotation tool name shown in the navigation bar when a tool is selected
+- **Tool-specific cursors**: Text tool shows text cursor, drawing tools show crosshair, hover feedback on existing annotations
+- **Annotation count badge**: Undo button shows current annotation count
 
 ### Changed
+- **Reusable ImageLightbox component**: Extracted inline lightbox implementations from KitCard, BuildingStepPanel, and GalleryCard into a single shared `ImageLightbox` component with dark overlay, prev/next navigation, keyboard arrows, thumbnail strip, captions, and an action slot for contextual buttons
 - **Annotation toolbar always visible**: Toolbar now shows by default at bottom of canvas when a cropped step is active, removing the need to toggle with 'A' key
 - **'A' key deselects tool**: 'A' now deselects the current annotation tool instead of toggling toolbar visibility
 - **Number keys always active**: 1-7 tool shortcuts work in building mode without needing to toggle the toolbar first
+- **Annotation tool persists across steps**: Switching steps no longer deselects the active annotation tool; a toast reminder shows the active tool name
+- **⌘Z context-aware**: Undo triggers annotation undo in building mode, crop undo in setup mode
 
 ### Fixed
+- **Thumbnail annotation sizes**: Thumbnails now use shared size constants and respect custom annotation sizes instead of using independent hardcoded values
+- **Stale stroke width on draw**: Fixed useCallback dependency bug where changing stroke width mid-session would not apply to new annotations
+- **Clear all floods undo stack**: "Clear all" now uses a single batch operation instead of N individual removes, producing one undo snapshot
 - **Crop canvas centering**: Cropped step images now center in the display area immediately instead of appearing at top-left
 - **Lightbox keyboard isolation**: Arrow keys in lightbox no longer bubble to build mode step navigation
 - **Lightbox persistence on step change**: Lightbox closes when navigating to a different step
