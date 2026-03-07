@@ -59,9 +59,8 @@ export default function BuildRoute() {
   const activeTimers = useAppStore((s) => s.activeTimers);
   const addTimer = useAppStore((s) => s.addTimer);
   const loadTimers = useAppStore((s) => s.loadTimers);
-  const annotationToolbarVisible = useAppStore((s) => s.annotationToolbarVisible);
-  const setAnnotationToolbarVisible = useAppStore((s) => s.setAnnotationToolbarVisible);
   const setAnnotationMode = useAppStore((s) => s.setAnnotationMode);
+  const annotationMode = useAppStore((s) => s.annotationMode);
   const navMode = useAppStore((s) => s.navMode);
 
   useTimerTick();
@@ -116,15 +115,11 @@ export default function BuildRoute() {
         }
         if (e.key === "a" || e.key === "A") {
           e.preventDefault();
-          const s = activeStepId ? steps.find((st) => st.id === activeStepId) : null;
-          if (s && s.crop_x != null) {
-            const newVisible = !annotationToolbarVisible;
-            setAnnotationToolbarVisible(newVisible);
-            if (!newVisible) setAnnotationMode(null);
-          }
+          // Toggle annotation mode off (deselect current tool)
+          if (annotationMode) setAnnotationMode(null);
           return;
         }
-        if (annotationToolbarVisible && e.key >= "1" && e.key <= "7") {
+        if (e.key >= "1" && e.key <= "7") {
           e.preventDefault();
           const toolMap = ["checkmark", "circle", "arrow", "cross", "highlight", "freehand", "text"] as const;
           const idx = parseInt(e.key) - 1;
@@ -244,7 +239,7 @@ export default function BuildRoute() {
       selectedStepIds, clearSelectedSteps,
       currentSourcePages, currentPageIndex, steps, addStep, pushUndo, activeProjectId, loadTracks,
       undoLastCrop, completeActiveStep, activeTimers, addTimer,
-      annotationToolbarVisible, setAnnotationToolbarVisible, setAnnotationMode,
+      annotationMode, setAnnotationMode,
     ],
   );
 

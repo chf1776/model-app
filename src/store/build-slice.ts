@@ -71,7 +71,6 @@ export interface BuildSlice {
   // Annotations
   annotationMode: AnnotationTool;
   annotationColor: string;
-  annotationToolbarVisible: boolean;
   stepAnnotations: Record<string, Annotation[]>;
   loadAnnotations: (stepId: string) => Promise<void>;
   saveAnnotationsDebounced: (stepId: string) => void;
@@ -80,8 +79,6 @@ export interface BuildSlice {
   updateAnnotation: (stepId: string, annotationId: string, updates: Partial<Annotation>) => void;
   setAnnotationMode: (mode: AnnotationTool) => void;
   setAnnotationColor: (color: string) => void;
-  setAnnotationToolbarVisible: (visible: boolean) => void;
-
   // Undo
   undoStack: string[];
   pushUndo: (stepId: string) => void;
@@ -157,7 +154,6 @@ const DEFAULT_BUILD_STATE = {
   stepAnnotations: {} as Record<string, Annotation[]>,
   annotationMode: null as AnnotationTool,
   annotationColor: "#ef4444",
-  annotationToolbarVisible: false,
   buildMode: "setup" as BuildMode,
   navMode: "track" as NavMode,
   pendingMilestone: null as { trackId: string; trackName: string; trackColor: string } | null,
@@ -603,8 +599,6 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
 
   setAnnotationMode: (mode) => set({ annotationMode: mode }),
   setAnnotationColor: (color) => set({ annotationColor: color }),
-  setAnnotationToolbarVisible: (visible) => set({ annotationToolbarVisible: visible }),
-
   loadInstructionSources: async (projectId) => {
     const sources = await api.listInstructionSources(projectId);
     set({ instructionSources: sources });
@@ -822,7 +816,6 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
 
     // Clear annotation toolbar when switching modes
     if (mode === "setup") {
-      updates.annotationToolbarVisible = false;
       updates.annotationMode = null as AnnotationTool;
     }
 

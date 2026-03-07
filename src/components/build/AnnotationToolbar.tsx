@@ -30,7 +30,6 @@ export function AnnotationToolbar() {
   const setAnnotationMode = useAppStore((s) => s.setAnnotationMode);
   const annotationColor = useAppStore((s) => s.annotationColor);
   const setAnnotationColor = useAppStore((s) => s.setAnnotationColor);
-  const annotationToolbarVisible = useAppStore((s) => s.annotationToolbarVisible);
   const activeStepId = useAppStore((s) => s.activeStepId);
   const annotations = useAppStore((s) => s.activeStepId ? (s.stepAnnotations[s.activeStepId] ?? EMPTY_ANNOTATIONS) : EMPTY_ANNOTATIONS);
   const removeAnnotation = useAppStore((s) => s.removeAnnotation);
@@ -48,7 +47,7 @@ export function AnnotationToolbar() {
     return () => clearTimeout(t);
   }, [confirmClear]);
 
-  if (!annotationToolbarVisible || !hasCrop || !activeStepId) return null;
+  if (!hasCrop || !activeStepId) return null;
 
   const handleUndo = () => {
     if (annotations.length > 0) {
@@ -70,7 +69,7 @@ export function AnnotationToolbar() {
   };
 
   return (
-    <div className="absolute left-1/2 top-2 z-10 flex -translate-x-1/2 items-center gap-0.5 rounded-lg border border-border bg-background/95 px-1.5 py-1 shadow-md backdrop-blur-sm">
+    <div className="absolute bottom-2 left-1/2 z-10 flex -translate-x-1/2 items-center gap-0.5 rounded-lg border border-border bg-background/95 px-1.5 py-1 shadow-md backdrop-blur-sm">
       {/* Tool buttons */}
       {TOOLS.map(({ tool, icon, label, key }) => (
         <Tooltip key={tool}>

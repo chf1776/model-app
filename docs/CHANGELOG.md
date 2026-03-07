@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Reusable ImageLightbox component**: Extracted inline lightbox implementations from KitCard, BuildingStepPanel, and GalleryCard into a single shared `ImageLightbox` component with dark overlay, prev/next navigation, keyboard arrows, thumbnail strip, captions, and an action slot for contextual buttons
 
+### Changed
+- **Annotation toolbar always visible**: Toolbar now shows by default at bottom of canvas when a cropped step is active, removing the need to toggle with 'A' key
+- **'A' key deselects tool**: 'A' now deselects the current annotation tool instead of toggling toolbar visibility
+- **Number keys always active**: 1-7 tool shortcuts work in building mode without needing to toggle the toolbar first
+
 ### Fixed
 - **Crop canvas centering**: Cropped step images now center in the display area immediately instead of appearing at top-left
 - **Lightbox keyboard isolation**: Arrow keys in lightbox no longer bubble to build mode step navigation
