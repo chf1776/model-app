@@ -129,7 +129,7 @@ export function PageCanvas() {
     if (currentPage) fitToViewRef.current();
   }, [rotation]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Wheel zoom
+  // Wheel + trackpad pinch zoom
   const handleWheel = useCallback(
     (e: Konva.KonvaEventObject<WheelEvent>) => {
       e.evt.preventDefault();
@@ -138,11 +138,18 @@ export function PageCanvas() {
       const pointer = stage.getPointerPosition();
       if (!pointer) return;
 
-      const direction = e.evt.deltaY < 0 ? 1 : -1;
-      const newZoom = Math.max(
-        MIN_ZOOM,
-        Math.min(MAX_ZOOM, viewerZoom * (direction > 0 ? ZOOM_STEP : 1 / ZOOM_STEP)),
-      );
+      let newZoom: number;
+      if (e.evt.ctrlKey) {
+        // Trackpad pinch: ctrlKey is set, deltaY is continuous
+        const zoomFactor = 1 - e.evt.deltaY * 0.01;
+        newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, viewerZoom * zoomFactor));
+      } else {
+        const direction = e.evt.deltaY < 0 ? 1 : -1;
+        newZoom = Math.max(
+          MIN_ZOOM,
+          Math.min(MAX_ZOOM, viewerZoom * (direction > 0 ? ZOOM_STEP : 1 / ZOOM_STEP)),
+        );
+      }
       const mousePointTo = {
         x: (pointer.x - viewerPanX) / viewerZoom,
         y: (pointer.y - viewerPanY) / viewerZoom,

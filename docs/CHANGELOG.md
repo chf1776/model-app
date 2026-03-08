@@ -7,11 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3] — 2026-03-07 — Phase 4 Polish
+
 ### Added
 - **Drag to reposition annotations**: Click to select an annotation, then drag to move it — works for all 7 shape types including arrows (both endpoints) and freehand (all points)
 - **Undo/redo for annotations**: Per-step undo/redo stacks (50 levels deep) with ⌘Z/⌘⇧Z keyboard shortcuts and undo/redo buttons in toolbar
 - **Stroke width presets**: Thin/Medium/Thick stroke buttons in annotation toolbar for controlling line weight
-- **Trackpad pinch-to-zoom**: Smooth pinch gesture support on trackpad (via ctrlKey detection) in crop canvas
+- **Trackpad pinch-to-zoom**: Smooth pinch gesture support on trackpad across all three canvases (InstructionCanvas, CropCanvas, PageCanvas)
 - **Escape cancels mid-draw**: Press Escape to abort an in-progress annotation draw (circle, arrow, highlight, freehand)
 - **Active tool label in nav bar**: Current annotation tool name shown in the navigation bar when a tool is selected
 - **Tool-specific cursors**: Text tool shows text cursor, drawing tools show crosshair, hover feedback on existing annotations

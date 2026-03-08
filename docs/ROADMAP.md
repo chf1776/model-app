@@ -238,18 +238,18 @@ You can see the build structure, track progress visually, and get a quick summar
 - ~~Floating draggable bubble with cancel-on-hover, track colors, adhesive labels, click-to-navigate~~
 - ~~Focus-on-crop: clicking a step in setup mode centers canvas on crop region~~
 
-### Annotation tools
-- **Checkmarks**: click anywhere on instruction image to place a checkmark (no toolbar); persists on step
-- **Annotation toolbar** (`A`): circle, arrow, cross-out, highlight, freehand, text; auto-dismisses on step advance
-- Annotation hint overlay on canvas ("Click to place checkmark / Press A for annotations")
-- **Thumbnail compositing**: upgrade CSS-clipped thumbnails in building rail to Konva-rendered (includes annotation marks)
+### ~~Annotation tools~~ DONE (Phase 4B — v0.4.1)
+- ~~**Checkmarks**: click anywhere on instruction image to place a checkmark; persists on step~~
+- ~~**Annotation toolbar**: circle, arrow, cross-out, highlight, freehand, text; always visible with tool/color/stroke pickers~~
+- ~~**Thumbnail compositing**: upgrade CSS-clipped thumbnails in building rail to Konva-rendered (includes annotation marks)~~
+- ~~Drag to reposition, undo/redo stacks, stroke width presets, pinch-to-zoom~~
 
-### Page mode
-- Left rail switches to numbered page list; completion indicator per page (checkmark = all done, dot = partial)
-- Source selector at bottom of rail (switch between PDFs)
-- Instruction page shown with colored interactive regions per step (track color)
-- Click a region to select a step and load step panel; camera disabled until a step is selected
-- Arrow/page counter navigate pages; `Tab / Shift+Tab` as shortcuts
+### ~~Page mode~~ DONE (Phase 4C — v0.4.2)
+- ~~Left rail switches to numbered page list; completion indicator per page (checkmark = all done, dot = partial)~~
+- ~~Source selector at bottom of rail (switch between PDFs)~~
+- ~~Instruction page shown with colored interactive regions per step (track color)~~
+- ~~Click a region to select a step and load step panel~~
+- ~~Arrow/page counter navigate pages; `Tab / Shift+Tab` as shortcuts~~
 
 ### Step panel enhancements
 - Paint references (tappable; editable in Building mode — populated in Phase 6)

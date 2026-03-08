@@ -198,7 +198,7 @@ export function InstructionCanvas() {
     [activeProjectId],
   );
 
-  // Scroll-wheel zoom centered on cursor
+  // Scroll-wheel + trackpad pinch zoom centered on cursor
   const handleWheel = useCallback(
     (e: Konva.KonvaEventObject<WheelEvent>) => {
       e.evt.preventDefault();
@@ -209,11 +209,18 @@ export function InstructionCanvas() {
       const pointer = stage.getPointerPosition();
       if (!pointer) return;
 
-      const direction = e.evt.deltaY < 0 ? 1 : -1;
-      const newZoom = Math.max(
-        MIN_ZOOM,
-        Math.min(MAX_ZOOM, oldZoom * (direction > 0 ? ZOOM_STEP : 1 / ZOOM_STEP)),
-      );
+      let newZoom: number;
+      if (e.evt.ctrlKey) {
+        // Trackpad pinch: ctrlKey is set, deltaY is continuous
+        const zoomFactor = 1 - e.evt.deltaY * 0.01;
+        newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, oldZoom * zoomFactor));
+      } else {
+        const direction = e.evt.deltaY < 0 ? 1 : -1;
+        newZoom = Math.max(
+          MIN_ZOOM,
+          Math.min(MAX_ZOOM, oldZoom * (direction > 0 ? ZOOM_STEP : 1 / ZOOM_STEP)),
+        );
+      }
 
       const mousePointTo = {
         x: (pointer.x - viewerPanX) / oldZoom,
