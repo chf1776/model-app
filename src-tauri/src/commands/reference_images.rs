@@ -1,9 +1,7 @@
 use crate::db::AppDb;
 use crate::models::ReferenceImage;
-use std::fs;
-use std::path::PathBuf;
+use crate::services::file_stash;
 use tauri::{Manager, State};
-use uuid::Uuid;
 
 #[tauri::command]
 pub fn list_reference_images(
@@ -26,20 +24,7 @@ pub fn add_reference_image(
         .path()
         .app_data_dir()
         .map_err(|e| e.to_string())?;
-    let stash_dir = AppDb::stash_dir(&app_data);
-
-    let source = PathBuf::from(&source_path);
-    let ext = source
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("jpg");
-
-    let filename = format!("ref_{}_{}.{}", step_id, Uuid::new_v4(), ext);
-    let dest = stash_dir.join(&filename);
-
-    fs::copy(&source, &dest).map_err(|e| format!("Failed to copy image: {e}"))?;
-
-    let dest_str = dest.to_string_lossy().to_string();
+    let dest_str = file_stash::save_to_stash(&app_data, &source_path, "ref", &step_id)?;
 
     let conn = db.conn()?;
     crate::db::queries::reference_images::insert(

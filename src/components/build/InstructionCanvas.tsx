@@ -7,10 +7,8 @@ import * as api from "@/api";
 import { useCropDrawing } from "@/hooks/useCropDrawing";
 import { CropLayer, imageToEffective } from "./CropLayer";
 import type Konva from "konva";
+import { MIN_ZOOM, MAX_ZOOM, ZOOM_STEP } from "./zoom-utils";
 
-const MIN_ZOOM = 0.1;
-const MAX_ZOOM = 5.0;
-const ZOOM_STEP = 1.08;
 const SAVE_DEBOUNCE_MS = 500;
 
 function PageImage({

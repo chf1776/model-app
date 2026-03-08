@@ -378,12 +378,27 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   },
 
   removeStep: (id) => {
-    set((s) => ({
-      steps: s.steps.filter((st) => st.id !== id),
-      activeStepId: s.activeStepId === id ? null : s.activeStepId,
-      selectedStepIds: s.selectedStepIds.filter((sid) => sid !== id),
-      selectionAnchorId: s.selectionAnchorId === id ? null : s.selectionAnchorId,
-    }));
+    set((s) => {
+      // Clean up per-step cached data to prevent memory leaks
+      const { [id]: _tags, ...restTags } = s.stepTags;
+      const { [id]: _rels, ...restRelations } = s.stepRelations;
+      const { [id]: _refs, ...restReferenceImages } = s.stepReferenceImages;
+      const { [id]: _anns, ...restAnnotations } = s.stepAnnotations;
+      const { [id]: _undo, ...restUndoStacks } = s.annotationUndoStacks;
+      const { [id]: _redo, ...restRedoStacks } = s.annotationRedoStacks;
+      return {
+        steps: s.steps.filter((st) => st.id !== id),
+        activeStepId: s.activeStepId === id ? null : s.activeStepId,
+        selectedStepIds: s.selectedStepIds.filter((sid) => sid !== id),
+        selectionAnchorId: s.selectionAnchorId === id ? null : s.selectionAnchorId,
+        stepTags: restTags,
+        stepRelations: restRelations,
+        stepReferenceImages: restReferenceImages,
+        stepAnnotations: restAnnotations,
+        annotationUndoStacks: restUndoStacks,
+        annotationRedoStacks: restRedoStacks,
+      };
+    });
   },
 
   setActiveStep: (id) => {
