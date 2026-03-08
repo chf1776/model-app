@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.4] — 2026-03-07 — Codebase Audit & Cleanup
+
+### Added
+- **Arrow key page navigation in setup mode**: Left/Right arrow keys now navigate pages, matching building mode's arrow key pattern
+
+### Changed
+- **Rust file stash service**: Extracted shared `file_stash::save_to_stash()` utility, simplifying progress photo, milestone photo, and reference image commands
+- **Zoom constants deduplicated**: `MIN_ZOOM`, `MAX_ZOOM`, `ZOOM_STEP` moved to shared `zoom-utils.ts`
+- **Build log command refactored**: Rust `add_build_log_entry` now accepts a single `CreateBuildLogEntryInput` struct instead of 9 individual parameters
+- **Timer tick isolated**: Timer countdown re-renders now only affect the TimerBubble component instead of the entire build UI (removed `timerTickCount` from global store)
+- **Build route selectors reduced**: Keyboard handler rewritten with `getState()` pattern, reducing BuildRoute from 30+ store subscriptions to 7
+- **Annotation API simplified**: JSON parse/stringify moved from store into API layer
+- **PageRail sort optimized**: Steps pre-sorted in `useMemo` instead of sorting on every render
+- **Timer expiration deduplicated**: Extracted shared `handleTimerExpired` helper for crash recovery and active expiry paths
+
+### Fixed
+- **Race condition on app load**: `Promise.all` in `loadActiveProject` and `setActiveProject` was not awaited, causing data loads to run detached
+- **Stale closure in setActiveStep**: Removed unnecessary `setTimeout` wrapper for annotation loading
+- **Sequential step metadata loads**: Tags, relations, and reference images now load in parallel when switching steps
+- **Memory leak on step deletion**: Per-step annotation undo/redo stacks now cleaned up when a step is removed
+
 ## [0.4.3] — 2026-03-07 — Phase 4 Polish
 
 ### Added
