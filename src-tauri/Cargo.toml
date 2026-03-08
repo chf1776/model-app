@@ -21,4 +21,4 @@ refinery = { version = "0.8", features = ["rusqlite"] }
 uuid = { version = "1", features = ["v4"] }
 tauri-plugin-notification = "2"
 tauri-plugin-opener = "2.5.3"
-mupdf = "0.6"
+mupdf = { version = "0.6", default-features = false, features = ["js", "xps", "svg", "cbz", "img", "html", "epub", "system-fonts"] }
