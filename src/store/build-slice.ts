@@ -258,9 +258,11 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       ...DEFAULT_VIEWER_STATE,
     });
     // Load instruction sources, tracks, and steps for the new project
-    get().loadInstructionSources(id);
-    get().loadTracks(id);
-    get().loadSteps(id);
+    await Promise.all([
+      get().loadInstructionSources(id),
+      get().loadTracks(id),
+      get().loadSteps(id),
+    ]);
   },
 
   clearActiveProject: () =>
@@ -284,7 +286,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         activeTrackId: uiState.active_track_id ?? null,
       });
       // Fire all loads in parallel
-      Promise.all([
+      await Promise.all([
         get().loadInstructionSources(project.id),
         get().loadTracks(project.id),
         get().loadSteps(project.id),
@@ -427,7 +429,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
           Object.assign(update, DEFAULT_VIEWER_STATE);
           // Load annotations for building mode
           if (step.crop_x != null && !state.stepAnnotations[step.id]) {
-            setTimeout(() => get().loadAnnotations(step.id), 0);
+            get().loadAnnotations(step.id);
           }
           // Toast reminder when annotation tool persists across step change
           if (state.annotationMode && state.activeStepId && state.activeStepId !== id) {
@@ -585,13 +587,8 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
 
   loadAnnotations: async (stepId) => {
     try {
-      const result = await api.getAnnotations(stepId);
-      if (result) {
-        const parsed: Annotation[] = JSON.parse(result.data);
-        set((s) => ({ stepAnnotations: { ...s.stepAnnotations, [stepId]: parsed } }));
-      } else {
-        set((s) => ({ stepAnnotations: { ...s.stepAnnotations, [stepId]: [] } }));
-      }
+      const annotations = await api.getAnnotations(stepId);
+      set((s) => ({ stepAnnotations: { ...s.stepAnnotations, [stepId]: annotations ?? [] } }));
     } catch {
       set((s) => ({ stepAnnotations: { ...s.stepAnnotations, [stepId]: [] } }));
     }
@@ -606,7 +603,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         timers.delete(stepId);
         const annotations = get().stepAnnotations[stepId];
         if (annotations) {
-          api.saveAnnotations(stepId, JSON.stringify(annotations)).catch(() => {});
+          api.saveAnnotations(stepId, annotations).catch(() => {});
         }
       }, 500));
     };

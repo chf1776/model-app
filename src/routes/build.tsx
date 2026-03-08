@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Wrench, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useAppStore } from "@/store";
@@ -26,43 +26,18 @@ import { RelationPill } from "@/components/build/RelationPill";
 import { TimerBubble } from "@/components/build/TimerBubble";
 import { flattenTrackSteps } from "@/components/build/tree-utils";
 import { useUploadPdf } from "@/components/build/useUploadPdf";
-import { useTimerTick } from "@/hooks/useTimerTick";
 import { getEffectiveDryingMinutes } from "@/shared/types";
 import { zoomIn, zoomOut } from "@/components/build/zoom-utils";
 
 export default function BuildRoute() {
+  // Only subscribe to state needed for rendering layout decisions
   const project = useAppStore((s) => s.project);
   const buildMode = useAppStore((s) => s.buildMode);
   const instructionSources = useAppStore((s) => s.instructionSources);
   const isProcessingPdf = useAppStore((s) => s.isProcessingPdf);
-  const nextPage = useAppStore((s) => s.nextPage);
-  const prevPage = useAppStore((s) => s.prevPage);
-  const requestFitToView = useAppStore((s) => s.requestFitToView);
-  const rotatePage = useAppStore((s) => s.rotatePage);
   const activeStepId = useAppStore((s) => s.activeStepId);
-  const setActiveStep = useAppStore((s) => s.setActiveStep);
-  const canvasMode = useAppStore((s) => s.canvasMode);
-  const setCanvasMode = useAppStore((s) => s.setCanvasMode);
-  const activeTrackId = useAppStore((s) => s.activeTrackId);
-  const selectedStepIds = useAppStore((s) => s.selectedStepIds);
-  const clearSelectedSteps = useAppStore((s) => s.clearSelectedSteps);
-  const currentSourcePages = useAppStore((s) => s.currentSourcePages);
-  const currentPageIndex = useAppStore((s) => s.currentPageIndex);
-  const steps = useAppStore((s) => s.steps);
-  const addStep = useAppStore((s) => s.addStep);
-  const activeProjectId = useAppStore((s) => s.activeProjectId);
-  const loadTracks = useAppStore((s) => s.loadTracks);
-  const pushUndo = useAppStore((s) => s.pushUndo);
-  const undoLastCrop = useAppStore((s) => s.undoLastCrop);
-  const completeActiveStep = useAppStore((s) => s.completeActiveStep);
-  const activeTimers = useAppStore((s) => s.activeTimers);
-  const addTimer = useAppStore((s) => s.addTimer);
-  const loadTimers = useAppStore((s) => s.loadTimers);
-  const setAnnotationMode = useAppStore((s) => s.setAnnotationMode);
-  const annotationMode = useAppStore((s) => s.annotationMode);
   const navMode = useAppStore((s) => s.navMode);
-
-  useTimerTick();
+  const loadTimers = useAppStore((s) => s.loadTimers);
 
   // Load timers on mount
   useEffect(() => {
@@ -81,10 +56,9 @@ export default function BuildRoute() {
     if (isProcessingPdf) setSourceManagerOpen(false);
   }, [isProcessingPdf]);
 
-  // Keyboard navigation
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      // Don't capture keys when typing in inputs
+  // Keyboard navigation — reads store state on-demand via getState()
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement
@@ -92,21 +66,23 @@ export default function BuildRoute() {
         return;
       }
 
+      const s = useAppStore.getState();
+
       // Ctrl/Cmd+Shift+Z: redo annotation (building mode only)
       if (e.key === "z" && (e.ctrlKey || e.metaKey) && e.shiftKey) {
         e.preventDefault();
-        if (buildMode === "building" && activeStepId) {
-          useAppStore.getState().redoAnnotation(activeStepId);
+        if (s.buildMode === "building" && s.activeStepId) {
+          s.redoAnnotation(s.activeStepId);
         }
         return;
       }
       // Ctrl/Cmd+Z: undo annotation (building) or undo last crop (setup)
       if (e.key === "z" && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
         e.preventDefault();
-        if (buildMode === "building" && activeStepId) {
-          useAppStore.getState().undoAnnotation(activeStepId);
+        if (s.buildMode === "building" && s.activeStepId) {
+          s.undoAnnotation(s.activeStepId);
         } else {
-          undoLastCrop();
+          s.undoLastCrop();
         }
         return;
       }
@@ -118,32 +94,31 @@ export default function BuildRoute() {
       }
 
       // Building mode navigation + completion
-      if (buildMode === "building") {
-        if ((e.key === " " || e.key === "Enter") && activeStepId) {
+      if (s.buildMode === "building") {
+        if ((e.key === " " || e.key === "Enter") && s.activeStepId) {
           e.preventDefault();
-          completeActiveStep();
+          s.completeActiveStep();
           return;
         }
         if (e.key === "a" || e.key === "A") {
           e.preventDefault();
-          // Toggle annotation mode off (deselect current tool)
-          if (annotationMode) setAnnotationMode(null);
+          if (s.annotationMode) s.setAnnotationMode(null);
           return;
         }
         if (e.key >= "1" && e.key <= "7") {
           e.preventDefault();
           const toolMap = ["checkmark", "circle", "arrow", "cross", "highlight", "freehand", "text"] as const;
           const idx = parseInt(e.key) - 1;
-          setAnnotationMode(toolMap[idx]);
+          s.setAnnotationMode(toolMap[idx]);
           return;
         }
-        if ((e.key === "t" || e.key === "T") && activeStepId) {
+        if ((e.key === "t" || e.key === "T") && s.activeStepId) {
           e.preventDefault();
-          const s = steps.find((st) => st.id === activeStepId);
-          if (s && !activeTimers.some((t) => t.step_id === s.id)) {
-            const mins = getEffectiveDryingMinutes(s);
+          const step = s.steps.find((st) => st.id === s.activeStepId);
+          if (step && !s.activeTimers.some((t) => t.step_id === step.id)) {
+            const mins = getEffectiveDryingMinutes(step);
             if (mins) {
-              addTimer(s.id, s.title, mins);
+              s.addTimer(step.id, step.title, mins);
             } else {
               toast.info("Use the Start Timer button to enter a duration");
             }
@@ -152,12 +127,12 @@ export default function BuildRoute() {
         }
         if (e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "ArrowRight" || e.key === "ArrowDown") {
           e.preventDefault();
-          const ordered = flattenTrackSteps(steps, activeTrackId);
-          const idx = ordered.findIndex((s) => s.id === activeStepId);
+          const ordered = flattenTrackSteps(s.steps, s.activeTrackId);
+          const idx = ordered.findIndex((st) => st.id === s.activeStepId);
           if ((e.key === "ArrowLeft" || e.key === "ArrowUp") && idx > 0) {
-            setActiveStep(ordered[idx - 1].id);
+            s.setActiveStep(ordered[idx - 1].id);
           } else if ((e.key === "ArrowRight" || e.key === "ArrowDown") && idx >= 0 && idx < ordered.length - 1) {
-            setActiveStep(ordered[idx + 1].id);
+            s.setActiveStep(ordered[idx + 1].id);
           }
           return;
         }
@@ -167,9 +142,9 @@ export default function BuildRoute() {
         case "Tab":
           e.preventDefault();
           if (e.shiftKey) {
-            prevPage();
+            s.prevPage();
           } else {
-            nextPage();
+            s.nextPage();
           }
           break;
         case "+":
@@ -183,37 +158,37 @@ export default function BuildRoute() {
           break;
         case "0":
           e.preventDefault();
-          requestFitToView();
+          s.requestFitToView();
           break;
         case "r":
         case "R":
           e.preventDefault();
-          rotatePage();
+          s.rotatePage();
           break;
         case "c":
         case "C":
           e.preventDefault();
-          if (buildMode === "setup") setCanvasMode("crop");
+          if (s.buildMode === "setup") s.setCanvasMode("crop");
           break;
         case "v":
           e.preventDefault();
-          setCanvasMode("view");
+          s.setCanvasMode("view");
           break;
         case "f":
         case "F": {
           e.preventDefault();
-          if (buildMode === "building") break;
-          const page = currentSourcePages[currentPageIndex];
-          if (!activeTrackId) {
+          if (s.buildMode === "building") break;
+          const page = s.currentSourcePages[s.currentPageIndex];
+          if (!s.activeTrackId) {
             toast.info("Select a track first");
             break;
           }
           if (!page) break;
-          const trackSteps = steps.filter((s) => s.track_id === activeTrackId);
+          const trackSteps = s.steps.filter((st) => st.track_id === s.activeTrackId);
           const title = `Step ${trackSteps.length + 1}`;
           api
             .createStep({
-              track_id: activeTrackId,
+              track_id: s.activeTrackId,
               title,
               source_page_id: page.id,
               is_full_page: true,
@@ -223,41 +198,31 @@ export default function BuildRoute() {
               crop_h: page.height,
             })
             .then((step) => {
-              addStep(step);
-              pushUndo(step.id);
-              setActiveStep(step.id);
-              if (activeProjectId) loadTracks(activeProjectId);
+              const fresh = useAppStore.getState();
+              fresh.addStep(step);
+              fresh.pushUndo(step.id);
+              fresh.setActiveStep(step.id);
+              if (fresh.activeProjectId) fresh.loadTracks(fresh.activeProjectId);
             })
             .catch((err) => toast.error(`Failed to create step: ${err}`));
           break;
         }
         case "Escape":
           e.preventDefault();
-          if (selectedStepIds.length > 0) {
-            clearSelectedSteps();
-          } else if (activeStepId) {
-            setActiveStep(null);
-          } else if (canvasMode === "crop") {
-            setCanvasMode("view");
+          if (s.selectedStepIds.length > 0) {
+            s.clearSelectedSteps();
+          } else if (s.activeStepId) {
+            s.setActiveStep(null);
+          } else if (s.canvasMode === "crop") {
+            s.setCanvasMode("view");
           }
           break;
       }
-    },
-    [
-      buildMode,
-      nextPage, prevPage, requestFitToView, rotatePage,
-      setCanvasMode, canvasMode, activeStepId, setActiveStep, activeTrackId,
-      selectedStepIds, clearSelectedSteps,
-      currentSourcePages, currentPageIndex, steps, addStep, pushUndo, activeProjectId, loadTracks,
-      undoLastCrop, completeActiveStep, activeTimers, addTimer,
-      annotationMode, setAnnotationMode,
-    ],
-  );
+    };
 
-  useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeyDown]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- reads state on-demand via getState()
 
   if (!project) {
     return (

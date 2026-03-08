@@ -1,5 +1,5 @@
 use crate::db::AppDb;
-use crate::models::BuildLogEntry;
+use crate::models::{BuildLogEntry, CreateBuildLogEntryInput};
 use tauri::State;
 
 #[tauri::command]
@@ -14,25 +14,18 @@ pub fn list_build_log_entries(
 #[tauri::command]
 pub fn add_build_log_entry(
     db: State<'_, AppDb>,
-    project_id: String,
-    entry_type: String,
-    body: Option<String>,
-    step_id: Option<String>,
-    track_id: Option<String>,
-    step_number: Option<i32>,
-    is_track_completion: Option<bool>,
-    track_step_count: Option<i32>,
+    input: CreateBuildLogEntryInput,
 ) -> Result<BuildLogEntry, String> {
     let conn = db.conn()?;
     crate::db::queries::build_log_entries::insert(
         &conn,
-        &project_id,
-        &entry_type,
-        body.as_deref(),
-        step_id.as_deref(),
-        track_id.as_deref(),
-        step_number,
-        is_track_completion.unwrap_or(false),
-        track_step_count,
+        &input.project_id,
+        &input.entry_type,
+        input.body.as_deref(),
+        input.step_id.as_deref(),
+        input.track_id.as_deref(),
+        input.step_number,
+        input.is_track_completion.unwrap_or(false),
+        input.track_step_count,
     )
 }

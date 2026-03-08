@@ -27,6 +27,7 @@ import type {
   BuildLogEntry,
   BuildLogEntryType,
   DryingTimer,
+  Annotation,
   StepAnnotations,
   InstructionSource,
   InstructionPage,
@@ -398,14 +399,16 @@ export async function addBuildLogEntry(opts: {
   trackStepCount?: number | null;
 }): Promise<BuildLogEntry> {
   return invoke<BuildLogEntry>("add_build_log_entry", {
-    projectId: opts.projectId,
-    entryType: opts.entryType,
-    body: opts.body ?? null,
-    stepId: opts.stepId ?? null,
-    trackId: opts.trackId ?? null,
-    stepNumber: opts.stepNumber ?? null,
-    isTrackCompletion: opts.isTrackCompletion ?? null,
-    trackStepCount: opts.trackStepCount ?? null,
+    input: {
+      project_id: opts.projectId,
+      entry_type: opts.entryType,
+      body: opts.body ?? null,
+      step_id: opts.stepId ?? null,
+      track_id: opts.trackId ?? null,
+      step_number: opts.stepNumber ?? null,
+      is_track_completion: opts.isTrackCompletion ?? null,
+      track_step_count: opts.trackStepCount ?? null,
+    },
   });
 }
 
@@ -429,12 +432,14 @@ export async function deleteDryingTimer(id: string): Promise<void> {
 
 // ── Annotations ──────────────────────────────────────────────────────────────
 
-export async function getAnnotations(stepId: string): Promise<StepAnnotations | null> {
-  return invoke<StepAnnotations | null>("get_annotations", { stepId });
+export async function getAnnotations(stepId: string): Promise<Annotation[] | null> {
+  const result = await invoke<StepAnnotations | null>("get_annotations", { stepId });
+  if (!result) return null;
+  return JSON.parse(result.data) as Annotation[];
 }
 
-export async function saveAnnotations(stepId: string, data: string): Promise<StepAnnotations> {
-  return invoke<StepAnnotations>("save_annotations", { stepId, data });
+export async function saveAnnotations(stepId: string, annotations: Annotation[]): Promise<void> {
+  await invoke<StepAnnotations>("save_annotations", { stepId, data: JSON.stringify(annotations) });
 }
 
 // ── Instructions ─────────────────────────────────────────────────────────────

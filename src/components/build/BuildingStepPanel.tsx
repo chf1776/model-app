@@ -48,9 +48,11 @@ export function BuildingStepPanel() {
   // Load tags, relations, reference images when step changes
   useEffect(() => {
     if (!step) return;
-    if (!stepTags[step.id]) loadStepTags(step.id);
-    if (!stepRelations[step.id]) loadStepRelations(step.id);
-    if (!stepReferenceImages[step.id]) loadStepReferenceImages(step.id);
+    const loads: Promise<void>[] = [];
+    if (!stepTags[step.id]) loads.push(loadStepTags(step.id));
+    if (!stepRelations[step.id]) loads.push(loadStepRelations(step.id));
+    if (!stepReferenceImages[step.id]) loads.push(loadStepReferenceImages(step.id));
+    if (loads.length > 0) Promise.all(loads);
   }, [step?.id]);
 
   // Children of the active step only

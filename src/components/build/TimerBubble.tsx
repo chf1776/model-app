@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useAppStore } from "@/store";
 import type { DryingTimer } from "@/shared/types";
 import { ADHESIVE_TYPE_LABELS, parsePositiveMinutes } from "@/shared/types";
+import { useTimerTick } from "@/hooks/useTimerTick";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -147,8 +148,8 @@ export function TimerBubble() {
   const [newLabel, setNewLabel] = useState("");
   const [newDuration, setNewDuration] = useState("");
 
-  // Subscribe to store tick counter for 1-second re-renders (driven by useTimerTick)
-  useAppStore((s) => s.timerTickCount);
+  // Drive 1-second re-renders for countdown display (only re-renders this component)
+  useTimerTick();
 
   // Cancel confirmation
   const [cancelTimerId, setCancelTimerId] = useState<string | null>(null);

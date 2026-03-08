@@ -17,7 +17,7 @@ export function PageRail() {
 
   const currentSource = instructionSources.find((s) => s.id === currentSourceId);
 
-  // Build page -> steps mapping
+  // Build page -> steps mapping (pre-sorted by display_order)
   const pageStepsMap = useMemo(() => {
     const map = new Map<string, Step[]>();
     for (const step of steps) {
@@ -26,6 +26,9 @@ export function PageRail() {
         arr.push(step);
         map.set(step.source_page_id, arr);
       }
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => a.display_order - b.display_order);
     }
     return map;
   }, [steps]);
@@ -190,9 +193,7 @@ const PageRow = forwardRef<HTMLButtonElement, PageRowProps>(
         {/* Step list under active page */}
         {showSteps && (
           <div className="ml-3 border-l border-border pl-1">
-            {steps
-              .sort((a, b) => a.display_order - b.display_order)
-              .map((step) => (
+            {steps.map((step) => (
                 <button
                   key={step.id}
                   onClick={() => onStepClick(step.id)}

@@ -10,7 +10,6 @@ import {
 
 export interface TimerSlice {
   activeTimers: DryingTimer[];
-  timerTickCount: number;
   loadTimers: () => Promise<void>;
   addTimer: (
     stepId: string | null,
@@ -36,12 +35,29 @@ async function fireNotification(title: string, body: string) {
   }
 }
 
+function handleTimerExpired(
+  t: DryingTimer,
+  title: string,
+  get: () => AppStore,
+) {
+  fireNotification(title, `${t.label} is done drying`);
+  if (get().activeProjectId) {
+    api
+      .addBuildLogEntry({
+        projectId: get().activeProjectId!,
+        entryType: "note",
+        body: `Drying timer completed: ${t.label} (${t.duration_min} min)`,
+      })
+      .catch(() => {});
+  }
+  api.deleteDryingTimer(t.id).catch((e) => console.warn("Failed to delete expired timer:", e));
+}
+
 export const createTimerSlice: StateCreator<AppStore, [], [], TimerSlice> = (
   set,
   get,
 ) => ({
   activeTimers: [],
-  timerTickCount: 0,
   loadTimers: async () => {
     const timers = await api.listDryingTimers();
     const now = Math.floor(Date.now() / 1000);
@@ -57,22 +73,7 @@ export const createTimerSlice: StateCreator<AppStore, [], [], TimerSlice> = (
     set({ activeTimers: active });
 
     for (const t of expired) {
-      fireNotification(
-        "Timer Expired",
-        `${t.label} finished while the app was closed`,
-      );
-      // Log to build log
-      const state = get();
-      if (state.activeProjectId) {
-        api
-          .addBuildLogEntry({
-            projectId: state.activeProjectId,
-            entryType: "note",
-            body: `Drying timer completed: ${t.label} (${t.duration_min} min)`,
-          })
-          .catch(() => {});
-      }
-      api.deleteDryingTimer(t.id).catch((e) => console.warn("Failed to delete expired timer:", e));
+      handleTimerExpired(t, "Timer Expired", get);
     }
   },
 
@@ -108,25 +109,13 @@ export const createTimerSlice: StateCreator<AppStore, [], [], TimerSlice> = (
     }
 
     if (expired.length === 0) {
-      // Still increment tick so UI re-renders countdowns
-      set((s) => ({ timerTickCount: s.timerTickCount + 1 }));
       return;
     }
 
-    set((s) => ({ activeTimers: remaining, timerTickCount: s.timerTickCount + 1 }));
+    set({ activeTimers: remaining });
 
     for (const t of expired) {
-      fireNotification("Timer Complete", `${t.label} is done drying`);
-      if (state.activeProjectId) {
-        api
-          .addBuildLogEntry({
-            projectId: state.activeProjectId,
-            entryType: "note",
-            body: `Drying timer completed: ${t.label} (${t.duration_min} min)`,
-          })
-          .catch(() => {});
-      }
-      api.deleteDryingTimer(t.id).catch((e) => console.warn("Failed to delete expired timer:", e));
+      handleTimerExpired(t, "Timer Complete", get);
     }
   },
 

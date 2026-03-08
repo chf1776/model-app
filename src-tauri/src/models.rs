@@ -432,6 +432,18 @@ pub struct BuildLogEntry {
     pub created_at: i64,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct CreateBuildLogEntryInput {
+    pub project_id: String,
+    pub entry_type: String,
+    pub body: Option<String>,
+    pub step_id: Option<String>,
+    pub track_id: Option<String>,
+    pub step_number: Option<i32>,
+    pub is_track_completion: Option<bool>,
+    pub track_step_count: Option<i32>,
+}
+
 // ── Drying Timer ────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
