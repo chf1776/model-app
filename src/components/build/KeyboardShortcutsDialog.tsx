@@ -59,8 +59,8 @@ export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcut
           </Section>
 
           <Section title="Navigation">
-            <ShortcutRow keys={<Kbd>Tab</Kbd>} label="Next page" />
-            <ShortcutRow keys={<><Kbd>Shift</Kbd> <Kbd>Tab</Kbd></>} label="Previous page" />
+            <ShortcutRow keys={<><Kbd>←</Kbd> / <Kbd>→</Kbd></>} label="Previous / next page" />
+            <ShortcutRow keys={<><Kbd>Tab</Kbd> / <Kbd>Shift</Kbd> <Kbd>Tab</Kbd></>} label="Previous / next page" />
             <ShortcutRow keys={<Kbd>Esc</Kbd>} label="Deselect / exit mode" />
           </Section>
 

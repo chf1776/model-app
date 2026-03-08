@@ -138,6 +138,17 @@ export default function BuildRoute() {
         }
       }
 
+      // Setup mode: arrow keys navigate pages
+      if (s.buildMode === "setup" && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+        e.preventDefault();
+        if (e.key === "ArrowLeft") {
+          s.prevPage();
+        } else {
+          s.nextPage();
+        }
+        return;
+      }
+
       switch (e.key) {
         case "Tab":
           e.preventDefault();
