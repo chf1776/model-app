@@ -209,35 +209,64 @@ Kit accordion trays, standalone lists, paint shelf, and Build zone popover show 
 
 ## 8. Materials Card Layout (Overview Zone)
 
-The Materials card is one of four cards in the Overview zone's 2×2 mosaic grid. It supports compact (grid) and expanded (full-width) states.
+The Materials card is one of four cards in the Overview zone's 2×2 mosaic grid. It supports compact (mosaic) and expanded (focus mode) states.
 
 ### 8.1 Header
 
 `padding: 6px 10px`, bottom border. Contents:
 - Title: "Materials" (11px/600 primary)
+- Expand icon (10px tertiary, right-aligned) — enters focus mode
+
+In expanded/focus mode, header adds:
+- Back arrow (← ArrowLeft, clickable, returns to mosaic)
 - Filter pills: All | Owned (count) | Needed (count, warning color when active)
-- Separator
-- Expand/collapse icon (maximize/minimize, 12px tertiary)
+- "Copy Shopping List" button (right-aligned, ghost style, copy icon)
 
-### 8.2 Compact State (2×2 Grid)
+### 8.2 Compact State (2×2 Mosaic)
 
-Condensed rows (9px font, tight padding). Shows filtered items immediately. No type badges or brand info — just name, kit link, price, and owned/wishlist badge. Footer shows count summary ("N accessories · N paints") with "N needed" link in warning color (clicking switches to Needed filter).
+Condensed summary view (9px font). Two sections:
+- Accessory count with type badges (using `ACCESSORY_TYPE_COLORS`)
+- Paint count with color swatches
 
-### 8.3 Expanded State (Full-Width)
+Footer shows count summary ("N accessories · N paints"). No filters or interactions in compact mode.
 
-Larger rows (10px font). Adds type badge, brand, kit reference bar at top. Same filter pills. "Copy list" link in footer when Needed filter is active (copies formatted text for shopping list — covers basic Q6 export).
+### 8.3 Expanded State (Focus Mode)
+
+Scrollable BOM list filling the full grid area below Assembly Map. Two sections:
+
+**Accessories list:**
+- Rows with: name (10px primary), type badge (colored pill using `ACCESSORY_TYPE_COLORS`), owned/wishlist badge
+- Owned items: success check circle. Wishlist items: warning pill.
+
+**Paints list:**
+- Rows with: color swatch (10×10px circle), name (10px primary), brand (9px tertiary), owned/wishlist badge
 
 ### 8.4 Filter Behavior
 
-- **All:** Full BOM grouped by urgency (Building → Shelf → Unlinked per section 7.2), then by type within groups. Footer: count summary + needed link.
-- **Owned:** Items grouped by type only (Accessories, Paints). No urgency grouping.
-- **Needed:** Items grouped by urgency (per section 7.2). Footer: running total in warning-tinted background + "Copy list" link when expanded.
+- **All:** Full BOM showing all accessories and paints grouped by type. Footer: count summary.
+- **Owned:** Only items with owned status. Grouped by type (Accessories, Paints).
+- **Needed:** Only items with wishlist status. Grouped by type. Footer: item count.
 
-Filter state persists across expand/collapse transitions.
+Urgency grouping (Building/Shelf/Unlinked) deferred. Filter state persists across focus/mosaic transitions.
 
-### 8.5 Acquire Within Card
+### 8.5 Copy Shopping List
 
-Wishlist pills and owned checks are clickable (same inline toggle from section 5.2). The Materials card is a fully functional management view, not read-only. Toggling an item in Needed filter causes it to disappear from the list (animates out, count updates).
+"Copy Shopping List" button appears in expanded header. Copies needed items (wishlist status) as plain text to clipboard via `navigator.clipboard.writeText()`. Toast confirmation on success.
+
+Format:
+```
+Needed for {Project Name}:
+
+Accessories:
+  {Name} ({Type})
+  ...
+
+Paints:
+  {Name} ({Brand})
+  ...
+```
+
+Items without a type or brand omit those fields. Empty sections are omitted. CSV/Markdown export deferred to Phase 7.
 
 ---
 
@@ -245,48 +274,31 @@ Wishlist pills and owned checks are clickable (same inline toggle from section 5
 
 ### 9.1 Trigger
 
-In the Materials card expanded view, when the "Needed" filter is active, the footer contains an export control next to the running total.
+"Copy Shopping List" button in the Materials card expanded header. Always available (not gated behind Needed filter), but only copies items with wishlist status.
 
 ### 9.2 UI
 
-Split button: primary label "Copy list" (copies formatted text to clipboard on click). Chevron dropdown reveals two additional options: "Export CSV" and "Export Markdown." Both trigger a system save dialog.
+Single ghost button: "Copy Shopping List" (9px accent/500, copy icon). On click, copies formatted plain text to clipboard.
 
-- Button style: ghost (9px accent/500, copy icon). Chevron: 8px, accent, appended right.
-- Dropdown: standard popover styling (card bg, border, float shadow), two rows, 9px text.
-- On copy success: button text briefly flashes "Copied!" (1.5s, success color) then reverts.
+On copy success: toast notification "Shopping list copied to clipboard" (auto-dismisses after 3s).
 
-### 9.3 Formats
+### 9.3 Format
 
 **Copy text (clipboard):**
 ```
 Needed for {Project Name}:
 
-Building:
-  {Name} ({Type}) — {Price} — {retailer domain}
-  ...
-
-On Shelf:
-  ...
-
-Unlinked:
+Accessories:
+  {Name} ({Type})
   ...
 
 Paints:
-  {Name} ({Brand Code}) — {Price}
+  {Name} ({Brand})
   ...
-
-Estimated total: {Total}
 ```
 
-Groups match the urgency sort order. Items without a price omit the price field. Items without a buy_url omit the domain. Empty groups are omitted.
+Items grouped by type (Accessories, Paints). Items without a type or brand omit those fields. Empty sections are omitted. Only wishlisted items are included.
 
-**Export CSV:**
-Columns: `name, type, brand, linked_kit, kit_status, price, currency, buy_url`
-One row per needed item. Sorted by urgency group then type. Opens system save dialog with default filename `{project-name}-needed-{date}.csv`.
+### 9.4 Future Enhancements (Phase 7)
 
-**Export Markdown:**
-Same visual structure as the copy text format but with Markdown formatting (headers, bullet lists, bold labels). Default filename `{project-name}-needed-{date}.md`. Designed for pasting into Obsidian or similar tools.
-
-### 9.4 Scope
-
-Export always reflects the current Needed filter contents. If urgency groups are present, they're preserved in the export. Only wishlisted items are included — owned items are never exported.
+CSV and Markdown export formats deferred to Phase 7 (Export + Polish). When implemented, the button becomes a split button with a chevron dropdown for format selection.

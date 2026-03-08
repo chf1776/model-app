@@ -204,27 +204,27 @@ The app is useful for a real build. Work through steps, mark them complete, capt
 
 ---
 
-## Phase 3.5: Basic Overview
+## ~~Phase 3.5: Basic Overview~~ COMPLETE (v0.4.4)
 
 **Goal**: See build progress at a glance. A read-only overview that makes the core build loop more compelling.
 
-### Assembly Map (read-only)
-- Horizontal track lines with step nodes: `●` complete, `○` pending, `◆` join event
-- Nodes colored by track; join point arrows visible
-- Hover: step title tooltip; click: jump to step in Build zone
-- Overall completion count + percentage
-- No dependency arrows toggle, no zoom controls yet (those come in Phase 5)
+### ~~Assembly Map (read-only)~~
+- ~~Horizontal track lines with step nodes: `●` complete, `○` pending, `◆` join event~~
+- ~~Nodes colored by track; join point arrows visible~~
+- ~~Hover: step title tooltip; click: jump to step in Build zone~~
+- ~~Overall completion count + percentage~~
+- ~~No dependency arrows toggle, no zoom controls yet (those come in Phase 5)~~
 
-### Simplified card grid
-- 2×2 grid below Assembly Map: **Gallery**, **Build Log**, **Materials**, **Project Info**
-- All cards in compact view only (no expand/collapse yet)
-- Gallery: recent photo thumbnails
-- Build Log: recent entries with timeline dots (auto-logged step completions only, no composer)
-- Materials: accessory and paint counts, needed count
-- Project Info: kit name, scale, status badge
+### ~~Simplified card grid~~
+- ~~2×2 grid below Assembly Map: **Gallery**, **Build Log**, **Materials**, **Project Info**~~
+- ~~All cards in compact view only (no expand/collapse yet)~~
+- ~~Gallery: recent photo thumbnails~~
+- ~~Build Log: recent entries with timeline dots (auto-logged step completions only, no composer)~~
+- ~~Materials: accessory and paint counts, needed count~~
+- ~~Project Info: kit name, scale, status badge~~
 
 ### Deliverable
-You can see the build structure, track progress visually, and get a quick summary of photos and materials. The Assembly Map gives real feedback during builds.
+~~You can see the build structure, track progress visually, and get a quick summary of photos and materials. The Assembly Map gives real feedback during builds.~~
 
 ---
 
@@ -264,51 +264,61 @@ The complete building experience. Annotations, timers, page mode — all workflo
 
 ## Phase 5: Overview Zone — Full
 
-**Goal**: The complete Overview experience — expand/collapse cards, full gallery, build log composer, materials management, and project lifecycle actions. Builds on the basic read-only Overview from Phase 3.5.
+**Goal**: The complete Overview experience — focus mode for cards, full photo gallery with masonry layout, build log composer, materials BOM, and project lifecycle actions. Builds on the basic read-only Overview from Phase 3.5.
 
-### Assembly Map (enhanced)
-- Adds to Phase 3.5: replaced steps shown with strikethrough; dependency arrows togglable
-- Horizontal scroll; fit-to-screen and zoom controls; overall completion count + percentage
-- Sub-step indicators on nodes
+### Phase 5A: Focus Mode + `update_project` Backend — v0.5.0
+- **Focus mode**: clicking a card expands it to fill the full grid area; other cards hide entirely; back button (←) + Escape returns to 2×2 mosaic
+- Assembly Map stays visible above the focused card
+- `focusedCard` state in overview-slice (null for mosaic, card name for focused)
+- **`update_project` Rust backend**: UpdateProjectInput model, update query (fetch-merge-UPDATE), command, API wrapper, store action
+- No new migration needed — all project columns already exist
 
-### Four-card layout (full)
-- Adds to Phase 3.5 compact views: expand/collapse interaction (any card expands to fill area, others collapse to thin bars, Escape returns to mosaic)
-- Assembly Map always visible
+### Phase 5B: Project Info Card (Expanded) — v0.5.1
+- **Expanded view**: inline-editable fields (name, notes/goals, category select, Scalemates URL, product code)
+- **Status actions**: Mark Complete (sets completion_date, syncs kit to "completed"), Pause Build, Resume Build
+- **Delete Project**: danger zone with typed-name confirmation dialog, navigates to Collection after delete
+- Archive deferred
 
-### Gallery card
-- **Masonry layout** (expanded): three-column variable-height grid with caption/date overlays
-- Photos are a superset: all Build Log photos (tagged "Log") + gallery-only uploads for showcase/reference
-- Lightbox: click any photo for full-size with arrow nav, caption, source/milestone badges
-- Filters: All | Gallery-only | From Log | Milestones
-- Compact: single row of 50px thumbnails with "+N" overflow
+### Phase 5C: Build Log Composer + Filters — v0.5.2
+- **Composer**: text input for notes + camera/photo button; after picking a photo, inline caption field slides in before confirming
+- **Backend extension**: extend `add_build_log_entry` to accept optional `source_path` + `caption` (columns already exist, currently hardcoded NULL); stash with `log_` prefix
+- **Filter pills**: All | Steps | Notes | Photos | Milestones (client-side)
+- **Expanded view**: composer at top, filters below, scrollable day-grouped full entry list
+- **Compact view**: unchanged (day-grouped recent entries)
 
-### Build Log card
-- **Day-grouped journal** (expanded): entries grouped by day with collapsible date headers
-- Five entry types with distinct timeline dots:
-  - Step completed (auto): track-colored circle with step number in white
-  - Note (manual): accent dot, editable text card. Timer completions auto-logged as notes.
-  - Photo (manual): accent dot, thumbnail with caption
-  - Milestone (auto/manual): track-colored square with flag icon, step count if track completion
-  - Build complete (auto): accent star, logged when project marked complete
-- Composer at top: Note / Photo / Milestone tabs with type-specific input
-- Filters: All | Steps | Notes | Photos | Milestones
-- Compact: day headers and timeline at smaller scale, no composer
+### Phase 5D: Gallery Card — v0.5.3
+- **Three photo sources merged**: progress photos (auto-captioned from step title), milestone photos (auto-captioned from track name), gallery-only uploads (user-entered captions via `gallery_photos` table)
+- **Masonry layout** (expanded): 3-column shortest-column-first algorithm, natural aspect ratios
+  - Milestone photos span 2 columns as visual anchors
+  - Tile treatment: bottom gradient overlay with caption + date, 3px track-color bar, hover scale-up (1.02)
+  - Star icon in top-right corner, milestone flag badge in top-left
+- **Compact view — featured mosaic**: asymmetric grid (1 hero photo at 60% width + 2 smaller stacked + overflow count)
+- **Starring system**: star toggle on any photo (all 3 types), starred sort to top, `is_starred` column on all photo tables (migration V6)
+- **Cover photo**: one designated cover via `hero_photo_path` on projects (column already exists), used as compact hero, "Set as cover" in lightbox
+- **Gallery uploads**: "+ Add Photo" button (file picker, stash with `gal_` prefix, insert into `gallery_photos`), inline caption input after upload, bulk drag-and-drop onto gallery area
+- **Filters**: All | Starred | Gallery | Progress | Milestones + track dropdown
+- **Sort**: newest first (default), oldest-first toggle
+- **Lightbox**: source badge + track color dot, star toggle, set as cover, edit caption (gallery only), delete (gallery only)
+- **Header stats**: "47 photos · 3 weeks of building"
+- **Empty state**: camera icon + "Capture your build journey" + tips + Add Photo button
+- **Unified backend**: SQL UNION ALL query across 3 photo tables returning `UnifiedGalleryItem` type
+- Compare mode deferred to polish pass
 
-### Materials card
-- BOM with filters: All | Owned | Needed
-- Urgency grouping (All and Needed): Building items (accent border), On Shelf items (tertiary), Unlinked items
-- In-card acquire interactions: wishlist pills and owned checks clickable
-- Shopping list export (Needed filter only): split button with "Copy list" primary + CSV/Markdown dropdown
-- Paint palette section: per-build colours, formulas, step references (fully populated in Phase 6)
+### Phase 5E: Materials Card (Expanded) — v0.5.4
+- **Expanded view**: scrollable BOM list — accessories with type badges + owned/wishlist status, paints with color swatches + brand
+- **Filter pills**: All | Owned | Needed (client-side)
+- **"Copy Shopping List" button**: formats needed items as plain text, copies to clipboard via `navigator.clipboard.writeText()`, toast confirmation
+- CSV/Markdown export deferred to Phase 7
 
-### Project Info card
-- Editable project metadata: name, kit, scale, category, Scalemates URL, product code, notes/build goals
-- Project actions: Mark Complete (with hero photo selection), Pause Build, Resume Build
-- Danger zone: Archive Project (reversible), Delete Project (confirmation with name typed)
-- Compact: kit name, scale badge, category badge, status badge
+### Phase 5F: Assembly Map Enhancements — v0.5.5
+- **Replaced step styling**: strikethrough + dimmed (0.3 opacity) for steps replaced by another
+- **Sub-step indicators**: small count label below nodes with children
+- **Dependency arrows toggle**: button in header (off by default), draws SVG arrows between related steps; requires new `list_project_step_relations` Rust query
+- **Zoom controls**: +/− buttons controlling CSS `transform: scale()` (0.5x–2x)
+- **Fit-to-screen button**: calculates scale to fit all nodes in container
 
 ### Deliverable
-Full project visibility. See the build structure, browse all photos, read the complete build history, manage materials, and control the project lifecycle.
+Full project visibility. Curated photo gallery with masonry layout, build log with composer, materials BOM with shopping list, editable project info with lifecycle actions, and enhanced assembly map.
 
 ---
 
@@ -399,8 +409,8 @@ A fully polished, complete app. Finish a build, export a shareable document, eve
 | 1B | Collection Completeness | Paint shelf, accessories, wishlist system |
 | 2A–2H | Setup Mode | PDF import, crop tool, track/step organization, tags, references, relations, quantity |
 | ~~3~~ | ~~Building — Core~~ | ~~Working build loop (critical path)~~ DONE |
-| 3.5 | Basic Overview | Read-only assembly map, compact summary cards |
-| 4 | Building — Enrichment | Annotations, references, timers, page mode |
-| 5 | Overview — Full | Expand/collapse cards, gallery, build log composer, materials management |
+| ~~3.5~~ | ~~Basic Overview~~ | ~~Read-only assembly map, compact summary cards~~ DONE |
+| ~~4~~ | ~~Building — Enrichment~~ | ~~Annotations, references, timers, page mode~~ DONE |
+| 5 | Overview — Full | Focus mode, masonry gallery, build log composer, materials BOM, project lifecycle |
 | 6 | Paint Tracking | Global shelf integration, formulas, step references |
 | 7 | Export + Polish | Shareable documents, relations, settings page, onboarding |

@@ -622,12 +622,19 @@ interface BuildSlice {
 
 // store/overview-slice.ts
 interface OverviewSlice {
-  expandedCard: 'gallery' | 'buildLog' | 'materials' | 'projectInfo' | null
-  galleryFilter: 'all' | 'gallery' | 'log' | 'milestones'
-  buildLogFilter: 'all' | 'step' | 'note' | 'photo' | 'milestone'
-  materialsFilter: 'all' | 'owned' | 'needed'
-  lightboxPhotoId: string | null
-  setExpandedCard: (card: string | null) => void
+  focusedCard: 'gallery' | 'buildLog' | 'materials' | 'projectInfo' | null
+  overviewGalleryItems: UnifiedGalleryItem[]
+  overviewGalleryLoading: boolean
+  overviewBuildLog: BuildLogEntry[]
+  overviewAccessories: Accessory[]
+  overviewPaints: Paint[]
+  overviewLoading: boolean
+  setFocusedCard: (card: string | null) => void
+  loadOverviewData: (projectId: string) => Promise<void>
+  loadGalleryItems: (projectId: string) => Promise<void>
+  addGalleryPhoto: (projectId: string, sourcePath: string, caption?: string, trackId?: string) => Promise<void>
+  togglePhotoStar: (photoType: GalleryPhotoType, id: string, isStarred: boolean) => Promise<void>
+  setProjectCoverPhoto: (projectId: string, photoPath: string | null) => Promise<void>
   // ...
 }
 
@@ -651,7 +658,7 @@ interface UiSlice {
 - Kit acquire (wishlist → shelf): re-fetch overview materials if the kit is linked to the active project
 - Accessory/paint acquire: re-fetch overview materials
 - Step completion: re-fetch overview build log + assembly map progress
-- Track completion (milestone): re-fetch overview build log + gallery
+- Track completion (milestone): re-fetch overview build log + gallery items
 - Project status change: re-fetch collection kits list
 
 ```typescript
@@ -1086,7 +1093,7 @@ Complex builds (e.g. 1/350 warship with full PE sets) can generate 150–250+ st
 
 ### Components requiring attention at scale
 
-- **Assembly Map**: At 200+ steps with 22px node spacing, the map is ~4400px wide. Horizontal scrolling and fit-to-screen zoom are already specified. Ensure node rendering uses canvas (Konva) rather than DOM elements to avoid layout thrashing.
+- **Assembly Map**: At 200+ steps with 22px node spacing, the map is ~4400px wide. Horizontal scrolling and fit-to-screen zoom are specified. Current implementation uses SVG (performant for expected scale). Phase 5 adds zoom controls (CSS transform scale 0.5x–2x) and fit-to-screen button.
 - **Step rail (Build zone)**: 200+ steps in a single track would overflow the rail. The multi-track expansion pattern (multiple tracks expandable, Cmd+click for exclusive mode) mitigates this. Within expanded tracks, the step list should use virtualized scrolling if it exceeds ~50 items.
 - **Materials card**: A project with 30+ accessories and 50+ paints needs efficient list rendering. Consider virtualizing the BOM list in expanded view.
 - **Build Log**: Months of daily entries. Day-group collapsing (default: today + 2 days expanded) handles this. Older entries load on scroll.

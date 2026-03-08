@@ -1080,22 +1080,19 @@ Per section 25.4: zone switcher + project dropdown + completion percentage + pro
 - Card summary: 9px tertiary, margin-top 6px.
 - Card-specific summary content (photo thumbnails for Gallery, recent entries for Build Log, etc.)
 
-**Expanded state (one card fills grid):**
-- Expanded card: flex: 1, fills remaining height below Assembly Map.
-- Header: icon + title (12px/600) + "Esc to close" hint (9px tertiary).
+**Focus mode (one card fills grid):**
+- Focused card: flex: 1, fills remaining height below Assembly Map.
+- Header: back arrow (← ArrowLeft icon, 12px, clickable) + icon + title (12px/600) + "Esc to close" hint (9px tertiary).
 - Content area: scrollable, full card width.
-- Other three cards: collapse to thin horizontal bars at the bottom.
-  - Bars: flex row, gap 4px, each bar flex: 1.
-  - Bar: background `#FFFFFF`, radius 4px, border `1px solid #E5E0DA`, padding 4px 8px.
-  - Bar contents: icon (tertiary) + title (9px/500 secondary).
-  - Click a bar to switch which card is expanded.
-- Escape key returns to 2×2 mosaic.
+- Other three cards: hidden entirely (not rendered). Clean transition.
+- Escape key or back arrow returns to 2×2 mosaic.
+- State: `focusedCard` in overview-slice (null = mosaic, card name = focused).
 
 **Card types:**
-1. **Gallery:** Summary shows recent photo grid (4 thumbnails + "+N" overflow). Expanded shows full photo timeline with milestone section markers.
-2. **Build Log:** Summary shows 2 most recent entries with dot + text + timestamp. Expanded shows full chronological log with composer.
-3. **Materials:** Summary shows accessory count + paint count. Expanded shows accessories (V5 color-edge rows) + kit info + paint palette.
-4. **Project Info:** Summary shows kit name, scale badge, category badge, status badge. Expanded shows editable project metadata, lifecycle actions (Mark Complete, Pause, Archive, Delete).
+1. **Gallery:** Summary shows featured mosaic (1 hero + 2 small + overflow). Expanded shows 3-column masonry photo grid with filters, starring, and uploads.
+2. **Build Log:** Summary shows day-grouped recent entries with timeline dots. Expanded shows full log with composer (note input + photo button) and filter pills.
+3. **Materials:** Summary shows accessory count + paint count with type badges. Expanded shows full BOM list with All/Owned/Needed filters and "Copy Shopping List" button.
+4. **Project Info:** Summary shows kit name, scale badge, category badge, status badge. Expanded shows editable project metadata, lifecycle actions (Mark Complete, Pause/Resume, Delete).
 
 ### 36. Drying Timer Bubble (Pass 4)
 
@@ -1351,13 +1348,15 @@ Entries grouped by day with collapsible headers:
 
 #### 39.5 Composer (Expanded Only)
 
-Three tabs: Note | Photo | Milestone. Each tab shows its icon (9px) + label. Active tab: accent color + accent light bg.
+Single-line input bar with inline photo support:
 
-- **Note tab:** Textarea (2 rows default, resizable), placeholder "Add a build note..."
-- **Photo tab:** Drop zone (dashed border, camera icon, "Drop an image or click to browse") + caption input below (optional).
-- **Milestone tab:** Title input + checkbox "Track completion" with track selector dropdown. When checked, completing the milestone auto-links to the selected track.
-
-Submit button: "Add {type}" (primary, 9px/600, plus icon). Right-aligned below the input area.
+- **Text input:** Single row, placeholder "Add a note...", Enter to submit. Creates a `note` entry via `addBuildLogEntry`.
+- **Photo button:** Camera icon (12px accent) to the right of the input. Opens Tauri file dialog with `IMAGE_FILE_FILTER`. After file selection:
+  - Inline thumbnail preview (40×30px) appears below the input.
+  - Caption text input slides in beside the thumbnail (optional), placeholder "Add a caption...".
+  - Enter or Send button submits. File is stashed with `log_` prefix, then `addBuildLogEntry` is called with `source_path` and `caption`.
+- **Send button:** Arrow-up icon (10px), accent color, right-aligned. Visible when input has content or photo is attached.
+- After submission: composer clears, overview data reloads, toast confirmation.
 
 #### 39.6 Filters (Expanded Only)
 
@@ -1369,40 +1368,87 @@ Pill toggles: All | Steps | Notes | Photos | Milestones. Same pill styling as ot
 
 #### 40.1 Photo Sources
 
-Gallery is a superset of all project photos:
-- **Build Log photos:** Auto-appear in Gallery, tagged with a "Log" badge (top-left, dark overlay pill with book icon + "Log" label, 7px white text).
-- **Gallery-only photos:** Added directly via "Add Photo" button. For showcase shots, reference images, and progress photos not tied to specific log entries.
+Gallery merges three photo types into a unified view via a SQL UNION ALL query returning `UnifiedGalleryItem`:
+- **Progress photos:** Tied to steps, auto-captioned as "Step N: {title}". Track color derived from step's track.
+- **Milestone photos:** Tied to track completions, auto-captioned as "{Track name} complete". Visually emphasized.
+- **Gallery-only photos:** User-uploaded standalone photos via `gallery_photos` table, for showcase shots, reference photos, beauty shots, and WIP documentation not tied to specific steps. User-entered captions.
 
 #### 40.2 Masonry Layout (Expanded)
 
-Three-column variable-height grid. Photos distributed by shortest-column-first algorithm for visual balance.
+Three-column variable-height grid. Photos distributed by shortest-column-first algorithm with absolute positioning for full layout control. Milestone photos span 2 columns as visual anchors.
 
 Each tile:
-- Photo fills tile width, variable height based on aspect ratio.
+- Photo fills tile width, variable height based on natural aspect ratio. Aspect ratio measured via `onLoad` callback; skeleton placeholder shown during load.
 - Border radius 4px, 1px border.
-- Caption + date overlaid at bottom (gradient overlay: transparent → rgba(0,0,0,0.6)). Caption: 8px white. Date: 7px white at 60% opacity.
-- Source badge: top-left, "Log" pill for Build Log photos. Absent for gallery-only photos.
-- Milestone badge: top-right, flag icon in warning color on dark pill. Present on photos tagged as milestones.
+- Bottom gradient overlay (transparent → rgba(0,0,0,0.6)): caption (8px white) + date (7px white at 60% opacity).
+- Track-color bar: 3px at bottom edge in the photo's track color. Omitted for gallery photos with no track.
+- Star icon: top-right corner (12px), filled gold when starred, hollow white otherwise. Clickable to toggle.
+- Milestone flag badge: top-left, flag icon in warning color on dark pill. Present on milestone photos.
+- Hover: `transform: scale(1.02)` with shadow lift (`0 4px 12px rgba(0,0,0,0.15)`), caption truncation removed to show full text.
 
-#### 40.3 Compact View
+#### 40.3 Compact View — Featured Mosaic
 
-Single row of uniform thumbnails (50px tall), overflow hidden. "+N" tile at end if more than 5 photos (50×50px, tagBg, border, count in 10px/600 tertiary). Clicking any thumbnail or overflow expands the card.
+Asymmetric CSS grid layout: 1 hero photo (60% width, full card height) + 2 smaller photos stacked on the right + overflow count.
+
+- Hero photo: the designated cover photo (from `project.hero_photo_path`), or fallback chain: most recent starred → most recent milestone → most recent photo.
+- Grid: `grid-template-columns: 3fr 2fr`, `grid-template-rows: 1fr 1fr`. Hero spans both rows.
+- Overflow tile: if more photos than visible, "+N" counter (tagBg, border, 10px/600 tertiary text).
+- Clicking any photo opens the lightbox. Clicking overflow or empty area expands the card to focus mode.
 
 #### 40.4 Lightbox
 
-Click any photo tile to open full-size viewer:
+Uses shared `ImageLightbox` component with gallery-specific enhancements:
 - Dark overlay (rgba(0,0,0,0.85)), centered photo, max-width 500px.
-- Navigation: left/right chevrons (click), keyboard arrows.
+- Navigation: left/right chevrons (click), keyboard arrows, thumbnail strip.
 - Close: X button (top-right) or Escape key.
-- Below photo: caption (13px white), date (10px white at 60%), source badge ("From Build Log"), milestone badge if applicable.
+- **Source badge:** "Step 12" or "Hull Milestone" or date. Track color dot (8px circle) beside the badge.
+- **Below photo:** caption (13px white), date (10px white at 60%).
+- **Action row:** star toggle (Star icon, filled when starred) + "Set as cover" (Image icon) + "Edit caption" (Pencil icon, gallery photos only) + "Delete" (Trash icon, gallery photos only, with AlertDialog confirmation).
+- Existing `actions` prop slot still available (e.g., "Go to step" for progress photos).
 
-#### 40.5 Filters (Expanded Only)
+#### 40.5 Starring System
 
-Pill toggles: All (count) | Gallery (count) | From Log (count) | Milestones (count). Same pill styling as other filters.
+Any photo (all 3 types) can be starred. `is_starred` boolean column on `progress_photos`, `milestone_photos`, and `gallery_photos` tables (added in migration V6).
 
-#### 40.6 Add Photo
+- Star toggle: click star icon on masonry tile or in lightbox.
+- Starred photos sort to top within their active filter/sort group.
+- Dedicated "Starred" filter pill to view only starred photos.
+- `toggle_photo_star` command dispatches to the correct table based on `photo_type`.
 
-Button in expanded header only (primary, 8px/600, plus icon). Opens file picker. Drag-drop also supported on the gallery area. New photos default to gallery-only. Caption added inline after upload (optional).
+#### 40.6 Cover Photo
+
+One photo designated as the build's cover. Stored as `hero_photo_path` on the `projects` table (column already exists in V1 schema).
+
+- "Set as cover" action in lightbox writes the photo's `file_path` to the project.
+- Cover photo is the hero in the compact featured mosaic.
+- Default fallback chain: most recent starred → most recent milestone → most recent photo.
+- Cover badge: small crown icon overlay on the tile in masonry view.
+
+#### 40.7 Filters (Expanded Only)
+
+Pill toggles: All (count) | Starred (count) | Gallery (count) | Progress (count) | Milestones (count). Same pill styling as other filter bars (9px, accent when active).
+
+Track dropdown (shadcn Select): "All tracks" + individual tracks that have at least one photo. Only tracks with photos are shown.
+
+Filters are composable: selecting "Starred" + "Hull" track shows only starred photos from the Hull track.
+
+Sort toggle: newest first (default) / oldest first. Clock icon with directional arrow.
+
+#### 40.8 Add Photo (Expanded Only)
+
+"+ Add Photo" button in expanded header (secondary button, 9px/500, plus icon). Opens Tauri file dialog with `IMAGE_FILE_FILTER`. File is stashed with `gal_` prefix, inserted into `gallery_photos` table.
+
+After upload: inline caption input appears below the button (text input, placeholder "Add a caption...", optional, Enter to confirm or skip). Gallery data reloads.
+
+Bulk drag-and-drop: entire expanded gallery area is a drop zone. Drag multiple image files from Finder; each is stashed and inserted sequentially. Brief progress indicator during processing.
+
+#### 40.9 Header Stats
+
+Expanded header shows: "Gallery · {N} photos · {date range}" where date range is computed from earliest to most recent photo (e.g., "3 weeks of building", "2 months of building").
+
+#### 40.10 Empty State
+
+Camera icon (Lucide Camera, 32px, tertiary at 50% opacity) + "Capture your build journey" heading (12px/600) + "Add photos from the gallery or take progress shots while building" (9px tertiary) + "+ Add Photo" button (primary).
 
 ---
 
@@ -1441,10 +1487,9 @@ Below the editable fields, separated by a border:
 #### 41.5 Danger Zone
 
 At the bottom, separated by a warning-tinted border:
-- **Archive Project:** removes from active view but retains data. Reversible.
-- **Delete Project:** permanent deletion. Confirmation dialog with project name typed to confirm.
+- **Delete Project:** permanent deletion. Confirmation dialog with project name typed to confirm. On deletion, navigates to Collection zone.
 
-Both are text links (9px, error color for delete, tertiary for archive), not prominent buttons.
+Text link style (9px, error color), not a prominent button. Archive deferred to a future version.
 
 ---
 
@@ -1457,12 +1502,12 @@ Global search is deferred to a future version. Current rationale: each zone alre
 ### Overview 2×2 Grid Summary
 
 The four Overview cards are:
-1. **Gallery** (section 40) — masonry photo grid, superset of log + gallery-only photos
-2. **Build Log** (section 39) — day-grouped journal with auto-logged steps, notes, photos, milestones
-3. **Materials** (section in WISHLIST_FEATURE.md §8) — BOM with owned/needed filters, urgency grouping, shopping list export
-4. **Project Info** (section 41) — editable project metadata, lifecycle actions, danger zone
+1. **Gallery** (section 40) — 3-column masonry photo grid, merging progress + milestone + gallery-only photos, with starring, cover photo, and filters
+2. **Build Log** (section 39) — day-grouped journal with auto-logged steps, notes, photos, milestones; composer with note input + photo button
+3. **Materials** (section in WISHLIST_FEATURE.md §8) — BOM with All/Owned/Needed filters, "Copy Shopping List" clipboard button
+4. **Project Info** (section 41) — editable project metadata, lifecycle actions (Complete/Pause/Resume/Delete)
 
-All four follow the compact/expanded pattern: compact shows a summary in the 2×2 grid, clicking the expand icon takes the card to full-width with the other three collapsed to a row below.
+All four follow the compact/focused pattern: compact shows a summary in the 2×2 grid, clicking the expand icon enters focus mode where the card fills the full grid area and other cards are hidden. Back arrow or Escape returns to mosaic.
 
 ---
 
