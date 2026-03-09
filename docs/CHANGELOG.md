@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-03-08 — Overview Zone (Phase 5A–5C)
+
+### Added
+- **Overview focus mode**: Click expand button on any overview card to fill the grid; other cards hide. Back button (×) and Escape key return to 2×2 mosaic
+- **ProjectInfoCard expanded view**: Hero header with box art, badge row (scale, category, status, product code, Scalemates link), overall progress bar, 5-tile stats grid (steps, tracks, photos, accessories, paints), per-track progress with completion counts and strikethrough, timeline section (start date, build duration, last activity, log count), read-only notes display
+- **ProjectInfoCard editable metadata**: Collapsible "Edit Details" section with auto-save-on-blur for project name, category toggle buttons, Scalemates URL with open button, product code, and notes textarea
+- **ProjectInfoCard status actions**: Mark Complete (with confirmation dialog + kit status sync + build log entry), Pause Build, Resume Build, and Delete Project (typed-name confirmation, navigates to Collection)
+- **BuildLogCard composer**: Text input + camera button + send button for adding note and photo entries directly from the overview
+- **BuildLogCard photo uploads**: Pick image via file dialog, preview thumbnail with caption input, stash with `blog_` prefix via new `add_build_log_photo` Tauri command
+- **BuildLogCard filter pills**: All / Steps / Notes / Photos / Milestones client-side filtering in expanded view
+- **BuildLogCard expanded view**: Full scrollable entry list (no longer capped at 50), inline photo thumbnails with lightbox, day-grouped layout
+- **`update_project` backend**: New Tauri command + Rust query for updating project fields with `Option<Option<T>>` nullable pattern for `hero_photo_path` and `completion_date`
+- **`addBuildLogPhoto` API**: Frontend wrapper for the new photo upload command
+- **`addOverviewBuildLogEntry` store action**: Optimistic prepend to avoid full reload after composer submissions
+- **`formatDuration` utility**: Human-readable elapsed time formatting (days, months, years)
+- **`PROJECT_STATUS_COLORS` constant**: Design token map for project status badge colors
+- **`hero_photo_path` on Project**: Exposed existing DB column through queries, models, and TypeScript types
+- **`UpdateProjectInput` type**: Shared TypeScript interface for project updates
+
+### Changed
+- **OverviewCard**: Added expand/collapse button props and flex-1 sizing in expanded mode
+- **GalleryCard, MaterialsCard**: Accept expanded/onExpand/onCollapse props for focus mode integration
+- **ImageLightbox**: Escape key now properly closes lightbox before bubbling to overview Escape handler (stopImmediatePropagation on capture phase)
+- **`projects.rs` queries**: Extracted `map_row` + `SELECT_COLS` to eliminate duplicated row mapping between `list_all` and `get_by_id`
+- **`build_log_entries::insert`**: Consolidated `insert_with_photo` into a single `insert` function with optional `photo_path`/`caption` parameters; extracted shared `fetch_by_id` helper
+- **`list_by_project`**: Removed hardcoded `LIMIT 50`; accepts optional limit parameter so expanded view shows all entries
+- **Kit status sync**: Raw SQL for kit status updates now includes `updated_at` timestamp
+- **ProjectInfoCard status handlers**: Deduplicated into shared `changeStatus` helper; `loadKits` fires in parallel instead of blocking the toast
+- **BuildLogCard photo memos**: `photoEntries` and `lightboxImages` skip computation in compact mode
+
 ## [0.4.4] — 2026-03-07 — Codebase Audit & Cleanup
 
 ### Added

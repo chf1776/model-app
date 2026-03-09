@@ -74,6 +74,7 @@ export interface Project {
   category: KitCategory | null;
   scalemates_url: string | null;
   product_code: string | null;
+  hero_photo_path: string | null;
   start_date: number | null;
   completion_date: number | null;
   notes: string | null;
@@ -95,6 +96,18 @@ export interface CreateProjectInput {
   category?: KitCategory | null;
   scalemates_url?: string | null;
   product_code?: string | null;
+}
+
+export interface UpdateProjectInput {
+  id: string;
+  name?: string | null;
+  status?: ProjectStatus | null;
+  category?: KitCategory | null;
+  scalemates_url?: string | null;
+  product_code?: string | null;
+  hero_photo_path?: string | null;
+  notes?: string | null;
+  completion_date?: number | null;
 }
 
 // ── Accessories ──────────────────────────────────────────────────────────────
@@ -469,6 +482,7 @@ export interface ProgressPhoto {
   file_path: string;
   captured_at: number;
   created_at: number;
+  is_starred: boolean;
 }
 
 // ── Milestone Photos ────────────────────────────────────────────────────────
@@ -479,7 +493,21 @@ export interface MilestonePhoto {
   file_path: string;
   captured_at: number;
   created_at: number;
+  is_starred: boolean;
 }
+
+// ── Gallery Photos ──────────────────────────────────────────────────────────
+
+export interface GalleryPhoto {
+  id: string;
+  project_id: string;
+  file_path: string;
+  caption: string | null;
+  is_starred: boolean;
+  created_at: number;
+}
+
+export type PhotoSourceType = "progress" | "milestone" | "gallery";
 
 // ── Build Log Entries ───────────────────────────────────────────────────────
 
@@ -644,4 +672,11 @@ export const STATUS_LABELS: Record<KitStatus, string> = {
   wishlist: "Wishlist",
   completed: "Completed",
   paused: "Paused",
+};
+
+export const PROJECT_STATUS_COLORS: Record<ProjectStatus, string> = {
+  active: "var(--color-status-building)",
+  paused: "var(--color-status-shelf)",
+  completed: "var(--color-status-completed)",
+  archived: "var(--color-status-shelf)",
 };

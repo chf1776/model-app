@@ -27,6 +27,7 @@ pub fn run() {
             commands::projects::list_projects,
             commands::projects::get_project,
             commands::projects::create_project,
+            commands::projects::update_project,
             commands::projects::rename_project,
             commands::projects::delete_project,
             commands::projects::set_active_project,
@@ -93,11 +94,17 @@ pub fn run() {
             commands::milestone_photos::add_milestone_photo,
             commands::build_log::list_build_log_entries,
             commands::build_log::add_build_log_entry,
+            commands::build_log::add_build_log_photo,
             commands::drying_timers::list_drying_timers,
             commands::drying_timers::create_drying_timer,
             commands::drying_timers::delete_drying_timer,
             commands::annotations::get_annotations,
             commands::annotations::save_annotations,
+            commands::gallery_photos::list_gallery_photos,
+            commands::gallery_photos::add_gallery_photo,
+            commands::gallery_photos::update_gallery_photo_caption,
+            commands::gallery_photos::delete_gallery_photo,
+            commands::gallery_photos::toggle_photo_star,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

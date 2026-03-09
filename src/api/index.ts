@@ -13,6 +13,7 @@ import type {
   PaintProjectMapping,
   Project,
   CreateProjectInput,
+  UpdateProjectInput,
   Track,
   CreateTrackInput,
   UpdateTrackInput,
@@ -24,6 +25,8 @@ import type {
   ReferenceImage,
   ProgressPhoto,
   MilestonePhoto,
+  GalleryPhoto,
+  PhotoSourceType,
   BuildLogEntry,
   BuildLogEntryType,
   DryingTimer,
@@ -154,6 +157,10 @@ export async function createProject(
   input: CreateProjectInput,
 ): Promise<Project> {
   return invoke<Project>("create_project", { input });
+}
+
+export async function updateProject(input: UpdateProjectInput): Promise<Project> {
+  return invoke<Project>("update_project", { input });
 }
 
 export async function renameProject(id: string, name: string): Promise<void> {
@@ -382,6 +389,42 @@ export async function addMilestonePhoto(
   return invoke<MilestonePhoto>("add_milestone_photo", { trackId, sourcePath });
 }
 
+// ── Gallery Photos ──────────────────────────────────────────────────────
+
+export async function listGalleryPhotos(projectId: string): Promise<GalleryPhoto[]> {
+  return invoke<GalleryPhoto[]>("list_gallery_photos", { projectId });
+}
+
+export async function addGalleryPhoto(
+  projectId: string,
+  sourcePath: string,
+  caption?: string | null,
+): Promise<GalleryPhoto> {
+  return invoke<GalleryPhoto>("add_gallery_photo", {
+    projectId,
+    sourcePath,
+    caption: caption ?? null,
+  });
+}
+
+export async function updateGalleryPhotoCaption(
+  id: string,
+  caption: string | null,
+): Promise<GalleryPhoto> {
+  return invoke<GalleryPhoto>("update_gallery_photo_caption", { id, caption });
+}
+
+export async function deleteGalleryPhoto(id: string): Promise<void> {
+  return invoke<void>("delete_gallery_photo", { id });
+}
+
+export async function togglePhotoStar(
+  photoType: PhotoSourceType,
+  id: string,
+): Promise<boolean> {
+  return invoke<boolean>("toggle_photo_star", { photoType, id });
+}
+
 // ── Build Log ───────────────────────────────────────────────────────────────
 
 export async function listBuildLogEntries(projectId: string): Promise<BuildLogEntry[]> {
@@ -409,6 +452,18 @@ export async function addBuildLogEntry(opts: {
       is_track_completion: opts.isTrackCompletion ?? null,
       track_step_count: opts.trackStepCount ?? null,
     },
+  });
+}
+
+export async function addBuildLogPhoto(
+  projectId: string,
+  sourcePath: string,
+  caption?: string | null,
+): Promise<BuildLogEntry> {
+  return invoke<BuildLogEntry>("add_build_log_photo", {
+    projectId,
+    sourcePath,
+    caption: caption ?? null,
   });
 }
 

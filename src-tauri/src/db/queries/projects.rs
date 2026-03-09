@@ -1,41 +1,47 @@
-use crate::models::{CreateProjectInput, Project};
+use crate::models::{CreateProjectInput, Project, UpdateProjectInput};
 use crate::util::now;
 use rusqlite::{params, Connection};
 use uuid::Uuid;
 
+const SELECT_COLS: &str =
+    "p.id, p.name, p.kit_id, p.status, p.category, p.scalemates_url,
+     p.product_code, p.hero_photo_path, p.start_date, p.completion_date, p.notes,
+     p.created_at, p.updated_at,
+     k.name, k.scale, k.box_art_path";
+
+fn map_row(row: &rusqlite::Row) -> rusqlite::Result<Project> {
+    Ok(Project {
+        id: row.get(0)?,
+        name: row.get(1)?,
+        kit_id: row.get(2)?,
+        status: row.get(3)?,
+        category: row.get(4)?,
+        scalemates_url: row.get(5)?,
+        product_code: row.get(6)?,
+        hero_photo_path: row.get(7)?,
+        start_date: row.get(8)?,
+        completion_date: row.get(9)?,
+        notes: row.get(10)?,
+        created_at: row.get(11)?,
+        updated_at: row.get(12)?,
+        kit_name: row.get(13)?,
+        kit_scale: row.get(14)?,
+        kit_box_art_path: row.get(15)?,
+    })
+}
+
 pub fn list_all(conn: &Connection) -> Result<Vec<Project>, String> {
     let mut stmt = conn
-        .prepare(
-            "SELECT p.id, p.name, p.kit_id, p.status, p.category, p.scalemates_url,
-                    p.product_code, p.start_date, p.completion_date, p.notes,
-                    p.created_at, p.updated_at,
-                    k.name, k.scale, k.box_art_path
+        .prepare(&format!(
+            "SELECT {SELECT_COLS}
              FROM projects p
              LEFT JOIN kits k ON p.kit_id = k.id
-             ORDER BY p.updated_at DESC",
-        )
+             ORDER BY p.updated_at DESC"
+        ))
         .map_err(|e| e.to_string())?;
 
     let projects = stmt
-        .query_map([], |row| {
-            Ok(Project {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                kit_id: row.get(2)?,
-                status: row.get(3)?,
-                category: row.get(4)?,
-                scalemates_url: row.get(5)?,
-                product_code: row.get(6)?,
-                start_date: row.get(7)?,
-                completion_date: row.get(8)?,
-                notes: row.get(9)?,
-                created_at: row.get(10)?,
-                updated_at: row.get(11)?,
-                kit_name: row.get(12)?,
-                kit_scale: row.get(13)?,
-                kit_box_art_path: row.get(14)?,
-            })
-        })
+        .query_map([], |row| map_row(row))
         .map_err(|e| e.to_string())?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;
@@ -45,35 +51,57 @@ pub fn list_all(conn: &Connection) -> Result<Vec<Project>, String> {
 
 pub fn get_by_id(conn: &Connection, id: &str) -> Result<Project, String> {
     conn.query_row(
-        "SELECT p.id, p.name, p.kit_id, p.status, p.category, p.scalemates_url,
-                p.product_code, p.start_date, p.completion_date, p.notes,
-                p.created_at, p.updated_at,
-                k.name, k.scale, k.box_art_path
-         FROM projects p
-         LEFT JOIN kits k ON p.kit_id = k.id
-         WHERE p.id = ?1",
+        &format!(
+            "SELECT {SELECT_COLS}
+             FROM projects p
+             LEFT JOIN kits k ON p.kit_id = k.id
+             WHERE p.id = ?1"
+        ),
         params![id],
-        |row| {
-            Ok(Project {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                kit_id: row.get(2)?,
-                status: row.get(3)?,
-                category: row.get(4)?,
-                scalemates_url: row.get(5)?,
-                product_code: row.get(6)?,
-                start_date: row.get(7)?,
-                completion_date: row.get(8)?,
-                notes: row.get(9)?,
-                created_at: row.get(10)?,
-                updated_at: row.get(11)?,
-                kit_name: row.get(12)?,
-                kit_scale: row.get(13)?,
-                kit_box_art_path: row.get(14)?,
-            })
-        },
+        |row| map_row(row),
     )
     .map_err(|e| e.to_string())
+}
+
+pub fn update(conn: &Connection, input: UpdateProjectInput) -> Result<Project, String> {
+    let existing = get_by_id(conn, &input.id)?;
+
+    let name = input.name.unwrap_or(existing.name);
+    let status = input.status.unwrap_or(existing.status);
+    let category = input.category.or(existing.category);
+    let scalemates_url = input.scalemates_url.or(existing.scalemates_url);
+    let product_code = input.product_code.or(existing.product_code);
+    let notes = input.notes.or(existing.notes);
+
+    let hero_photo_path = match input.hero_photo_path {
+        Some(v) => v,               // Some(Some("path")) or Some(None) — explicit set/clear
+        None => existing.hero_photo_path, // absent — keep existing
+    };
+
+    let completion_date = match input.completion_date {
+        Some(v) => v,
+        None => existing.completion_date,
+    };
+
+    conn.execute(
+        "UPDATE projects SET name=?1, status=?2, category=?3, scalemates_url=?4,
+                product_code=?5, hero_photo_path=?6, completion_date=?7, notes=?8
+         WHERE id=?9",
+        params![
+            name,
+            status,
+            category,
+            scalemates_url,
+            product_code,
+            hero_photo_path,
+            completion_date,
+            notes,
+            input.id,
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+
+    get_by_id(conn, &input.id)
 }
 
 pub fn insert(conn: &Connection, input: &CreateProjectInput, kit_id: &str) -> Result<Project, String> {

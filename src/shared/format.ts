@@ -1,3 +1,19 @@
+/** Format a duration in seconds as a human-readable string. */
+export function formatDuration(seconds: number): string {
+  const days = Math.floor(seconds / 86400);
+  if (days === 0) return "today";
+  if (days === 1) return "1 day";
+  if (days < 30) return `${days} days`;
+  const months = Math.floor(days / 30);
+  const remDays = days % 30;
+  if (months < 12) {
+    return remDays > 0 ? `${months}mo ${remDays}d` : `${months} month${months > 1 ? "s" : ""}`;
+  }
+  const years = Math.floor(months / 12);
+  const remMonths = months % 12;
+  return remMonths > 0 ? `${years}y ${remMonths}mo` : `${years} year${years > 1 ? "s" : ""}`;
+}
+
 /** Format a Unix timestamp (seconds) as a relative time string. */
 export function relativeTime(ts: number): string {
   const now = Date.now() / 1000;

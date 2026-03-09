@@ -23,10 +23,18 @@ fn map_row(row: &rusqlite::Row) -> rusqlite::Result<BuildLogEntry> {
 const SELECT_COLS: &str =
     "id, project_id, entry_type, body, photo_path, caption, step_id, track_id, step_number, is_track_completion, track_step_count, created_at";
 
-pub fn list_by_project(conn: &Connection, project_id: &str) -> Result<Vec<BuildLogEntry>, String> {
+pub fn list_by_project(
+    conn: &Connection,
+    project_id: &str,
+    limit: Option<i32>,
+) -> Result<Vec<BuildLogEntry>, String> {
+    let limit_clause = match limit {
+        Some(n) => format!(" LIMIT {n}"),
+        None => String::new(),
+    };
     let mut stmt = conn
         .prepare(&format!(
-            "SELECT {SELECT_COLS} FROM build_log_entries WHERE project_id = ?1 ORDER BY created_at DESC LIMIT 50"
+            "SELECT {SELECT_COLS} FROM build_log_entries WHERE project_id = ?1 ORDER BY created_at DESC{limit_clause}"
         ))
         .map_err(|e| e.to_string())?;
 
@@ -39,6 +47,15 @@ pub fn list_by_project(conn: &Connection, project_id: &str) -> Result<Vec<BuildL
     Ok(rows)
 }
 
+fn fetch_by_id(conn: &Connection, id: &str) -> Result<BuildLogEntry, String> {
+    conn.query_row(
+        &format!("SELECT {SELECT_COLS} FROM build_log_entries WHERE id = ?1"),
+        params![id],
+        |row| map_row(row),
+    )
+    .map_err(|e| e.to_string())
+}
+
 pub fn insert(
     conn: &Connection,
     project_id: &str,
@@ -49,6 +66,8 @@ pub fn insert(
     step_number: Option<i32>,
     is_track_completion: bool,
     track_step_count: Option<i32>,
+    photo_path: Option<&str>,
+    caption: Option<&str>,
 ) -> Result<BuildLogEntry, String> {
     let id = Uuid::new_v4().to_string();
     let ts = now();
@@ -56,13 +75,15 @@ pub fn insert(
     conn.execute(
         &format!(
             "INSERT INTO build_log_entries ({SELECT_COLS})
-             VALUES (?1, ?2, ?3, ?4, NULL, NULL, ?5, ?6, ?7, ?8, ?9, ?10)"
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)"
         ),
         params![
             id,
             project_id,
             entry_type,
             body,
+            photo_path,
+            caption,
             step_id,
             track_id,
             step_number,
@@ -73,10 +94,5 @@ pub fn insert(
     )
     .map_err(|e| e.to_string())?;
 
-    conn.query_row(
-        &format!("SELECT {SELECT_COLS} FROM build_log_entries WHERE id = ?1"),
-        params![id],
-        |row| map_row(row),
-    )
-    .map_err(|e| e.to_string())
+    fetch_by_id(conn, &id)
 }

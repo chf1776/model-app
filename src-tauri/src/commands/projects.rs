@@ -1,5 +1,5 @@
 use crate::db::AppDb;
-use crate::models::{CreateKitInput, CreateProjectInput, Project};
+use crate::models::{CreateKitInput, CreateProjectInput, Project, UpdateProjectInput};
 use rusqlite::params;
 use std::path::PathBuf;
 use tauri::{Manager, State};
@@ -130,6 +130,54 @@ pub fn create_project(app: tauri::AppHandle, db: State<'_, AppDb>, input: Create
         .ok();
 
     Ok(project)
+}
+
+#[tauri::command]
+pub fn update_project(db: State<'_, AppDb>, input: UpdateProjectInput) -> Result<Project, String> {
+    let conn = db.conn()?;
+
+    // Capture old status before update for kit sync
+    let old_project = crate::db::queries::projects::get_by_id(&conn, &input.id)?;
+    let new_status = input.status.clone();
+    let has_completion_date = input.completion_date.is_some();
+
+    let updated = crate::db::queries::projects::update(&conn, input)?;
+
+    // Kit status sync when project status changes
+    if let Some(ref status) = new_status {
+        if *status != old_project.status {
+            if let Some(ref kit_id) = updated.kit_id {
+                let kit_status = match (old_project.status.as_str(), status.as_str()) {
+                    (_, "completed") => Some("completed"),
+                    (_, "paused") => Some("paused"),
+                    ("paused", "active") | ("completed", "active") => Some("building"),
+                    _ => None,
+                };
+                if let Some(ks) = kit_status {
+                    let ts = crate::util::now();
+                    conn.execute(
+                        "UPDATE kits SET status = ?1, updated_at = ?2 WHERE id = ?3",
+                        rusqlite::params![ks, ts, kit_id],
+                    )
+                    .map_err(|e| e.to_string())?;
+                }
+            }
+
+            // Auto-set completion_date when marking complete (if not explicitly provided)
+            if status == "completed" && !has_completion_date {
+                let ts = crate::util::now();
+                conn.execute(
+                    "UPDATE projects SET completion_date = ?1 WHERE id = ?2",
+                    rusqlite::params![ts, updated.id],
+                )
+                .map_err(|e| e.to_string())?;
+                // Re-fetch to include the auto-set completion_date
+                return crate::db::queries::projects::get_by_id(&conn, &updated.id);
+            }
+        }
+    }
+
+    Ok(updated)
 }
 
 #[tauri::command]

@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import type { Project, InstructionSource, InstructionPage, Track, Step, Tag, StepRelation, ReferenceImage, Annotation, AnnotationTool } from "@/shared/types";
+import type { Project, UpdateProjectInput, InstructionSource, InstructionPage, Track, Step, Tag, StepRelation, ReferenceImage, Annotation, AnnotationTool } from "@/shared/types";
 import { getEffectiveDryingMinutes, ANNOTATION_TOOL_LABELS } from "@/shared/types";
 import type { AppStore } from "./index";
 import * as api from "@/api";
@@ -33,6 +33,7 @@ export interface BuildSlice {
   projects: Project[];
   loadProjects: () => Promise<void>;
   setActiveProject: (id: string) => Promise<void>;
+  updateProject: (input: UpdateProjectInput) => Promise<Project>;
   deleteProject: (id: string) => Promise<void>;
   clearActiveProject: () => void;
   loadActiveProject: () => Promise<void>;
@@ -221,6 +222,15 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   loadProjects: async () => {
     const projects = await api.listProjects();
     set({ projects });
+  },
+
+  updateProject: async (input) => {
+    const updated = await api.updateProject(input);
+    set((s) => ({
+      project: updated,
+      projects: s.projects.map((p) => (p.id === updated.id ? updated : p)),
+    }));
+    return updated;
   },
 
   deleteProject: async (id) => {

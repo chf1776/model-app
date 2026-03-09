@@ -47,6 +47,8 @@ pub fn add_progress_photo(
         None,
         false,
         None,
+        None,
+        None,
     );
 
     Ok(photo)

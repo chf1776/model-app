@@ -194,6 +194,7 @@ pub struct Project {
     pub category: Option<String>,
     pub scalemates_url: Option<String>,
     pub product_code: Option<String>,
+    pub hero_photo_path: Option<String>,
     pub start_date: Option<i64>,
     pub completion_date: Option<i64>,
     pub notes: Option<String>,
@@ -216,6 +217,21 @@ pub struct CreateProjectInput {
     pub category: Option<String>,
     pub scalemates_url: Option<String>,
     pub product_code: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateProjectInput {
+    pub id: String,
+    pub name: Option<String>,
+    pub status: Option<String>,
+    pub category: Option<String>,
+    pub scalemates_url: Option<String>,
+    pub product_code: Option<String>,
+    pub notes: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_optional_nullable")]
+    pub hero_photo_path: Option<Option<String>>,
+    #[serde(default, deserialize_with = "deserialize_optional_nullable")]
+    pub completion_date: Option<Option<i64>>,
 }
 
 // ── Instruction Source ──────────────────────────────────────────────────────
@@ -401,6 +417,7 @@ pub struct ProgressPhoto {
     pub file_path: String,
     pub captured_at: i64,
     pub created_at: i64,
+    pub is_starred: bool,
 }
 
 // ── Milestone Photo ─────────────────────────────────────────────────────────
@@ -411,6 +428,19 @@ pub struct MilestonePhoto {
     pub track_id: String,
     pub file_path: String,
     pub captured_at: i64,
+    pub created_at: i64,
+    pub is_starred: bool,
+}
+
+// ── Gallery Photo ───────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GalleryPhoto {
+    pub id: String,
+    pub project_id: String,
+    pub file_path: String,
+    pub caption: Option<String>,
+    pub is_starred: bool,
     pub created_at: i64,
 }
 

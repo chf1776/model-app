@@ -10,10 +10,11 @@ fn map_row(row: &rusqlite::Row) -> rusqlite::Result<ProgressPhoto> {
         file_path: row.get(2)?,
         captured_at: row.get(3)?,
         created_at: row.get(4)?,
+        is_starred: row.get::<_, i32>(5)? != 0,
     })
 }
 
-const SELECT_COLS: &str = "id, step_id, file_path, captured_at, created_at";
+const SELECT_COLS: &str = "id, step_id, file_path, captured_at, created_at, is_starred";
 
 pub fn list_for_step(conn: &Connection, step_id: &str) -> Result<Vec<ProgressPhoto>, String> {
     let mut stmt = conn
@@ -34,13 +35,12 @@ pub fn list_for_step(conn: &Connection, step_id: &str) -> Result<Vec<ProgressPho
 pub fn list_by_project(conn: &Connection, project_id: &str) -> Result<Vec<ProgressPhoto>, String> {
     let mut stmt = conn
         .prepare(
-            "SELECT pp.id, pp.step_id, pp.file_path, pp.captured_at, pp.created_at
+            "SELECT pp.id, pp.step_id, pp.file_path, pp.captured_at, pp.created_at, pp.is_starred
              FROM progress_photos pp
              JOIN steps s ON pp.step_id = s.id
              JOIN tracks t ON s.track_id = t.id
              WHERE t.project_id = ?1
-             ORDER BY pp.created_at DESC
-             LIMIT 20",
+             ORDER BY pp.created_at DESC",
         )
         .map_err(|e| e.to_string())?;
 
@@ -68,6 +68,21 @@ pub fn insert(conn: &Connection, step_id: &str, file_path: &str) -> Result<Progr
         &format!("SELECT {SELECT_COLS} FROM progress_photos WHERE id = ?1"),
         params![id],
         |row| map_row(row),
+    )
+    .map_err(|e| e.to_string())
+}
+
+pub fn toggle_star(conn: &Connection, id: &str) -> Result<bool, String> {
+    conn.execute(
+        "UPDATE progress_photos SET is_starred = 1 - is_starred WHERE id = ?1",
+        params![id],
+    )
+    .map_err(|e| e.to_string())?;
+
+    conn.query_row(
+        "SELECT is_starred FROM progress_photos WHERE id = ?1",
+        params![id],
+        |row| Ok(row.get::<_, i32>(0)? != 0),
     )
     .map_err(|e| e.to_string())
 }

@@ -48,6 +48,11 @@ export function ImageLightbox({
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopImmediatePropagation();
+        onOpenChange(false);
+        return;
+      }
       if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
         e.preventDefault();
         e.stopImmediatePropagation();
@@ -57,7 +62,7 @@ export function ImageLightbox({
     };
     window.addEventListener("keydown", handler, true);
     return () => window.removeEventListener("keydown", handler, true);
-  }, [open, goPrev, goNext]);
+  }, [open, goPrev, goNext, onOpenChange]);
 
   if (!current) return null;
 
