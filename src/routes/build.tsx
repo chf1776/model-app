@@ -38,11 +38,14 @@ export default function BuildRoute() {
   const activeStepId = useAppStore((s) => s.activeStepId);
   const navMode = useAppStore((s) => s.navMode);
   const loadTimers = useAppStore((s) => s.loadTimers);
+  const activeProjectId = useAppStore((s) => s.activeProjectId);
+  const refreshPaletteEntries = useAppStore((s) => s.refreshProjectPaletteEntries);
 
-  // Load timers on mount
+  // Load timers and refresh palette entries on mount
   useEffect(() => {
     loadTimers();
-  }, [loadTimers]);
+    if (activeProjectId) refreshPaletteEntries();
+  }, [loadTimers, activeProjectId, refreshPaletteEntries]);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [sourceManagerOpen, setSourceManagerOpen] = useState(false);

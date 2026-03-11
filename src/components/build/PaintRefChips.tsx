@@ -1,11 +1,11 @@
 import { useState, useMemo, useCallback } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, X, FlaskConical } from "lucide-react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import type { PaletteEntry } from "@/shared/types";
+import { getSwatchStyle } from "@/lib/utils";
 import { useAppStore } from "@/store";
 
 interface PaintRefChipsProps {
@@ -41,23 +41,34 @@ export function PaintRefChips({ stepId, showLabel = false }: PaintRefChipsProps)
   if (projectPaletteEntries.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-1">
+    <div className="flex flex-wrap items-center gap-1.5">
       {currentEntries.map((entry) => (
-        <button
-          key={entry.id}
-          onClick={() => handleToggle(entry.id)}
-          className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent hover:bg-accent/20"
-        >
-          <ColorDot entry={entry} />
-          {entry.name}
-          <X className="h-2.5 w-2.5" />
-        </button>
+        <div key={entry.id} className="group/swatch relative text-center">
+          <button
+            onClick={() => handleToggle(entry.id)}
+            className="block h-7 w-7 rounded border border-black/10 transition-shadow hover:shadow-md"
+            style={getSwatchStyle(entry)}
+            title={entry.name}
+          >
+            {!entry.paint_color && entry.is_formula && (
+              <FlaskConical className="mx-auto h-3 w-3 text-white/70" />
+            )}
+          </button>
+          <span className="pointer-events-none absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-accent text-white opacity-0 transition-opacity group-hover/swatch:opacity-100">
+            <X className="h-2 w-2" />
+          </span>
+          <p className="mt-0.5 max-w-[32px] truncate text-[7px] leading-tight text-text-tertiary">
+            {entry.name}
+          </p>
+        </div>
       ))}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <button className="inline-flex items-center gap-0.5 rounded-full border border-dashed border-border px-1.5 py-0.5 text-[10px] text-text-tertiary hover:border-text-secondary hover:text-text-secondary">
-            <Plus className="h-2.5 w-2.5" />
-            {showLabel && "paint"}
+          <button
+            className="flex h-7 w-7 items-center justify-center rounded border border-dashed border-border text-text-tertiary hover:border-text-secondary hover:text-text-secondary"
+            title={showLabel ? "Add paint" : undefined}
+          >
+            <Plus className="h-3.5 w-3.5" />
           </button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-48 p-1.5">
@@ -74,7 +85,10 @@ export function PaintRefChips({ stepId, showLabel = false }: PaintRefChipsProps)
                       : "text-text-secondary hover:bg-black/[0.03]"
                   }`}
                 >
-                  <ColorDot entry={entry} border />
+                  <span
+                    className="h-3.5 w-3.5 shrink-0 rounded-sm border border-border"
+                    style={getSwatchStyle(entry)}
+                  />
                   {entry.name}
                 </button>
               );
@@ -84,19 +98,4 @@ export function PaintRefChips({ stepId, showLabel = false }: PaintRefChipsProps)
       </Popover>
     </div>
   );
-}
-
-function ColorDot({ entry, border }: { entry: PaletteEntry; border?: boolean }) {
-  if (entry.paint_color) {
-    return (
-      <span
-        className={`h-2.5 w-2.5 shrink-0 rounded-full ${border ? "border border-border" : "border border-accent/30"}`}
-        style={{ backgroundColor: entry.paint_color }}
-      />
-    );
-  }
-  if (entry.is_formula) {
-    return <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-accent/40" />;
-  }
-  return <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-text-tertiary/30" />;
 }

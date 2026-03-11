@@ -84,6 +84,7 @@ export interface BuildSlice {
   projectPaletteEntries: PaletteEntry[];
   loadStepPaintRefs: (stepId: string) => Promise<void>;
   setStepPaintRefs: (stepId: string, entryIds: string[]) => Promise<void>;
+  refreshProjectPaletteEntries: () => Promise<void>;
 
   // Reference images
   stepReferenceImages: Record<string, ReferenceImage[]>;
@@ -561,6 +562,13 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   setStepTags: async (stepId, tagNames) => {
     const tags = await api.setStepTags(stepId, tagNames);
     set((s) => ({ stepTags: { ...s.stepTags, [stepId]: tags } }));
+  },
+
+  refreshProjectPaletteEntries: async () => {
+    const projectId = get().activeProjectId;
+    if (!projectId) return;
+    const entries = await api.listPaletteEntries(projectId);
+    set({ projectPaletteEntries: entries });
   },
 
   loadStepPaintRefs: async (stepId) => {

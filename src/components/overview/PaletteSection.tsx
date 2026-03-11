@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import type { StepPaintRefInfo } from "@/shared/types";
-import { Plus, Pencil, Trash2, FlaskConical, Pipette, X } from "lucide-react";
+import { Plus, Pencil, Trash2, FlaskConical, X } from "lucide-react";
 import { toast } from "sonner";
 import * as api from "@/api";
 import { useAppStore } from "@/store";
+import { getSwatchStyle } from "@/lib/utils";
 import type { PaletteEntry, PaletteComponentInput, Paint } from "@/shared/types";
-import { PAINT_TYPE_LABELS } from "@/shared/types";
 import {
   Select,
   SelectContent,
@@ -114,21 +114,27 @@ export function PaletteSection({ entries, projectId }: PaletteSectionProps) {
         </p>
       )}
 
-      {/* Direct paints */}
+      {/* Direct paints — swatch grid */}
       {directPaints.length > 0 && (
-        <div className="space-y-0.5">
-          {directPaints.map((entry) => (
-            <PaletteEntryRow
-              key={entry.id}
-              entry={entry}
-              isEditing={editingId === entry.id}
-              usage={usageByEntryId.get(entry.id) ?? []}
-              onEdit={() => setEditingId(entry.id)}
-              onCancelEdit={() => setEditingId(null)}
-              onSave={(updated) => { updateEntry(updated); setEditingId(null); }}
-              onDelete={() => handleDelete(entry.id)}
-            />
-          ))}
+        <div className="flex flex-wrap gap-2">
+          {directPaints.map((entry) =>
+            editingId === entry.id ? (
+              <EditEntryForm
+                key={entry.id}
+                entry={entry}
+                onSave={(updated) => { updateEntry(updated); setEditingId(null); }}
+                onCancel={() => setEditingId(null)}
+              />
+            ) : (
+              <PaletteSwatchItem
+                key={entry.id}
+                entry={entry}
+                usage={usageByEntryId.get(entry.id) ?? []}
+                onEdit={() => setEditingId(entry.id)}
+                onDelete={() => handleDelete(entry.id)}
+              />
+            ),
+          )}
         </div>
       )}
 
@@ -140,143 +146,145 @@ export function PaletteSection({ entries, projectId }: PaletteSectionProps) {
               Formulas
             </p>
           )}
-          {formulas.map((entry) => (
-            <PaletteEntryRow
-              key={entry.id}
-              entry={entry}
-              isEditing={editingId === entry.id}
-              usage={usageByEntryId.get(entry.id) ?? []}
-              onEdit={() => setEditingId(entry.id)}
-              onCancelEdit={() => setEditingId(null)}
-              onSave={(updated) => { updateEntry(updated); setEditingId(null); }}
-              onDelete={() => handleDelete(entry.id)}
-            />
+          {formulas.map((entry) =>
+            editingId === entry.id ? (
+              <EditEntryForm
+                key={entry.id}
+                entry={entry}
+                onSave={(updated) => { updateEntry(updated); setEditingId(null); }}
+                onCancel={() => setEditingId(null)}
+              />
+            ) : (
+              <FormulaRow
+                key={entry.id}
+                entry={entry}
+                usage={usageByEntryId.get(entry.id) ?? []}
+                onEdit={() => setEditingId(entry.id)}
+                onDelete={() => handleDelete(entry.id)}
+              />
+            ),
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── PaletteSwatchItem (square swatch for direct paints) ────────────────────
+
+function PaletteSwatchItem({
+  entry,
+  usage,
+  onEdit,
+  onDelete,
+}: {
+  entry: PaletteEntry;
+  usage: StepPaintRefInfo[];
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="group/swatch relative text-center">
+      <div
+        className="h-7 w-7 rounded border border-black/10"
+        style={getSwatchStyle(entry)}
+        title={[entry.name, entry.paint_brand, entry.purpose, usage.length > 0 ? `Used in: ${usage.map((s) => s.step_title).join(", ")}` : null].filter(Boolean).join("\n")}
+      />
+      {/* Hover actions */}
+      <div className="pointer-events-none absolute -right-1 -top-1 flex gap-0.5 opacity-0 transition-opacity group-hover/swatch:pointer-events-auto group-hover/swatch:opacity-100">
+        <button
+          onClick={onEdit}
+          className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-accent text-white"
+        >
+          <Pencil className="h-2 w-2" />
+        </button>
+        <button
+          onClick={onDelete}
+          className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-white"
+        >
+          <X className="h-2 w-2" />
+        </button>
+      </div>
+      <p className="mt-0.5 max-w-[32px] truncate text-[7px] leading-tight text-text-tertiary">
+        {entry.name}
+      </p>
+    </div>
+  );
+}
+
+// ── FormulaRow (card layout for formulas) ──────────────────────────────────
+
+function FormulaRow({
+  entry,
+  usage,
+  onEdit,
+  onDelete,
+}: {
+  entry: PaletteEntry;
+  usage: StepPaintRefInfo[];
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="group rounded border border-border/50 px-1.5 py-1">
+      <div className="flex items-center gap-1.5">
+        <FlaskConical className="h-3.5 w-3.5 shrink-0 text-accent" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[10px] font-medium leading-tight text-text-primary">
+            {entry.name}
+          </p>
+          {entry.purpose && (
+            <p className="truncate text-[9px] leading-tight text-text-tertiary">
+              {entry.purpose}
+            </p>
+          )}
+        </div>
+        <div className="flex shrink-0 gap-0.5 opacity-0 group-hover:opacity-100">
+          <button onClick={onEdit} className="rounded p-0.5 text-text-tertiary hover:text-text-primary">
+            <Pencil className="h-3 w-3" />
+          </button>
+          <button onClick={onDelete} className="rounded p-0.5 text-text-tertiary hover:text-red-500">
+            <Trash2 className="h-3 w-3" />
+          </button>
+        </div>
+      </div>
+      {entry.components.length > 0 && (
+        <div className="mt-1 space-y-0.5 pl-5">
+          {entry.components.map((c) => (
+            <div key={c.id} className="flex items-center gap-1">
+              {c.paint_color && (
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full border border-border"
+                  style={{ backgroundColor: c.paint_color }}
+                />
+              )}
+              <span className="truncate text-[9px] text-text-secondary">
+                {c.paint_brand} {c.paint_name}
+              </span>
+              {c.ratio_parts != null && (
+                <span className="shrink-0 rounded bg-muted px-1 text-[8px] font-medium text-text-tertiary">
+                  {c.ratio_parts} parts
+                </span>
+              )}
+              {c.ratio_parts == null && c.percentage != null && (
+                <span className="shrink-0 rounded bg-muted px-1 text-[8px] font-medium text-text-tertiary">
+                  {c.percentage}%
+                </span>
+              )}
+            </div>
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-// ── Shared row props ───────────────────────────────────────────────────────
-
-interface EntryRowProps {
-  entry: PaletteEntry;
-  isEditing: boolean;
-  usage: StepPaintRefInfo[];
-  onEdit: () => void;
-  onCancelEdit: () => void;
-  onSave: (e: PaletteEntry) => void;
-  onDelete: () => void;
-}
-
-const EDIT_DELETE_BUTTONS = "flex shrink-0 gap-0.5 opacity-0 group-hover:opacity-100";
-
-function EntryActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
-  return (
-    <div className={EDIT_DELETE_BUTTONS}>
-      <button onClick={onEdit} className="rounded p-0.5 text-text-tertiary hover:text-text-primary">
-        <Pencil className="h-3 w-3" />
-      </button>
-      <button onClick={onDelete} className="rounded p-0.5 text-text-tertiary hover:text-red-500">
-        <Trash2 className="h-3 w-3" />
-      </button>
-    </div>
-  );
-}
-
-// ── PaletteEntryRow (unified for direct paints and formulas) ───────────────
-
-function PaletteEntryRow({ entry, isEditing, usage, onEdit, onCancelEdit, onSave, onDelete }: EntryRowProps) {
-  if (isEditing) {
-    return <EditEntryForm entry={entry} onSave={onSave} onCancel={onCancelEdit} />;
-  }
-
-  if (entry.is_formula) {
-    return (
-      <div className="group rounded border border-border/50 px-1.5 py-1">
-        <div className="flex items-center gap-1.5">
-          <FlaskConical className="h-3.5 w-3.5 shrink-0 text-accent" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[10px] font-medium leading-tight text-text-primary">
-              {entry.name}
-            </p>
-            {entry.purpose && (
-              <p className="truncate text-[9px] leading-tight text-text-tertiary">
-                {entry.purpose}
-              </p>
-            )}
-          </div>
-          <EntryActions onEdit={onEdit} onDelete={onDelete} />
-        </div>
-        {entry.components.length > 0 && (
-          <div className="mt-1 space-y-0.5 pl-5">
-            {entry.components.map((c) => (
-              <div key={c.id} className="flex items-center gap-1">
-                {c.paint_color && (
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full border border-border"
-                    style={{ backgroundColor: c.paint_color }}
-                  />
-                )}
-                <span className="truncate text-[9px] text-text-secondary">
-                  {c.paint_brand} {c.paint_name}
-                </span>
-                {c.ratio_parts != null && (
-                  <span className="shrink-0 rounded bg-muted px-1 text-[8px] font-medium text-text-tertiary">
-                    {c.ratio_parts} parts
-                  </span>
-                )}
-                {c.ratio_parts == null && c.percentage != null && (
-                  <span className="shrink-0 rounded bg-muted px-1 text-[8px] font-medium text-text-tertiary">
-                    {c.percentage}%
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-        {entry.mixing_notes && (
-          <p className="mt-0.5 pl-5 text-[8px] italic text-text-tertiary">
-            {entry.mixing_notes}
-          </p>
-        )}
-        {usage.length > 0 && (
-          <p className="mt-0.5 truncate pl-5 text-[8px] text-text-tertiary">
-            Used in: {usage.map((s) => s.step_title).join(", ")}
-          </p>
-        )}
-      </div>
-    );
-  }
-
-  // Direct paint entry
-  return (
-    <div className="group flex items-center gap-1.5 rounded px-1 py-0.5 hover:bg-muted/50">
-      {entry.paint_color ? (
-        <span
-          className="h-3.5 w-3.5 shrink-0 rounded-full border border-border"
-          style={{ backgroundColor: entry.paint_color }}
-        />
-      ) : (
-        <Pipette className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
+      {entry.mixing_notes && (
+        <p className="mt-0.5 pl-5 text-[8px] italic text-text-tertiary">
+          {entry.mixing_notes}
+        </p>
       )}
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[10px] font-medium leading-tight text-text-primary">
-          {entry.name}
+      {usage.length > 0 && (
+        <p className="mt-0.5 truncate pl-5 text-[8px] text-text-tertiary">
+          Used in: {usage.map((s) => s.step_title).join(", ")}
         </p>
-        <p className="truncate text-[9px] leading-tight text-text-tertiary">
-          {[entry.paint_brand, entry.paint_type ? PAINT_TYPE_LABELS[entry.paint_type as keyof typeof PAINT_TYPE_LABELS] : null, entry.purpose]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
-        {usage.length > 0 && (
-          <p className="truncate text-[8px] text-text-tertiary">
-            Used in: {usage.map((s) => s.step_title).join(", ")}
-          </p>
-        )}
-      </div>
-      <EntryActions onEdit={onEdit} onDelete={onDelete} />
+      )}
     </div>
   );
 }

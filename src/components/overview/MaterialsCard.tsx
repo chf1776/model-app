@@ -9,16 +9,18 @@ import {
   PAINT_TYPE_LABELS,
   PAINT_FINISH_LABELS,
 } from "@/shared/types";
-import type { Accessory, Paint } from "@/shared/types";
+import type { Accessory, Paint, PaletteEntry } from "@/shared/types";
 import { OverviewCard } from "./OverviewCard";
 import { PaletteSection } from "./PaletteSection";
 import { FilterPills } from "@/components/shared/FilterPills";
+import { getSwatchStyle } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 const MAX_ACCESSORIES = 4;
 const MAX_PAINTS = 6;
+const MAX_PALETTE = 8;
 
 type MaterialsFilter = "all" | "owned" | "needed";
 
@@ -89,7 +91,8 @@ export function MaterialsCard({ expanded, onExpand, onCollapse }: MaterialsCardP
   const accCount = accessories.length;
   const paintCount = paints.length;
   const formulaCount = useMemo(() => paletteEntries.filter((e) => e.is_formula).length, [paletteEntries]);
-  const empty = accCount === 0 && paintCount === 0;
+  const paletteCount = paletteEntries.length;
+  const empty = accCount === 0 && paintCount === 0 && paletteCount === 0;
 
   const neededCount = useMemo(
     () =>
@@ -182,6 +185,23 @@ export function MaterialsCard({ expanded, onExpand, onCollapse }: MaterialsCardP
                 </div>
               </div>
             )}
+            {paletteCount > 0 && (
+              <div>
+                <p className="text-[9px] font-medium text-text-secondary">
+                  Palette
+                </p>
+                <div className="mt-0.5 flex flex-wrap items-end gap-1.5">
+                  {paletteEntries.slice(0, MAX_PALETTE).map((e) => (
+                    <CompactSwatch key={e.id} entry={e} />
+                  ))}
+                  {paletteCount > MAX_PALETTE && (
+                    <span className="text-[8px] text-text-tertiary">
+                      +{paletteCount - MAX_PALETTE}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </OverviewCard>
@@ -198,19 +218,9 @@ export function MaterialsCard({ expanded, onExpand, onCollapse }: MaterialsCardP
       onExpand={onExpand}
       onCollapse={onCollapse}
     >
-      {empty ? (
-        <div className="flex h-full items-center justify-center py-6">
-          <div className="flex flex-col items-center text-text-tertiary">
-            <Package className="mb-1 h-4 w-4 opacity-40" />
-            <span className="text-[9px]">No materials linked</span>
-            <span className="mt-0.5 text-[8px] opacity-60">
-              Link accessories and paints in Collection
-            </span>
-          </div>
-        </div>
-      ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-2">
-          {/* Header: Copy Shopping List button */}
+      <div className="flex min-h-0 flex-1 flex-col gap-2">
+        {/* Header: Copy Shopping List button */}
+        {!empty && (
           <div className="flex items-center justify-between">
             <FilterPills filters={FILTER_LABELS} active={filter} onChange={setFilter} />
             <button
@@ -223,8 +233,10 @@ export function MaterialsCard({ expanded, onExpand, onCollapse }: MaterialsCardP
               Copy List
             </button>
           </div>
+        )}
 
-          {/* BOM list */}
+        {/* BOM list */}
+        {!empty && (
           <ScrollArea className="min-h-0 flex-1">
             {filteredAcc.length === 0 && filteredPaints.length === 0 ? (
               <div className="flex items-center justify-center py-6">
@@ -264,19 +276,19 @@ export function MaterialsCard({ expanded, onExpand, onCollapse }: MaterialsCardP
               </div>
             )}
           </ScrollArea>
+        )}
 
-          {/* Palette section */}
-          {activeProjectId && (
-            <>
-              <Separator />
-              <PaletteSection
-                entries={paletteEntries}
-                projectId={activeProjectId}
-              />
-            </>
-          )}
-        </div>
-      )}
+        {/* Palette section — always visible so users can add entries */}
+        {activeProjectId && (
+          <>
+            {!empty && <Separator />}
+            <PaletteSection
+              entries={paletteEntries}
+              projectId={activeProjectId}
+            />
+          </>
+        )}
+      </div>
     </OverviewCard>
   );
 }
@@ -340,6 +352,21 @@ function AccessoryRow({ accessory: a }: { accessory: Accessory }) {
       details={[a.manufacturer, a.reference_code].filter((x): x is string => !!x)}
       isOwned={a.status === "shelf"}
     />
+  );
+}
+
+function CompactSwatch({ entry }: { entry: PaletteEntry }) {
+  return (
+    <div className="text-center">
+      <div
+        className="h-5 w-5 rounded border border-black/10"
+        style={getSwatchStyle(entry)}
+        title={entry.name}
+      />
+      <p className="mt-0.5 max-w-[24px] truncate text-[6px] leading-tight text-text-tertiary">
+        {entry.name}
+      </p>
+    </div>
   );
 }
 
