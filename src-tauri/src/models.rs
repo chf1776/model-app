@@ -502,6 +502,78 @@ pub struct StepAnnotations {
     pub created_at: i64,
 }
 
+// ── Palette Entry ───────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PaletteEntry {
+    pub id: String,
+    pub project_id: String,
+    pub name: String,
+    pub purpose: Option<String>,
+    pub is_formula: bool,
+    pub paint_id: Option<String>,
+    pub mixing_notes: Option<String>,
+    pub display_order: i32,
+    pub created_at: i64,
+    pub updated_at: i64,
+    // Joined paint fields (for direct paint entries)
+    pub paint_brand: Option<String>,
+    pub paint_color: Option<String>,
+    pub paint_type: Option<String>,
+    pub paint_status: Option<String>,
+    // Nested components (for formulas)
+    pub components: Vec<PaletteComponent>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PaletteComponent {
+    pub id: String,
+    pub palette_entry_id: String,
+    pub paint_id: String,
+    pub ratio_parts: Option<i32>,
+    pub percentage: Option<f64>,
+    pub display_order: i32,
+    // Joined paint fields
+    pub paint_brand: String,
+    pub paint_name: String,
+    pub paint_color: Option<String>,
+    pub paint_reference_code: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreatePaletteEntryInput {
+    pub project_id: String,
+    pub name: String,
+    pub purpose: Option<String>,
+    pub is_formula: bool,
+    pub paint_id: Option<String>,
+    pub mixing_notes: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdatePaletteEntryInput {
+    pub id: String,
+    pub name: Option<String>,
+    pub purpose: Option<String>,
+    pub mixing_notes: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PaletteComponentInput {
+    pub paint_id: String,
+    pub ratio_parts: Option<i32>,
+    pub percentage: Option<f64>,
+}
+
+// ── Step Paint Ref ──────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StepPaintRefInfo {
+    pub palette_entry_id: String,
+    pub step_id: String,
+    pub step_title: String,
+}
+
 // ── Project UI State ────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

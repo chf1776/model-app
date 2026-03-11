@@ -11,7 +11,10 @@ import {
 } from "@/shared/types";
 import type { Accessory, Paint } from "@/shared/types";
 import { OverviewCard } from "./OverviewCard";
+import { PaletteSection } from "./PaletteSection";
+import { FilterPills } from "@/components/shared/FilterPills";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 const MAX_ACCESSORIES = 4;
@@ -79,10 +82,13 @@ interface MaterialsCardProps {
 export function MaterialsCard({ expanded, onExpand, onCollapse }: MaterialsCardProps) {
   const accessories = useAppStore((s) => s.overviewAccessories);
   const paints = useAppStore((s) => s.overviewPaints);
+  const paletteEntries = useAppStore((s) => s.overviewPaletteEntries);
+  const activeProjectId = useAppStore((s) => s.activeProjectId);
   const [filter, setFilter] = useState<MaterialsFilter>("all");
 
   const accCount = accessories.length;
   const paintCount = paints.length;
+  const formulaCount = useMemo(() => paletteEntries.filter((e) => e.is_formula).length, [paletteEntries]);
   const empty = accCount === 0 && paintCount === 0;
 
   const neededCount = useMemo(
@@ -101,10 +107,11 @@ export function MaterialsCard({ expanded, onExpand, onCollapse }: MaterialsCardP
     toast.success("Shopping list copied to clipboard");
   }, [accessories, paints]);
 
-  const subtitle =
-    accCount > 0 || paintCount > 0
-      ? `${accCount} accessor${accCount === 1 ? "y" : "ies"} · ${paintCount} paint${paintCount === 1 ? "" : "s"}`
-      : undefined;
+  const subtitleParts: string[] = [];
+  if (accCount > 0) subtitleParts.push(`${accCount} accessor${accCount === 1 ? "y" : "ies"}`);
+  if (paintCount > 0) subtitleParts.push(`${paintCount} paint${paintCount === 1 ? "" : "s"}`);
+  if (formulaCount > 0) subtitleParts.push(`${formulaCount} formula${formulaCount === 1 ? "" : "s"}`);
+  const subtitle = subtitleParts.length > 0 ? subtitleParts.join(" · ") : undefined;
 
   // ── Compact view ───────────────────────────────────────────────────────────
   if (!expanded) {
@@ -205,22 +212,7 @@ export function MaterialsCard({ expanded, onExpand, onCollapse }: MaterialsCardP
         <div className="flex min-h-0 flex-1 flex-col gap-2">
           {/* Header: Copy Shopping List button */}
           <div className="flex items-center justify-between">
-            <div className="flex gap-1">
-              {FILTER_LABELS.map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setFilter(key)}
-                  className={cn(
-                    "rounded-full px-2 py-0.5 text-[9px] font-medium transition-colors",
-                    filter === key
-                      ? "bg-accent text-white"
-                      : "bg-muted text-text-secondary hover:text-text-primary",
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <FilterPills filters={FILTER_LABELS} active={filter} onChange={setFilter} />
             <button
               onClick={handleCopy}
               disabled={neededCount === 0}
@@ -272,6 +264,17 @@ export function MaterialsCard({ expanded, onExpand, onCollapse }: MaterialsCardP
               </div>
             )}
           </ScrollArea>
+
+          {/* Palette section */}
+          {activeProjectId && (
+            <>
+              <Separator />
+              <PaletteSection
+                entries={paletteEntries}
+                projectId={activeProjectId}
+              />
+            </>
+          )}
         </div>
       )}
     </OverviewCard>

@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import type { Project, UpdateProjectInput, InstructionSource, InstructionPage, Track, Step, Tag, StepRelation, ReferenceImage, Annotation, AnnotationTool } from "@/shared/types";
+import type { Project, UpdateProjectInput, InstructionSource, InstructionPage, Track, Step, Tag, StepRelation, ReferenceImage, Annotation, AnnotationTool, PaletteEntry } from "@/shared/types";
 import { getEffectiveDryingMinutes, ANNOTATION_TOOL_LABELS } from "@/shared/types";
 import type { AppStore } from "./index";
 import * as api from "@/api";
@@ -78,6 +78,12 @@ export interface BuildSlice {
   stepRelations: Record<string, StepRelation[]>;
   loadStepRelations: (stepId: string) => Promise<void>;
   setStepRelations: (stepId: string, relations: { target_step_id: string; relation_type: string }[]) => Promise<void>;
+
+  // Step paint refs
+  stepPaintRefs: Record<string, string[]>;
+  projectPaletteEntries: PaletteEntry[];
+  loadStepPaintRefs: (stepId: string) => Promise<void>;
+  setStepPaintRefs: (stepId: string, entryIds: string[]) => Promise<void>;
 
   // Reference images
   stepReferenceImages: Record<string, ReferenceImage[]>;
@@ -175,6 +181,8 @@ const DEFAULT_BUILD_STATE = {
   selectionAnchorId: null as string | null,
   undoStack: [] as string[],
   stepTags: {} as Record<string, Tag[]>,
+  stepPaintRefs: {} as Record<string, string[]>,
+  projectPaletteEntries: [] as PaletteEntry[],
   stepRelations: {} as Record<string, StepRelation[]>,
   stepReferenceImages: {} as Record<string, ReferenceImage[]>,
   stepAnnotations: {} as Record<string, Annotation[]>,
@@ -267,12 +275,14 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       ...DEFAULT_PAGE_STATE,
       ...DEFAULT_VIEWER_STATE,
     });
-    // Load instruction sources, tracks, and steps for the new project
-    await Promise.all([
+    // Load instruction sources, tracks, steps, and palette entries for the new project
+    const [,,,paletteEntries] = await Promise.all([
       get().loadInstructionSources(id),
       get().loadTracks(id),
       get().loadSteps(id),
+      api.listPaletteEntries(id),
     ]);
+    set({ projectPaletteEntries: paletteEntries });
   },
 
   clearActiveProject: () =>
@@ -296,11 +306,13 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         activeTrackId: uiState.active_track_id ?? null,
       });
       // Fire all loads in parallel
-      await Promise.all([
+      const [,,,paletteEntries] = await Promise.all([
         get().loadInstructionSources(project.id),
         get().loadTracks(project.id),
         get().loadSteps(project.id),
+        api.listPaletteEntries(project.id),
       ]);
+      set({ projectPaletteEntries: paletteEntries });
     }
   },
 
@@ -393,6 +405,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     set((s) => {
       // Clean up per-step cached data to prevent memory leaks
       const { [id]: _tags, ...restTags } = s.stepTags;
+      const { [id]: _paintRefs, ...restPaintRefs } = s.stepPaintRefs;
       const { [id]: _rels, ...restRelations } = s.stepRelations;
       const { [id]: _refs, ...restReferenceImages } = s.stepReferenceImages;
       const { [id]: _anns, ...restAnnotations } = s.stepAnnotations;
@@ -404,6 +417,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         selectedStepIds: s.selectedStepIds.filter((sid) => sid !== id),
         selectionAnchorId: s.selectionAnchorId === id ? null : s.selectionAnchorId,
         stepTags: restTags,
+        stepPaintRefs: restPaintRefs,
         stepRelations: restRelations,
         stepReferenceImages: restReferenceImages,
         stepAnnotations: restAnnotations,
@@ -547,6 +561,16 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   setStepTags: async (stepId, tagNames) => {
     const tags = await api.setStepTags(stepId, tagNames);
     set((s) => ({ stepTags: { ...s.stepTags, [stepId]: tags } }));
+  },
+
+  loadStepPaintRefs: async (stepId) => {
+    const refs = await api.listStepPaintRefs(stepId);
+    set((s) => ({ stepPaintRefs: { ...s.stepPaintRefs, [stepId]: refs } }));
+  },
+
+  setStepPaintRefs: async (stepId, entryIds) => {
+    const refs = await api.setStepPaintRefs(stepId, entryIds);
+    set((s) => ({ stepPaintRefs: { ...s.stepPaintRefs, [stepId]: refs } }));
   },
 
   loadStepRelations: async (stepId) => {

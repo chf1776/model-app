@@ -11,7 +11,7 @@ import { addBuildLogEntry, addBuildLogPhoto } from "@/api";
 import { OverviewCard } from "./OverviewCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ImageLightbox, type LightboxImage } from "@/components/shared/ImageLightbox";
-import { cn } from "@/lib/utils";
+import { FilterPills } from "@/components/shared/FilterPills";
 
 const MAX_ENTRIES = 8;
 
@@ -399,22 +399,7 @@ export function BuildLogCard({ expanded, onExpand, onCollapse }: BuildLogCardPro
         )}
 
         {/* Filter Pills */}
-        <div className="flex gap-1">
-          {FILTER_LABELS.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setFilter(key)}
-              className={cn(
-                "rounded-full px-2 py-0.5 text-[9px] font-medium transition-colors",
-                filter === key
-                  ? "bg-accent text-white"
-                  : "bg-muted text-text-secondary hover:text-text-primary",
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <FilterPills filters={FILTER_LABELS} active={filter} onChange={setFilter} />
 
         {/* Entry list */}
         <ScrollArea className="min-h-0 flex-1">

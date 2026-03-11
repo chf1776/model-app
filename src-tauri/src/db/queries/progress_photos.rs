@@ -73,16 +73,5 @@ pub fn insert(conn: &Connection, step_id: &str, file_path: &str) -> Result<Progr
 }
 
 pub fn toggle_star(conn: &Connection, id: &str) -> Result<bool, String> {
-    conn.execute(
-        "UPDATE progress_photos SET is_starred = 1 - is_starred WHERE id = ?1",
-        params![id],
-    )
-    .map_err(|e| e.to_string())?;
-
-    conn.query_row(
-        "SELECT is_starred FROM progress_photos WHERE id = ?1",
-        params![id],
-        |row| Ok(row.get::<_, i32>(0)? != 0),
-    )
-    .map_err(|e| e.to_string())
+    crate::util::toggle_star(conn, "progress_photos", id)
 }

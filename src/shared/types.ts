@@ -298,6 +298,69 @@ export interface PaintGroupExpandedState {
   overrides: Record<string, boolean>;
 }
 
+// ── Palette Entries ──────────────────────────────────────────────────────
+
+export interface PaletteEntry {
+  id: string;
+  project_id: string;
+  name: string;
+  purpose: string | null;
+  is_formula: boolean;
+  paint_id: string | null;
+  mixing_notes: string | null;
+  display_order: number;
+  created_at: number;
+  updated_at: number;
+  paint_brand: string | null;
+  paint_color: string | null;
+  paint_type: string | null;
+  paint_status: string | null;
+  components: PaletteComponent[];
+}
+
+export interface PaletteComponent {
+  id: string;
+  palette_entry_id: string;
+  paint_id: string;
+  ratio_parts: number | null;
+  percentage: number | null;
+  display_order: number;
+  paint_brand: string;
+  paint_name: string;
+  paint_color: string | null;
+  paint_reference_code: string | null;
+}
+
+export interface CreatePaletteEntryInput {
+  project_id: string;
+  name: string;
+  purpose?: string | null;
+  is_formula: boolean;
+  paint_id?: string | null;
+  mixing_notes?: string | null;
+}
+
+export interface UpdatePaletteEntryInput {
+  id: string;
+  name?: string | null;
+  purpose?: string | null;
+  mixing_notes?: string | null;
+}
+
+export interface PaletteComponentInput {
+  paint_id: string;
+  ratio_parts?: number | null;
+  percentage?: number | null;
+}
+
+// ── Step Paint Refs ─────────────────────────────────────────────────────────
+
+export interface StepPaintRefInfo {
+  palette_entry_id: string;
+  step_id: string;
+  step_title: string;
+}
+
 // ── Tracks ──────────────────────────────────────────────────────────────────
 
 export interface Track {

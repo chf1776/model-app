@@ -7,6 +7,9 @@ import type {
   PhotoSourceType,
   Accessory,
   Paint,
+  PaletteEntry,
+  PaletteComponent,
+  StepPaintRefInfo,
 } from "@/shared/types";
 import type { AppStore } from "./index";
 import * as api from "@/api";
@@ -20,6 +23,8 @@ export interface OverviewSlice {
   overviewGalleryPhotos: GalleryPhoto[];
   overviewAccessories: Accessory[];
   overviewPaints: Paint[];
+  overviewPaletteEntries: PaletteEntry[];
+  overviewStepPaintRefs: StepPaintRefInfo[];
   overviewLoading: boolean;
   focusedCard: OverviewCardName | null;
   setFocusedCard: (card: OverviewCardName | null) => void;
@@ -28,6 +33,10 @@ export interface OverviewSlice {
   removeOverviewGalleryPhoto: (id: string) => void;
   updateOverviewGalleryCaption: (id: string, caption: string | null) => void;
   toggleOverviewPhotoStar: (photoType: PhotoSourceType, id: string) => void;
+  addOverviewPaletteEntry: (entry: PaletteEntry) => void;
+  updateOverviewPaletteEntry: (entry: PaletteEntry) => void;
+  removeOverviewPaletteEntry: (id: string) => void;
+  updateOverviewPaletteComponents: (entryId: string, components: PaletteComponent[]) => void;
   loadOverviewData: (projectId: string) => Promise<void>;
   clearOverviewData: () => void;
 }
@@ -44,6 +53,8 @@ export const createOverviewSlice: StateCreator<
   overviewGalleryPhotos: [],
   overviewAccessories: [],
   overviewPaints: [],
+  overviewPaletteEntries: [],
+  overviewStepPaintRefs: [],
   overviewLoading: false,
   focusedCard: null,
   setFocusedCard: (card) => set({ focusedCard: card }),
@@ -87,10 +98,29 @@ export const createOverviewSlice: StateCreator<
       return {};
     }),
 
+  addOverviewPaletteEntry: (entry) =>
+    set((s) => ({ overviewPaletteEntries: [...s.overviewPaletteEntries, entry] })),
+  updateOverviewPaletteEntry: (entry) =>
+    set((s) => ({
+      overviewPaletteEntries: s.overviewPaletteEntries.map((e) =>
+        e.id === entry.id ? entry : e,
+      ),
+    })),
+  removeOverviewPaletteEntry: (id) =>
+    set((s) => ({
+      overviewPaletteEntries: s.overviewPaletteEntries.filter((e) => e.id !== id),
+    })),
+  updateOverviewPaletteComponents: (entryId, components) =>
+    set((s) => ({
+      overviewPaletteEntries: s.overviewPaletteEntries.map((e) =>
+        e.id === entryId ? { ...e, components } : e,
+      ),
+    })),
+
   loadOverviewData: async (projectId) => {
     set({ overviewLoading: true });
     try {
-      const [buildLog, progressPhotos, milestonePhotos, galleryPhotos, accessories, paints] =
+      const [buildLog, progressPhotos, milestonePhotos, galleryPhotos, accessories, paints, paletteEntries, stepPaintRefs] =
         await Promise.all([
           api.listBuildLogEntries(projectId),
           api.listProjectProgressPhotos(projectId),
@@ -98,6 +128,8 @@ export const createOverviewSlice: StateCreator<
           api.listGalleryPhotos(projectId),
           api.listAccessoriesForProject(projectId),
           api.listPaintsForProject(projectId),
+          api.listPaletteEntries(projectId),
+          api.listProjectStepPaintRefs(projectId),
         ]);
       set({
         overviewBuildLog: buildLog,
@@ -106,6 +138,8 @@ export const createOverviewSlice: StateCreator<
         overviewGalleryPhotos: galleryPhotos,
         overviewAccessories: accessories,
         overviewPaints: paints,
+        overviewPaletteEntries: paletteEntries,
+        overviewStepPaintRefs: stepPaintRefs,
         overviewLoading: false,
       });
     } catch (err) {
@@ -122,5 +156,7 @@ export const createOverviewSlice: StateCreator<
       overviewGalleryPhotos: [],
       overviewAccessories: [],
       overviewPaints: [],
+      overviewPaletteEntries: [],
+      overviewStepPaintRefs: [],
     }),
 });

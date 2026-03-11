@@ -10,6 +10,15 @@ pub struct RelationInput {
 }
 
 #[tauri::command]
+pub fn list_project_step_relations(
+    db: State<'_, AppDb>,
+    project_id: String,
+) -> Result<Vec<StepRelation>, String> {
+    let conn = db.conn()?;
+    crate::db::queries::step_relations::list_for_project(&conn, &project_id)
+}
+
+#[tauri::command]
 pub fn list_step_relations(
     db: State<'_, AppDb>,
     step_id: String,

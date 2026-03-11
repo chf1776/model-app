@@ -60,16 +60,5 @@ pub fn insert(
 }
 
 pub fn toggle_star(conn: &Connection, id: &str) -> Result<bool, String> {
-    conn.execute(
-        "UPDATE milestone_photos SET is_starred = 1 - is_starred WHERE id = ?1",
-        params![id],
-    )
-    .map_err(|e| e.to_string())?;
-
-    conn.query_row(
-        "SELECT is_starred FROM milestone_photos WHERE id = ?1",
-        params![id],
-        |row| Ok(row.get::<_, i32>(0)? != 0),
-    )
-    .map_err(|e| e.to_string())
+    crate::util::toggle_star(conn, "milestone_photos", id)
 }

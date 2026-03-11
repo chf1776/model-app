@@ -11,6 +11,12 @@ import type {
   CreatePaintInput,
   UpdatePaintInput,
   PaintProjectMapping,
+  PaletteEntry,
+  PaletteComponent,
+  CreatePaletteEntryInput,
+  UpdatePaletteEntryInput,
+  PaletteComponentInput,
+  StepPaintRefInfo,
   Project,
   CreateProjectInput,
   UpdateProjectInput,
@@ -141,6 +147,50 @@ export async function setPaintProjects(
   projectIds: string[],
 ): Promise<void> {
   return invoke<void>("set_paint_projects", { paintId, paintName, projectIds });
+}
+
+// ── Palette Entries ─────────────────────────────────────────────────────
+
+export async function listPaletteEntries(projectId: string): Promise<PaletteEntry[]> {
+  return invoke<PaletteEntry[]>("list_palette_entries", { projectId });
+}
+
+export async function createPaletteEntry(input: CreatePaletteEntryInput): Promise<PaletteEntry> {
+  return invoke<PaletteEntry>("create_palette_entry", { input });
+}
+
+export async function updatePaletteEntry(input: UpdatePaletteEntryInput): Promise<PaletteEntry> {
+  return invoke<PaletteEntry>("update_palette_entry", { input });
+}
+
+export async function deletePaletteEntry(id: string): Promise<void> {
+  return invoke<void>("delete_palette_entry", { id });
+}
+
+export async function setPaletteComponents(
+  paletteEntryId: string,
+  components: PaletteComponentInput[],
+): Promise<PaletteComponent[]> {
+  return invoke<PaletteComponent[]>("set_palette_components", { paletteEntryId, components });
+}
+
+// ── Step Paint Refs ─────────────────────────────────────────────────────
+
+export async function listStepPaintRefs(stepId: string): Promise<string[]> {
+  return invoke<string[]>("list_step_paint_refs", { stepId });
+}
+
+export async function setStepPaintRefs(
+  stepId: string,
+  entryIds: string[],
+): Promise<string[]> {
+  return invoke<string[]>("set_step_paint_refs", { stepId, entryIds });
+}
+
+export async function listProjectStepPaintRefs(
+  projectId: string,
+): Promise<StepPaintRefInfo[]> {
+  return invoke<StepPaintRefInfo[]>("list_project_step_paint_refs", { projectId });
 }
 
 // ── Projects ────────────────────────────────────────────────────────────────
@@ -318,6 +368,10 @@ export async function setStepTags(
 }
 
 // ── Step Relations ───────────────────────────────────────────────────────────
+
+export async function listProjectStepRelations(projectId: string): Promise<StepRelation[]> {
+  return invoke<StepRelation[]>("list_project_step_relations", { projectId });
+}
 
 export async function listStepRelations(stepId: string): Promise<StepRelation[]> {
   return invoke<StepRelation[]>("list_step_relations", { stepId });

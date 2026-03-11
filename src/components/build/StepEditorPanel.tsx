@@ -34,6 +34,7 @@ import {
   PREDEFINED_TAGS,
 } from "@/shared/types";
 import { CropPreview } from "./CropPreview";
+import { PaintRefChips } from "./PaintRefChips";
 import { parseStepRelations } from "./tree-utils";
 
 export function StepEditorPanel() {
@@ -53,6 +54,9 @@ export function StepEditorPanel() {
   const stepRelations = useAppStore((s) => s.stepRelations);
   const loadStepRelations = useAppStore((s) => s.loadStepRelations);
   const setStepRelationsAction = useAppStore((s) => s.setStepRelations);
+  const projectPaletteEntries = useAppStore((s) => s.projectPaletteEntries);
+  const stepPaintRefs = useAppStore((s) => s.stepPaintRefs);
+  const loadStepPaintRefs = useAppStore((s) => s.loadStepPaintRefs);
   const stepReferenceImages = useAppStore((s) => s.stepReferenceImages);
   const loadStepReferenceImages = useAppStore((s) => s.loadStepReferenceImages);
   const addReferenceImageStore = useAppStore((s) => s.addReferenceImageStore);
@@ -72,6 +76,7 @@ export function StepEditorPanel() {
   useEffect(() => {
     if (step) {
       if (!stepTags[step.id]) loadStepTags(step.id);
+      if (!stepPaintRefs[step.id]) loadStepPaintRefs(step.id);
       // Always reload relations (no cache check) because they can change from either side
       loadStepRelations(step.id);
       if (!stepReferenceImages[step.id]) loadStepReferenceImages(step.id);
@@ -465,6 +470,14 @@ export function StepEditorPanel() {
               </Popover>
             </div>
           </div>
+
+          {/* Paints */}
+          {projectPaletteEntries.length > 0 && (
+            <div className="space-y-1">
+              <Label className="text-[10px] text-text-tertiary">Paints</Label>
+              <PaintRefChips stepId={step.id} showLabel />
+            </div>
+          )}
 
           {/* Relations */}
           <div className="space-y-1.5">

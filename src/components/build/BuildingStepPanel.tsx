@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ADHESIVE_TYPE_LABELS, IMAGE_FILE_FILTER, getEffectiveDryingMinutes, parsePositiveMinutes } from "@/shared/types";
 import type { Step } from "@/shared/types";
+import { PaintRefChips } from "./PaintRefChips";
 import { StepCompletionMarker } from "./StepCompletionMarker";
 import { parseStepRelations, flattenTrackSteps } from "./tree-utils";
 
@@ -38,6 +39,9 @@ export function BuildingStepPanel() {
   const loadStepTags = useAppStore((s) => s.loadStepTags);
   const stepRelations = useAppStore((s) => s.stepRelations);
   const loadStepRelations = useAppStore((s) => s.loadStepRelations);
+  const projectPaletteEntries = useAppStore((s) => s.projectPaletteEntries);
+  const stepPaintRefs = useAppStore((s) => s.stepPaintRefs);
+  const loadStepPaintRefs = useAppStore((s) => s.loadStepPaintRefs);
   const stepReferenceImages = useAppStore((s) => s.stepReferenceImages);
   const loadStepReferenceImages = useAppStore((s) => s.loadStepReferenceImages);
   const addReferenceImageStore = useAppStore((s) => s.addReferenceImageStore);
@@ -50,6 +54,7 @@ export function BuildingStepPanel() {
     if (!step) return;
     const loads: Promise<void>[] = [];
     if (!stepTags[step.id]) loads.push(loadStepTags(step.id));
+    if (!stepPaintRefs[step.id]) loads.push(loadStepPaintRefs(step.id));
     if (!stepRelations[step.id]) loads.push(loadStepRelations(step.id));
     if (!stepReferenceImages[step.id]) loads.push(loadStepReferenceImages(step.id));
     if (loads.length > 0) Promise.all(loads);
@@ -410,6 +415,17 @@ export function BuildingStepPanel() {
                     onNavigate={setActiveStep}
                   />
                 )}
+              </div>
+            </>
+          )}
+
+          {/* Section 4.5: Paints */}
+          {projectPaletteEntries.length > 0 && (
+            <>
+              <Divider />
+              <div className="space-y-1.5">
+                <SectionLabel>Paints</SectionLabel>
+                <PaintRefChips stepId={step.id} />
               </div>
             </>
           )}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Info, ExternalLink, Calendar, Layers, Camera, Package, Palette, ChevronDown, ChevronUp, ListChecks } from "lucide-react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
@@ -76,14 +76,21 @@ export function ProjectInfoCard({ expanded, onExpand, onCollapse }: ProjectInfoC
     }
   }, [project?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const { totalSteps, completedSteps, progressPct, milestonesCompleted } = useMemo(() => {
+    const total = tracks.reduce((sum, t) => sum + t.step_count, 0);
+    const completed = tracks.reduce((sum, t) => sum + t.completed_count, 0);
+    return {
+      totalSteps: total,
+      completedSteps: completed,
+      progressPct: total > 0 ? (completed / total) * 100 : 0,
+      milestonesCompleted: tracks.filter((t) => t.step_count > 0 && t.completed_count === t.step_count).length,
+    };
+  }, [tracks]);
+
   if (!project) return null;
 
-  const totalSteps = tracks.reduce((sum, t) => sum + t.step_count, 0);
-  const completedSteps = tracks.reduce((sum, t) => sum + t.completed_count, 0);
-  const progressPct = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
   const startedAt = project.start_date ?? project.created_at;
   const totalPhotos = progressPhotoCount + milestonePhotoCount;
-  const milestonesCompleted = tracks.filter((t) => t.step_count > 0 && t.completed_count === t.step_count).length;
   const nowTs = Date.now() / 1000;
   const buildDuration = project.completion_date
     ? project.completion_date - startedAt

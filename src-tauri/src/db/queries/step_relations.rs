@@ -11,6 +11,27 @@ fn map_relation(row: &rusqlite::Row) -> rusqlite::Result<StepRelation> {
     })
 }
 
+/// Returns all relations for steps belonging to a project.
+pub fn list_for_project(conn: &Connection, project_id: &str) -> Result<Vec<StepRelation>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT sr.id, sr.from_step_id, sr.to_step_id, sr.relation_type
+             FROM step_relations sr
+             JOIN steps s ON sr.from_step_id = s.id
+             JOIN tracks t ON s.track_id = t.id
+             WHERE t.project_id = ?1
+             ORDER BY sr.id",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let rows = stmt
+        .query_map(params![project_id], |row| map_relation(row))
+        .map_err(|e| e.to_string())?;
+
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())
+}
+
 /// Returns all relations where the step is either `from_step_id` or `to_step_id`.
 pub fn list_for_step(conn: &Connection, step_id: &str) -> Result<Vec<StepRelation>, String> {
     let mut stmt = conn

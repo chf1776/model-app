@@ -11,6 +11,7 @@ import * as api from "@/api";
 import { ImageLightbox } from "@/components/shared/ImageLightbox";
 import { OverviewCard } from "./OverviewCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { FilterPills } from "@/components/shared/FilterPills";
 import { cn } from "@/lib/utils";
 
 type MergedPhoto = {
@@ -382,22 +383,7 @@ export function GalleryCard({ expanded, onExpand, onCollapse }: GalleryCardProps
         </div>
 
         {/* Filter pills */}
-        <div className="flex gap-1">
-          {FILTER_LABELS.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setFilter(key)}
-              className={cn(
-                "rounded-full px-2 py-0.5 text-[9px] font-medium transition-colors",
-                filter === key
-                  ? "bg-accent text-white"
-                  : "bg-muted text-text-secondary hover:text-text-primary",
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <FilterPills filters={FILTER_LABELS} active={filter} onChange={setFilter} />
 
         {/* Masonry grid */}
         <ScrollArea className="min-h-0 flex-1">
