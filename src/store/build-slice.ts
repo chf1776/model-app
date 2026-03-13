@@ -4,7 +4,7 @@ import { getEffectiveDryingMinutes, ANNOTATION_TOOL_LABELS } from "@/shared/type
 import type { AppStore } from "./index";
 import * as api from "@/api";
 import { toast } from "sonner";
-import { flattenTrackSteps } from "@/components/build/tree-utils";
+import { flattenTrackSteps, getReplacedStepIds, getCompletionWarnings, hasCompletionWarnings } from "@/components/build/tree-utils";
 
 export type CanvasMode = "view" | "crop";
 export type BuildMode = "setup" | "building";
@@ -157,6 +157,12 @@ export interface BuildSlice {
   pendingMilestone: { trackId: string; trackName: string; trackColor: string } | null;
   dismissMilestone: () => void;
 
+  // Completion warnings
+  pendingCompletion: { stepId: string } | null;
+  requestStepCompletion: (stepId: string) => Promise<void>;
+  confirmCompletionAnyway: () => Promise<void>;
+  dismissCompletionWarning: () => void;
+
   // Canvas mode
   canvasMode: CanvasMode;
   setCanvasMode: (mode: CanvasMode) => void;
@@ -195,6 +201,7 @@ const DEFAULT_BUILD_STATE = {
   buildMode: "setup" as BuildMode,
   navMode: "track" as NavMode,
   pendingMilestone: null as { trackId: string; trackName: string; trackColor: string } | null,
+  pendingCompletion: null as { stepId: string } | null,
 };
 
 const DEFAULT_VIEWER_STATE = {
@@ -202,6 +209,21 @@ const DEFAULT_VIEWER_STATE = {
   viewerPanX: 0,
   viewerPanY: 0,
 };
+
+/** Complete a step — uses full flow (milestones, auto-advance, timers) for active step, simple toggle otherwise. */
+async function completeStepById(get: () => AppStore, stepId: string) {
+  if (stepId === get().activeStepId) {
+    get().completeActiveStep();
+  } else {
+    try {
+      const updated = await api.updateStep({ id: stepId, is_completed: true });
+      get().updateStepStore(updated);
+      if (get().activeProjectId) get().loadTracks(get().activeProjectId!);
+    } catch (e) {
+      toast.error(`Failed to update step: ${e}`);
+    }
+  }
+}
 
 export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   set,
@@ -895,8 +917,9 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
           return;
         }
 
-        // Auto-advance to next incomplete step
-        const flatSteps = flattenTrackSteps(get().steps, activeTrackId);
+        // Auto-advance to next incomplete step (skip replaced steps)
+        const replacedIds = getReplacedStepIds(get().steps);
+        const flatSteps = flattenTrackSteps(get().steps, activeTrackId, { excludeReplacedIds: replacedIds });
         const currentIdx = flatSteps.findIndex((s) => s.id === step.id);
         const candidates = [
           ...flatSteps.slice(currentIdx + 1),
@@ -915,16 +938,51 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   dismissMilestone: () => {
     const { steps, tracks } = get();
     set({ pendingMilestone: null });
+    const replacedIds = getReplacedStepIds(steps);
     // Auto-advance: find next track's first incomplete step
     const sortedTracks = [...tracks].sort((a, b) => a.display_order - b.display_order);
     for (const t of sortedTracks) {
-      const trackSteps = flattenTrackSteps(steps, t.id);
+      const trackSteps = flattenTrackSteps(steps, t.id, { excludeReplacedIds: replacedIds });
       const nextIncomplete = trackSteps.find((s) => !s.is_completed);
       if (nextIncomplete) {
         get().setActiveStep(nextIncomplete.id);
         return;
       }
     }
+  },
+
+  requestStepCompletion: async (stepId) => {
+    const state = get();
+    const step = state.steps.find((s) => s.id === stepId);
+    if (!step || step.is_completed) return;
+
+    // Ensure relations are loaded
+    if (!state.stepRelations[stepId]) {
+      await get().loadStepRelations(stepId);
+    }
+
+    const freshState = get();
+    const relations = freshState.stepRelations[stepId] ?? [];
+    const warnings = getCompletionWarnings(stepId, freshState.steps, relations);
+
+    if (!hasCompletionWarnings(warnings)) {
+      await completeStepById(get, stepId);
+      return;
+    }
+
+    // Has warnings — show dialog
+    set({ pendingCompletion: { stepId } });
+  },
+
+  confirmCompletionAnyway: async () => {
+    const pending = get().pendingCompletion;
+    if (!pending) return;
+    set({ pendingCompletion: null });
+    await completeStepById(get, pending.stepId);
+  },
+
+  dismissCompletionWarning: () => {
+    set({ pendingCompletion: null });
   },
 
   setBuildMode: async (mode) => {

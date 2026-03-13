@@ -12,6 +12,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { useAppStore } from "@/store";
 import { useNavigateToStep } from "@/hooks/useNavigateToStep";
 import { listProjectStepRelations } from "@/api";
+import { getReplacedStepIds } from "@/components/build/tree-utils";
 import { cn } from "@/lib/utils";
 import type { Track, Step, StepRelation } from "@/shared/types";
 
@@ -66,13 +67,7 @@ export function AssemblyMap() {
   const svgHeight = SVG_PAD_Y * 2 + trackRows.length * ROW_HEIGHT;
 
   // Replaced step styling: steps where another step has replaces_step_id === step.id
-  const replacedStepIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const s of steps) {
-      if (s.replaces_step_id) ids.add(s.replaces_step_id);
-    }
-    return ids;
-  }, [steps]);
+  const replacedStepIds = useMemo(() => getReplacedStepIds(steps), [steps]);
 
   // Sub-step count indicators
   const subStepCounts = useMemo(() => {

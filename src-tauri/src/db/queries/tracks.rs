@@ -34,8 +34,10 @@ fn map_track(row: &rusqlite::Row) -> rusqlite::Result<Track> {
 const SELECT_COLS: &str =
     "t.id, t.project_id, t.name, t.color, t.display_order, t.is_standalone,
      t.join_point_step_id, t.join_point_notes,
-     (SELECT COUNT(*) FROM steps s WHERE s.track_id = t.id) AS step_count,
-     (SELECT COUNT(*) FROM steps s WHERE s.track_id = t.id AND s.is_completed = 1) AS completed_count,
+     (SELECT COUNT(*) FROM steps s WHERE s.track_id = t.id
+       AND NOT EXISTS (SELECT 1 FROM steps r WHERE r.replaces_step_id = s.id)) AS step_count,
+     (SELECT COUNT(*) FROM steps s WHERE s.track_id = t.id AND s.is_completed = 1
+       AND NOT EXISTS (SELECT 1 FROM steps r WHERE r.replaces_step_id = s.id)) AS completed_count,
      t.created_at, t.updated_at";
 
 pub fn list_by_project(conn: &Connection, project_id: &str) -> Result<Vec<Track>, String> {

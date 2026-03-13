@@ -22,9 +22,10 @@ import { AnnotationToolbar } from "@/components/build/AnnotationToolbar";
 import { PageRail } from "@/components/build/PageRail";
 import { PageCanvas } from "@/components/build/PageCanvas";
 import { MilestoneDialog } from "@/components/build/MilestoneDialog";
+import { CompletionWarningDialog } from "@/components/build/CompletionWarningDialog";
 import { RelationPill } from "@/components/build/RelationPill";
 import { TimerBubble } from "@/components/build/TimerBubble";
-import { flattenTrackSteps } from "@/components/build/tree-utils";
+import { flattenTrackSteps, getReplacedStepIds } from "@/components/build/tree-utils";
 import { useUploadPdf } from "@/components/build/useUploadPdf";
 import { getEffectiveDryingMinutes } from "@/shared/types";
 import { zoomIn, zoomOut } from "@/components/build/zoom-utils";
@@ -100,7 +101,7 @@ export default function BuildRoute() {
       if (s.buildMode === "building") {
         if ((e.key === " " || e.key === "Enter") && s.activeStepId) {
           e.preventDefault();
-          s.completeActiveStep();
+          s.requestStepCompletion(s.activeStepId);
           return;
         }
         if (e.key === "a" || e.key === "A") {
@@ -130,7 +131,8 @@ export default function BuildRoute() {
         }
         if (e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "ArrowRight" || e.key === "ArrowDown") {
           e.preventDefault();
-          const ordered = flattenTrackSteps(s.steps, s.activeTrackId);
+          const replacedIds = getReplacedStepIds(s.steps);
+          const ordered = flattenTrackSteps(s.steps, s.activeTrackId, { excludeReplacedIds: replacedIds });
           const idx = ordered.findIndex((st) => st.id === s.activeStepId);
           if ((e.key === "ArrowLeft" || e.key === "ArrowUp") && idx > 0) {
             s.setActiveStep(ordered[idx - 1].id);
@@ -316,6 +318,7 @@ export default function BuildRoute() {
 
             {activeStepId && <BuildingStepPanel />}
             <MilestoneDialog />
+            <CompletionWarningDialog />
           </>
         )}
       </div>

@@ -4,8 +4,31 @@ mod models;
 mod services;
 mod util;
 
+#[cfg(target_os = "macos")]
+#[macro_use]
+extern crate objc;
+
 use db::AppDb;
 use tauri::Manager;
+
+#[cfg(target_os = "macos")]
+fn set_dock_icon(app: &tauri::App) {
+    use cocoa::appkit::{NSApp, NSApplication, NSImage};
+    use cocoa::base::nil;
+    use cocoa::foundation::NSData;
+    let icon_bytes = include_bytes!("../icons/128x128@2x.png");
+    unsafe {
+        let data = NSData::dataWithBytes_length_(
+            nil,
+            icon_bytes.as_ptr() as *const std::ffi::c_void,
+            icon_bytes.len() as u64,
+        );
+        let img = NSImage::initWithData_(NSImage::alloc(nil), data);
+        let ns_app = NSApp();
+        ns_app.setApplicationIconImage_(img);
+    }
+    let _ = app; // used only to keep the signature consistent
+}
 
 pub fn run() {
     tauri::Builder::default()
@@ -17,6 +40,10 @@ pub fn run() {
             let app_data = app.path().app_data_dir().expect("Failed to get app data dir");
             let db = AppDb::new(app_data).expect("Failed to initialize database");
             app.manage(db);
+
+            #[cfg(target_os = "macos")]
+            set_dock_icon(app);
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

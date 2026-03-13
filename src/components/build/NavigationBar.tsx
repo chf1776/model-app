@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useAppStore } from "@/store";
 import { ANNOTATION_TOOL_LABELS } from "@/shared/types";
-import { flattenTrackSteps, getStepLabel } from "./tree-utils";
+import { flattenTrackSteps, getStepLabel, getReplacedStepIds } from "./tree-utils";
 
 export function NavigationBar() {
   const navMode = useAppStore((s) => s.navMode);
@@ -24,16 +24,18 @@ function TrackNavigationBar() {
 
   const activeTrack = tracks.find((t) => t.id === activeTrackId);
 
+  const replacedIds = useMemo(() => getReplacedStepIds(steps), [steps]);
+
   const flatSteps = useMemo(
-    () => flattenTrackSteps(steps, activeTrackId),
-    [steps, activeTrackId],
+    () => flattenTrackSteps(steps, activeTrackId, { excludeReplacedIds: replacedIds }),
+    [steps, activeTrackId, replacedIds],
   );
 
   const currentIndex = flatSteps.findIndex((s) => s.id === activeStepId);
   const activeStep = currentIndex >= 0 ? flatSteps[currentIndex] : null;
 
   const { label, rootCount } = activeStep
-    ? getStepLabel(activeStep, steps)
+    ? getStepLabel(activeStep, steps, { excludeReplacedIds: replacedIds })
     : { label: "—", rootCount: 0 };
 
   const goPrev = () => {

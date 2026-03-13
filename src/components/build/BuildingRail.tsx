@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAppStore } from "@/store";
 import type { Step, Track, InstructionPage } from "@/shared/types";
-import { getOrderedTrackSteps, buildChildrenMap } from "./tree-utils";
+import { getOrderedTrackSteps, buildChildrenMap, getReplacedStepIds } from "./tree-utils";
 import { StepThumbnail } from "./StepThumbnail";
 import { StepCompletionMarker } from "./StepCompletionMarker";
 import * as api from "@/api";
@@ -87,9 +87,17 @@ export function BuildingRail() {
     return targetTrack ? { track: targetTrack, step: targetStep } : null;
   }, [activeTrack, steps, tracks]);
 
-  // Overall project progress
-  const totalSteps = steps.length;
-  const totalCompleted = steps.filter((s) => s.is_completed).length;
+  // Replaced step IDs + step lookup map
+  const replacedStepIds = useMemo(() => getReplacedStepIds(steps), [steps]);
+  const stepsById = useMemo(() => {
+    const map = new Map<string, Step>();
+    for (const s of steps) map.set(s.id, s);
+    return map;
+  }, [steps]);
+
+  // Overall project progress (from track counts which exclude replaced steps)
+  const totalSteps = tracks.reduce((sum, t) => sum + t.step_count, 0);
+  const totalCompleted = tracks.reduce((sum, t) => sum + t.completed_count, 0);
 
   // Auto-scroll active step into view
   const activeRef = useRef<HTMLButtonElement>(null);
@@ -99,7 +107,7 @@ export function BuildingRail() {
     }
   }, [activeStepId]);
 
-  const completeActiveStep = useAppStore((s) => s.completeActiveStep);
+  const requestStepCompletion = useAppStore((s) => s.requestStepCompletion);
   const [uncompleteStep, setUncompleteStep] = useState<Step | null>(null);
 
   const handleToggleComplete = async (step: Step) => {
@@ -107,22 +115,7 @@ export function BuildingRail() {
       setUncompleteStep(step);
       return;
     }
-    // For active step, use the full completion flow (logging, milestone, etc.)
-    if (step.id === activeStepId) {
-      completeActiveStep();
-      return;
-    }
-    // For non-active steps, simple toggle
-    try {
-      const updated = await api.updateStep({
-        id: step.id,
-        is_completed: true,
-      });
-      updateStepStore(updated);
-      if (activeProjectId) loadTracks(activeProjectId);
-    } catch (e) {
-      toast.error(`Failed to update step: ${e}`);
-    }
+    requestStepCompletion(step.id);
   };
 
   const confirmUncomplete = async () => {
@@ -245,6 +238,10 @@ export function BuildingRail() {
               const childProgress = children
                 ? ([children.filter((c) => c.is_completed).length, children.length] as [number, number])
                 : undefined;
+              const isReplaced = replacedStepIds.has(step.id);
+              const replacesName = step.replaces_step_id
+                ? stepsById.get(step.replaces_step_id)?.title ?? null
+                : null;
 
               return (
                 <div key={step.id}>
@@ -270,6 +267,8 @@ export function BuildingRail() {
                     childProgress={childProgress}
                     onClick={() => setActiveStep(step.id)}
                     onToggleComplete={() => handleToggleComplete(step)}
+                    isReplaced={isReplaced}
+                    replacesName={replacesName}
                   />
 
                   {/* Sub-steps (visible when parent or any child is active) */}
@@ -338,11 +337,13 @@ interface BuildingStepRowProps {
   onClick: () => void;
   onToggleComplete: () => void;
   isSubStep?: boolean;
+  isReplaced?: boolean;
+  replacesName?: string | null;
 }
 
 const BuildingStepRow = forwardRef<HTMLButtonElement, BuildingStepRowProps>(
   function BuildingStepRow(
-    { step, index, total, isActive, page, childProgress, onClick, onToggleComplete, isSubStep },
+    { step, index, total, isActive, page, childProgress, onClick, onToggleComplete, isSubStep, isReplaced, replacesName },
     ref,
   ) {
     const progress = childProgress
@@ -361,42 +362,53 @@ const BuildingStepRow = forwardRef<HTMLButtonElement, BuildingStepRowProps>(
             : "border-l-2 border-transparent hover:bg-muted/50"
         }`}
       >
-        <div className="shrink-0">
-          <StepCompletionMarker
-            completed={step.is_completed}
-            progress={progress}
-            onClick={onToggleComplete}
-          />
-        </div>
+        {isReplaced ? (
+          <div className="h-[18px] w-[18px] shrink-0" />
+        ) : (
+          <div className="shrink-0">
+            <StepCompletionMarker
+              completed={step.is_completed}
+              progress={progress}
+              onClick={onToggleComplete}
+            />
+          </div>
+        )}
 
         <StepThumbnail
           step={step}
           page={page}
-          isActive={isActive}
-          isCompleted={step.is_completed}
+          isActive={isActive && !isReplaced}
+          isCompleted={step.is_completed || !!isReplaced}
         />
 
-        <div className="min-w-0 flex-1">
+        <div className={`min-w-0 flex-1 ${isReplaced ? "opacity-40" : ""}`}>
           <div
             className={`truncate text-[11px] leading-tight ${
-              step.is_completed
-                ? "font-normal text-text-tertiary"
-                : isActive
-                  ? "font-semibold text-accent"
-                  : "font-normal text-text-primary"
+              isReplaced
+                ? "font-normal text-text-tertiary line-through"
+                : step.is_completed
+                  ? "font-normal text-text-tertiary"
+                  : isActive
+                    ? "font-semibold text-accent"
+                    : "font-normal text-text-primary"
             }`}
           >
             {step.title}
           </div>
-          {isActive && !isSubStep && index != null && total != null && (
+          {isActive && !isSubStep && !isReplaced && index != null && total != null && (
             <div className="mt-0.5 text-[9px] text-text-tertiary">
               Step {index + 1} of {total}
+            </div>
+          )}
+          {replacesName && (
+            <div className="mt-0.5 truncate text-[9px] text-accent/70">
+              Replaces {replacesName}
             </div>
           )}
         </div>
 
         {/* Pre-paint dot */}
-        {step.pre_paint && (
+        {step.pre_paint && !isReplaced && (
           <Tooltip>
             <TooltipTrigger asChild>
               <span

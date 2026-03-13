@@ -21,6 +21,44 @@ export function parseStepRelations(relations: StepRelation[], stepId: string) {
   return { blockedByIds, blocksAccessIds, incomingBlockedBy, incomingBlocksAccess };
 }
 
+/** Compute which step IDs are replaced by other steps. */
+export function getReplacedStepIds(steps: Step[]): Set<string> {
+  const ids = new Set<string>();
+  for (const s of steps) {
+    if (s.replaces_step_id) ids.add(s.replaces_step_id);
+  }
+  return ids;
+}
+
+/** Warnings to show before completing a step. */
+export interface CompletionWarning {
+  incompleteBlockers: Step[];
+  accessLossSteps: Step[];
+  prePaintTrappedSteps: Step[];
+}
+
+/** Compute completion warnings for a step based on its relations. */
+export function getCompletionWarnings(
+  stepId: string,
+  steps: Step[],
+  relations: StepRelation[],
+): CompletionWarning {
+  const { blockedByIds, blocksAccessIds } = parseStepRelations(relations, stepId);
+  const incompleteBlockers = blockedByIds
+    .map((id) => steps.find((s) => s.id === id))
+    .filter((s): s is Step => !!s && !s.is_completed);
+  const accessLossSteps = blocksAccessIds
+    .map((id) => steps.find((s) => s.id === id))
+    .filter((s): s is Step => !!s && !s.is_completed);
+  const prePaintTrappedSteps = accessLossSteps.filter((s) => s.pre_paint);
+  return { incompleteBlockers, accessLossSteps, prePaintTrappedSteps };
+}
+
+/** Check if there are any warnings that should block immediate completion. */
+export function hasCompletionWarnings(w: CompletionWarning): boolean {
+  return w.incompleteBlockers.length > 0 || w.accessLossSteps.length > 0;
+}
+
 /** Compute effective dimensions after rotation. Works for any angle but typically 0/90/180/270. */
 export function getEffectiveDimensions(w: number, h: number, rotation: number) {
   const rad = (rotation * Math.PI) / 180;
@@ -55,9 +93,13 @@ export function getOrderedTrackSteps(steps: Step[], trackId: string | null): Ste
 
 /**
  * Flatten track steps in walk order: root1, root1.child1, root1.child2, root2, ...
- * Returns the flat list and the total root count.
+ * When excludeReplacedIds is provided, those steps are filtered out.
  */
-export function flattenTrackSteps(steps: Step[], trackId: string | null): Step[] {
+export function flattenTrackSteps(
+  steps: Step[],
+  trackId: string | null,
+  opts?: { excludeReplacedIds?: Set<string> },
+): Step[] {
   const ordered = getOrderedTrackSteps(steps, trackId);
   const roots = ordered.filter((s) => !s.parent_step_id);
   const childrenMap = buildChildrenMap(ordered);
@@ -67,19 +109,25 @@ export function flattenTrackSteps(steps: Step[], trackId: string | null): Step[]
     const children = childrenMap.get(root.id);
     if (children) flat.push(...children);
   }
+  if (opts?.excludeReplacedIds && opts.excludeReplacedIds.size > 0) {
+    return flat.filter((s) => !opts.excludeReplacedIds!.has(s.id));
+  }
   return flat;
 }
 
 /**
  * Compute a hierarchical label for a step, e.g. "Step 3" or "Step 2.1".
  * rootCount is the total number of root steps.
+ * When excludeReplacedIds is provided, those steps are excluded from counts.
  */
 export function getStepLabel(
   step: Step,
   allSteps: Step[],
+  opts?: { excludeReplacedIds?: Set<string> },
 ): { label: string; rootCount: number } {
+  const excluded = opts?.excludeReplacedIds;
   const trackSteps = allSteps
-    .filter((s) => s.track_id === step.track_id)
+    .filter((s) => s.track_id === step.track_id && (!excluded || !excluded.has(s.id)))
     .sort((a, b) => a.display_order - b.display_order);
   const roots = trackSteps.filter((s) => !s.parent_step_id);
 

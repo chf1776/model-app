@@ -8,7 +8,6 @@ import * as api from "@/api";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -417,14 +416,28 @@ export function StepEditorPanel() {
           </div>
 
           {/* Pre-paint toggle */}
-          <div className="flex items-center justify-between">
-            <Label className="text-[10px] text-text-tertiary">Pre-paint</Label>
-            <Switch
-              size="sm"
-              checked={step.pre_paint}
-              onCheckedChange={(checked) => handleUpdate({ pre_paint: checked })}
-            />
-          </div>
+          <button
+            type="button"
+            onClick={() => handleUpdate({ pre_paint: !step.pre_paint })}
+            className={`flex items-center justify-between rounded-md border px-2.5 py-2 transition-colors ${
+              step.pre_paint
+                ? "border-[#C4913A]/40 bg-[#C4913A]/10"
+                : "border-border bg-transparent hover:bg-muted/50"
+            }`}
+          >
+            <span className={`text-[11px] font-medium ${
+              step.pre_paint ? "text-[#C4913A]" : "text-text-tertiary"
+            }`}>
+              Pre-paint
+            </span>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+              step.pre_paint
+                ? "bg-[#C4913A]/20 text-[#C4913A]"
+                : "bg-muted text-text-tertiary"
+            }`}>
+              {step.pre_paint ? "ON" : "OFF"}
+            </span>
+          </button>
 
           {/* Tags */}
           <div className="space-y-1">

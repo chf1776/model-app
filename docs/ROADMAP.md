@@ -349,9 +349,52 @@ Complete paint tracking — global shelf, per-build formulas, step-level referen
 
 ---
 
-## Phase 7: Export and Polish
+## Phase 7: Settings, Relations and Polish
 
-**Goal**: A complete, shareable build document, plus all the finishing details.
+**Goal**: Advanced step relation warnings, full settings page, keyboard shortcut completeness, and onboarding. Make the app feel complete before tackling export.
+
+### 7A: Advanced Step Relations
+
+#### Completion warning dialog
+- Unified confirmation dialog fires when completing a step that has relation issues (button click or Space/Enter)
+- **Blocked by**: lists incomplete blocker steps with completion markers — user can check them off directly in the dialog to resolve blockers inline
+- **Blocks access to**: lists incomplete steps that will lose access, shown in a separate section below blocked-by
+- **Pre-paint trapping**: access-sealed steps with `pre_paint=true` get red/danger highlight + "Unpainted area will be sealed!" callout
+- Dialog shows only sections with issues; if no issues, step completes normally (no dialog)
+- Buttons: Cancel (default) / Complete Anyway
+
+#### Replaces step enhancements
+- Replaced steps show strikethrough + dimmed (0.4 opacity) in BuildingRail (already done in AssemblyMap)
+- Replaced steps excluded from `step_count`/`completed_count` in track SQL query
+- Replaced steps skipped during auto-advance after completion
+- "Replaces" label shown on the replacing step in BuildingRail
+
+### 7B: Settings Page
+- Dedicated full-width page accessible via gear icon in nav bar
+- **Appearance**: Theme (Light / Dark / System)
+- **Building Defaults**: default scale, auto-status change toggle, drying times, PDF DPI (72/150/300, default 150)
+- **Currency & Pricing**: default currency
+- **Data & Storage**: database location, backup/restore
+- **About**: app version
+- All settings auto-save with toast confirmation
+
+### 7C: Keyboard Shortcuts
+- All shortcuts wired; `?` overlay shows full table
+- Two-column table grouped by zone
+
+### 7D: Onboarding
+- Welcome card on first run with Getting Started tips
+- Tooltips on first visit to each zone
+- Contextual empty states with actionable guidance
+
+### Deliverable
+A fully polished, complete app. Every edge case handled, settings dialled in, step relation warnings live, new users guided through first use.
+
+---
+
+## Phase 8: Export
+
+**Goal**: A complete, shareable build document. Finish a build, export it.
 
 ### Build log export
 - Full export dialog with three-panel layout: section list, section editor, PDF preview (see EXPORT_FEATURE.md for complete specification)
@@ -360,32 +403,10 @@ Complete paint tracking — global shelf, per-build formulas, step-level referen
 - **ZIP**: all photos + narrative Markdown file
 - **Quick Export**: one-click export with smart defaults (hero photo as cover, all photos, tracks in display order)
 - Export history with "Show in Finder"; same-day exports get `-2`, `-3` suffix
-
-### Advanced step relations
-- "Blocked by" / "Blocks access to" soft warnings in Building mode
-- Pre-paint + access-seal detection: warn when sealing step would trap an unpainted pre-paint step
-- "Replaces step" enhancements: replaced step gets strikethrough, excluded from count (basic replaces linking done in Phase 2H)
-
-### Keyboard shortcuts — complete
-- All shortcuts wired; `?` overlay shows full table
-
-### First-use onboarding
-- Welcome card on first run with Getting Started tips
-- Tooltips on first visit to each zone
-- Contextual empty states with actionable guidance
-
-### Settings page — complete
-- Dedicated full-width page accessible via gear icon in nav bar
-- **Appearance**: Theme (Light / Dark / System)
-- **Building Defaults**: default scale, auto-status change toggle, drying times (plastic cement 30min, CA 5min, epoxy 60min, white/PVA 45min), PDF DPI (72/150/300, default 150), PDF crop behavior
-- **Paint & Catalogue**: default brand, visible catalogue brands (multi-checkbox), auto-add paints from project toggle
-- **Currency & Pricing**: default currency (USD/EUR/GBP/JPY/CAD/AUD + freeform ISO 4217), acquire behavior (keep vs clear price)
-- **Data & Storage**: project storage location (path + change), auto-save interval (30s/1min/2min/5min), backup ("Back up now" + timestamp), restore ("Import backup" with confirmation)
-- **Keyboard Shortcuts**: expandable reference section, two-column table grouped by zone
-- All settings auto-save with toast confirmation. Per-section "Reset to defaults" links. "Reset all" at bottom with confirmation.
+- Paint palette summary included in exported document
 
 ### Deliverable
-A fully polished, complete app. Finish a build, export a shareable document, every edge case handled.
+Shareable build documents in multiple formats. Every colour decision, photo, and step is captured in the export.
 
 ---
 
@@ -412,5 +433,6 @@ A fully polished, complete app. Finish a build, export a shareable document, eve
 | ~~3.5~~ | ~~Basic Overview~~ | ~~Read-only assembly map, compact summary cards~~ DONE |
 | ~~4~~ | ~~Building — Enrichment~~ | ~~Annotations, references, timers, page mode~~ DONE |
 | 5 | Overview — Full | Focus mode, masonry gallery, build log composer, materials BOM, project lifecycle |
-| 6 | Paint Tracking | Global shelf integration, formulas, step references |
-| 7 | Export + Polish | Shareable documents, relations, settings page, onboarding |
+| ~~6~~ | ~~Paint Tracking~~ | ~~Global shelf integration, formulas, step references~~ DONE |
+| 7A–7D | Settings, Relations + Polish | Advanced step relations, settings page, keyboard shortcuts, onboarding |
+| 8 | Export | Shareable documents (PDF, HTML, ZIP), export dialog, quick export |

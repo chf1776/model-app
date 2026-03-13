@@ -33,6 +33,7 @@ export function BuildingStepPanel() {
   const setActiveStep = useAppStore((s) => s.setActiveStep);
   const updateStepStore = useAppStore((s) => s.updateStepStore);
   const completeActiveStep = useAppStore((s) => s.completeActiveStep);
+  const requestStepCompletion = useAppStore((s) => s.requestStepCompletion);
   const loadTracks = useAppStore((s) => s.loadTracks);
   const activeProjectId = useAppStore((s) => s.activeProjectId);
   const stepTags = useAppStore((s) => s.stepTags);
@@ -146,7 +147,7 @@ export function BuildingStepPanel() {
     if (step.is_completed) {
       setUncompleteOpen(true);
     } else {
-      completeActiveStep();
+      requestStepCompletion(step.id);
     }
   };
 
