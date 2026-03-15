@@ -464,7 +464,7 @@ export function BuildingStepPanel() {
                     <DetailRow label="Source" value={step.source_name} />
                   )}
                   {step.pre_paint && (
-                    <span className="inline-block rounded-full bg-[#C4913A]/15 px-2 py-0.5 text-[10px] font-medium text-[#C4913A]">
+                    <span className="inline-block rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-medium text-warning">
                       Pre-paint
                     </span>
                   )}

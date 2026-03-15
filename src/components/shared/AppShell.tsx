@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAppStore } from "@/store";
+import { THEME_MAP } from "@/shared/themes";
+import { applyTheme } from "@/shared/theme-engine";
 import { SegmentedPill } from "./SegmentedPill";
 import { CreateProjectDialog } from "./CreateProjectDialog";
 import { Button } from "@/components/ui/button";
@@ -112,6 +114,13 @@ export function AppShell() {
       loadSettings(),
     ]).catch(console.error);
   }, [loadKits, loadAccessories, loadPaints, loadPaintProjectMap, loadProjects, loadActiveProject, loadSettings]);
+
+  // Apply theme whenever settings.theme changes
+  const themeId = useAppStore((s) => s.settings.theme);
+  useEffect(() => {
+    const theme = THEME_MAP[themeId] ?? THEME_MAP["default"];
+    applyTheme(theme);
+  }, [themeId]);
 
   // Sync zone state from URL
   useEffect(() => {

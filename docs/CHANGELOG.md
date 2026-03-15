@@ -55,6 +55,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Track color picker**: TrackDialogs reads colors from settings instead of hardcoded `TRACK_COLORS` array
 - **Currency defaults**: AddKitDialog, AddAccessoryDialog, AddPaintDialog pre-fill currency from `default_currency` setting
 - **Wishlist acquire behavior**: AccessoryRow, KitCard, PaintRow, PaintDetailPanel optionally clear price/currency/buy_url on status toggle based on `acquire_clear_price` setting
+- **Theme system (Phase 8)**: 7 built-in themes (3 light, 4 dark) — Default, Claude Light, Claude Dark, Blueprint, US Army, Quarterdeck, Instruction Sheet
+- **Theme definitions**: `src/shared/themes.ts` with typed `ThemeDefinition` objects, `THEME_MAP` for O(1) lookup, light/dark accessory type color variants
+- **Theme engine**: `src/shared/theme-engine.ts` applies themes by setting CSS variables on `documentElement`, handles derived tokens (status colors, accent-muted, popover), shadow adjustments for dark themes, `.dark` class toggle for shadcn components, accessory type color lightening
+- **`useTheme` hook**: `src/hooks/useTheme.ts` provides resolved theme colors to Konva canvas components that cannot consume CSS variables
+- **Theme picker**: Settings Appearance section shows all 7 themes as selectable cards with color swatch strips, Light/Dark labels, and active checkmark
+- **Hardcoded hex cleanup**: Replaced 19 hardcoded color values across 10 components with theme-aware alternatives (CSS variables for DOM, `useTheme()` for Konva)
+- **Sonner dark mode**: Toast notifications now adapt to dark/light theme via `useTheme()` hook
+- **`ACCESSORY_TYPE_COLORS`**: Now references CSS variables instead of hardcoded hex, automatically adapting to theme
 
 ## [0.5.0] — 2026-03-08 — Overview Zone (Phase 5A–5C)
 

@@ -424,18 +424,18 @@ export function StepEditorPanel() {
             onClick={() => handleUpdate({ pre_paint: !step.pre_paint })}
             className={`flex items-center justify-between rounded-md border px-2.5 py-2 transition-colors ${
               step.pre_paint
-                ? "border-[#C4913A]/40 bg-[#C4913A]/10"
+                ? "border-warning/40 bg-warning/10"
                 : "border-border bg-transparent hover:bg-muted/50"
             }`}
           >
             <span className={`text-[11px] font-medium ${
-              step.pre_paint ? "text-[#C4913A]" : "text-text-tertiary"
+              step.pre_paint ? "text-warning" : "text-text-tertiary"
             }`}>
               Pre-paint
             </span>
             <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
               step.pre_paint
-                ? "bg-[#C4913A]/20 text-[#C4913A]"
+                ? "bg-warning/20 text-warning"
                 : "bg-muted text-text-tertiary"
             }`}>
               {step.pre_paint ? "ON" : "OFF"}

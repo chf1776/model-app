@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Layer, Line, Ellipse, Arrow, Rect, Text, Group } from "react-konva";
 import { useAppStore } from "@/store";
+import { useTheme } from "@/hooks/useTheme";
 import type { Annotation } from "@/shared/types";
 
 const EMPTY_ANNOTATIONS: Annotation[] = [];
@@ -28,7 +29,6 @@ export const DEFAULT_CROSS_SIZE = 0.05;
 export const DEFAULT_STROKE_WIDTH = 0.003;
 export const DEFAULT_OPACITY = 0.9;
 export const HIGHLIGHT_COLOR = "#facc15";
-const SELECTION_COLOR = "#4E7282";
 
 function toLayerX(nx: number, w: number) { return nx * w; }
 function toLayerY(ny: number, h: number) { return ny * h; }
@@ -37,6 +37,7 @@ export function AnnotationLayer({ stepId, effectiveW, effectiveH, zoom, drawPrev
   const annotations = useAppStore((s) => s.stepAnnotations[stepId] ?? EMPTY_ANNOTATIONS);
   const annotationMode = useAppStore((s) => s.annotationMode);
   const removeAnnotation = useAppStore((s) => s.removeAnnotation);
+  const { accent: SELECTION_COLOR } = useTheme();
   const updateAnnotation = useAppStore((s) => s.updateAnnotation);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -80,6 +81,7 @@ export function AnnotationLayer({ stepId, effectiveW, effectiveH, zoom, drawPrev
           effectiveH={effectiveH}
           strokeScale={strokeScale}
           isSelected={ann.id === selectedId}
+          selectionColor={SELECTION_COLOR}
           onClick={() => handleAnnotationClick(ann.id)}
           isSelectable={!annotationMode}
           isDraggable={!annotationMode}
@@ -225,6 +227,7 @@ function AnnotationShape({
   effectiveH,
   strokeScale,
   isSelected,
+  selectionColor: SELECTION_COLOR,
   onClick,
   isSelectable,
   isDraggable,
@@ -235,6 +238,7 @@ function AnnotationShape({
   effectiveH: number;
   strokeScale: number;
   isSelected: boolean;
+  selectionColor: string;
   onClick: () => void;
   isSelectable: boolean;
   isDraggable: boolean;

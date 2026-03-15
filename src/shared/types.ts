@@ -166,10 +166,10 @@ export interface UpdateAccessoryInput {
 }
 
 export const ACCESSORY_TYPE_COLORS: Record<AccessoryType, string> = {
-  pe: "#7B5EA7",
-  resin_3d: "#C47A2A",
-  decal: "#3A7CA5",
-  other: "#5B8A3C",
+  pe: "var(--color-type-pe)",
+  resin_3d: "var(--color-type-resin)",
+  decal: "var(--color-type-decal)",
+  other: "var(--color-type-3d-print)",
 };
 
 export const ACCESSORY_TYPE_LABELS: Record<AccessoryType, string> = {

@@ -75,7 +75,7 @@ export function StepItem({
         </span>
       )}
       {step.pre_paint && (
-        <span className="shrink-0 rounded px-1 py-0.5 text-[9px] font-medium text-[#C4913A] bg-[#C4913A]/10">
+        <span className="shrink-0 rounded px-1 py-0.5 text-[9px] font-medium text-warning bg-warning/10">
           Pre-paint
         </span>
       )}

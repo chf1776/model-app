@@ -133,10 +133,10 @@ export function TrackItem({
         onClick={(e) => onToggleExpand(e)}
         className={`group flex w-full items-start gap-2 border-l-[4px] px-2.5 py-2 text-left transition-colors ${
           isActive
-            ? "bg-[#4E728214]"
+            ? "bg-accent/8"
             : isExpanded
-              ? "bg-[#4E72820A]"
-              : "hover:bg-[#4E72820A]"
+              ? "bg-accent/4"
+              : "hover:bg-accent/4"
         }`}
         style={{ borderLeftColor: track.color }}
       >
@@ -215,7 +215,7 @@ export function TrackItem({
           className={`border-l-[4px] px-2 pb-1.5 transition-colors ${
             isDropTarget
               ? "bg-accent/10"
-              : "bg-[#4E728208]"
+              : "bg-accent/3"
           }`}
           style={{ borderLeftColor: track.color }}
         >

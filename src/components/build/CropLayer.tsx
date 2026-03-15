@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { Layer, Rect } from "react-konva";
 import { useAppStore } from "@/store";
 import { CropRegion } from "./CropRegion";
+import { useTheme } from "@/hooks/useTheme";
 import * as api from "@/api";
 import type { DrawingRect } from "@/hooks/useCropDrawing";
 
@@ -66,6 +67,7 @@ export function CropLayer({ drawingRect, zoom }: CropLayerProps) {
   const tracks = useAppStore((s) => s.tracks);
   const activeStepId = useAppStore((s) => s.activeStepId);
   const setActiveStep = useAppStore((s) => s.setActiveStep);
+  const { accent } = useTheme();
   const selectedStepIds = useAppStore((s) => s.selectedStepIds);
   const currentSourcePages = useAppStore((s) => s.currentSourcePages);
   const currentPageIndex = useAppStore((s) => s.currentPageIndex);
@@ -150,10 +152,10 @@ export function CropLayer({ drawingRect, zoom }: CropLayerProps) {
           y={(drawingRect.y - viewerPanY) / zoom}
           width={drawingRect.width / zoom}
           height={drawingRect.height / zoom}
-          stroke="#4E7282"
+          stroke={accent}
           strokeWidth={2 / zoom}
           dash={[6 / zoom, 4 / zoom]}
-          fill="#4E7282"
+          fill={accent}
           opacity={0.1}
         />
       )}

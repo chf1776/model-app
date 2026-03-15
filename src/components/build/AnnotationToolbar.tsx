@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Check, Circle, MoveRight, X, Highlighter, Pencil, Type, Trash2, Undo2, Redo2 } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useAppStore } from "@/store";
+import { useTheme } from "@/hooks/useTheme";
 import type { Annotation, AnnotationTool } from "@/shared/types";
 import { ANNOTATION_TOOL_LABELS } from "@/shared/types";
 
@@ -34,6 +35,7 @@ const STROKE_PRESETS: { label: string; value: number; thickness: number }[] = [
 ];
 
 export function AnnotationToolbar() {
+  const { accent } = useTheme();
   const annotationMode = useAppStore((s) => s.annotationMode);
   const setAnnotationMode = useAppStore((s) => s.setAnnotationMode);
   const annotationColor = useAppStore((s) => s.annotationColor);
@@ -121,7 +123,7 @@ export function AnnotationToolbar() {
             className="h-4 w-4 rounded-full border transition-transform"
             style={{
               backgroundColor: color,
-              borderColor: annotationColor === color ? "#4E7282" : color === "#ffffff" ? "#d4d4d4" : color,
+              borderColor: annotationColor === color ? accent : color === "#ffffff" ? "#d4d4d4" : color,
               borderWidth: annotationColor === color ? 2 : 1,
               transform: annotationColor === color ? "scale(1.15)" : "scale(1)",
             }}

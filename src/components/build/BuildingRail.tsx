@@ -413,7 +413,7 @@ const BuildingStepRow = forwardRef<HTMLButtonElement, BuildingStepRowProps>(
             <TooltipTrigger asChild>
               <span
                 className="h-[5px] w-[5px] shrink-0 rounded-full"
-                style={{ backgroundColor: "#C4913A" }}
+                style={{ backgroundColor: "var(--color-warning)" }}
               />
             </TooltipTrigger>
             <TooltipContent>Pre-paint</TooltipContent>
@@ -449,9 +449,9 @@ function IncomingJoinRow({
           >
             <span
               className="inline-block h-[18px] w-[3px] rounded-sm"
-              style={{ backgroundColor: isComplete ? "#5A9A5F" : t.color }}
+              style={{ backgroundColor: isComplete ? "var(--color-success)" : t.color }}
             />
-            <ArrowDown className="h-2.5 w-2.5" style={{ color: isComplete ? "#5A9A5F" : t.color }} />
+            <ArrowDown className="h-2.5 w-2.5" style={{ color: isComplete ? "var(--color-success)" : t.color }} />
             <span className="truncate">{t.name}</span>
             {isComplete && <Check className="h-2.5 w-2.5 text-success" />}
           </button>

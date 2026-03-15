@@ -3,6 +3,7 @@ import { Stage, Layer, Rect, Image as KonvaImage, Group, Text } from "react-konv
 import useImage from "use-image";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useAppStore } from "@/store";
+import { useTheme } from "@/hooks/useTheme";
 import { imageToEffective } from "./CropLayer";
 import type Konva from "konva";
 import { MIN_ZOOM, MAX_ZOOM, ZOOM_STEP } from "./zoom-utils";
@@ -45,6 +46,7 @@ export function PageCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage>(null);
   const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
+  const { accent, success } = useTheme();
 
   const currentSourcePages = useAppStore((s) => s.currentSourcePages);
   const currentPageIndex = useAppStore((s) => s.currentPageIndex);
@@ -218,7 +220,7 @@ export function PageCanvas() {
                 currentPage.height,
               );
               const track = trackMap.get(step.track_id);
-              const color = track?.color ?? "#4E7282";
+              const color = track?.color ?? accent;
               const isActive = step.id === activeStepId;
               const isCompleted = step.is_completed;
 
@@ -233,9 +235,9 @@ export function PageCanvas() {
                     y={eff.y}
                     width={eff.width}
                     height={eff.height}
-                    stroke={isCompleted ? "#5A9A5F" : color}
+                    stroke={isCompleted ? success : color}
                     strokeWidth={(isActive ? 3 : 1.5) / viewerZoom}
-                    fill={isActive ? `${color}15` : isCompleted ? "#5A9A5F08" : `${color}08`}
+                    fill={isActive ? `${color}15` : isCompleted ? `${success}08` : `${color}08`}
                     cornerRadius={2 / viewerZoom}
                   />
                   {/* Step label */}
@@ -244,7 +246,7 @@ export function PageCanvas() {
                     y={eff.y + 3 / viewerZoom}
                     text={step.title}
                     fontSize={11 / viewerZoom}
-                    fill={isCompleted ? "#5A9A5F" : color}
+                    fill={isCompleted ? success : color}
                     fontStyle={isActive ? "bold" : "normal"}
                     listening={false}
                   />
@@ -254,7 +256,7 @@ export function PageCanvas() {
                       y={eff.y + 3 / viewerZoom}
                       text="✓"
                       fontSize={12 / viewerZoom}
-                      fill="#5A9A5F"
+                      fill={success}
                       listening={false}
                     />
                   )}

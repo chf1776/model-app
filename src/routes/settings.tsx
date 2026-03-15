@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { ArrowLeft, FolderOpen, Plus, X, Download, Upload, RotateCcw } from "lucide-react";
+import { ArrowLeft, FolderOpen, Plus, X, Download, Upload, RotateCcw, Check } from "lucide-react";
 import { useNavigate } from "react-router";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getVersion } from "@tauri-apps/api/app";
@@ -40,6 +40,8 @@ import {
   parseStepTags,
 } from "@/shared/types";
 import type { StorageStats, BackupDiff } from "@/shared/types";
+import { THEMES } from "@/shared/themes";
+import type { ThemeDefinition } from "@/shared/themes";
 
 type PdfDpi = "72" | "150" | "300";
 
@@ -122,6 +124,59 @@ function SettingToggle({
       }`}>
         {checked ? "ON" : "OFF"}
       </span>
+    </button>
+  );
+}
+
+function ThemeCard({
+  theme,
+  isActive,
+  onSelect,
+}: {
+  theme: ThemeDefinition;
+  isActive: boolean;
+  onSelect: () => void;
+}) {
+  const swatches = [
+    theme.colors.background,
+    theme.colors.card,
+    theme.colors.accent,
+    theme.colors["text-primary"],
+  ];
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        "relative flex items-center gap-3 rounded-lg border-2 px-3 py-2.5 text-left transition-colors",
+        isActive
+          ? "border-accent bg-accent/5"
+          : "border-border hover:border-accent/30",
+      )}
+    >
+      {/* Swatch strip */}
+      <div className="flex gap-0.5 rounded overflow-hidden">
+        {swatches.map((color, i) => (
+          <div
+            key={i}
+            className="h-6 w-4"
+            style={{ backgroundColor: color }}
+          />
+        ))}
+      </div>
+      {/* Label */}
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[11px] font-medium text-text-primary">
+          {theme.name}
+        </div>
+        <div className="text-[9px] text-text-tertiary">
+          {theme.type === "dark" ? "Dark" : "Light"}
+        </div>
+      </div>
+      {/* Active checkmark */}
+      {isActive && (
+        <Check className="h-3.5 w-3.5 shrink-0 text-accent" />
+      )}
     </button>
   );
 }
@@ -355,14 +410,18 @@ export default function SettingsRoute() {
           >
             <h2 className="mb-3 text-sm font-semibold text-text-primary">Appearance</h2>
             <Separator className="mb-4" />
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <Label className="text-[11px] text-text-secondary">Theme</Label>
-                <Badge variant="secondary" className="text-[10px]">Default</Badge>
+            <div className="space-y-3">
+              <Label className="text-[11px] text-text-secondary">Theme</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {THEMES.map((t) => (
+                  <ThemeCard
+                    key={t.id}
+                    theme={t}
+                    isActive={getSettingString(settings, "theme") === t.id}
+                    onSelect={() => updateSetting("theme", t.id)}
+                  />
+                ))}
               </div>
-              <p className="text-[10px] text-text-tertiary">
-                More themes coming in a future update.
-              </p>
             </div>
           </div>
 

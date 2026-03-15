@@ -10,11 +10,11 @@ import { getEffectiveDimensions } from "./tree-utils";
 import { AnnotationLayer, DEFAULT_CHECKMARK_SIZE, DEFAULT_CROSS_SIZE, DEFAULT_OPACITY, HIGHLIGHT_COLOR } from "./AnnotationLayer";
 import type { DrawPreview } from "./AnnotationLayer";
 import { MIN_RELATIVE_ZOOM, MAX_RELATIVE_ZOOM } from "./zoom-utils";
+import { useTheme } from "@/hooks/useTheme";
 import type Konva from "konva";
 
 const ZOOM_STEP = 1.08;
 const PADDING = 48;
-const ACCENT_COLOR = "#4E7282";
 
 function CropImage({
   src,
@@ -527,6 +527,7 @@ function FullPageModal({
   onClose: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { accent } = useTheme();
 
   useEffect(() => {
     const img = new Image();
@@ -571,7 +572,7 @@ function FullPageModal({
         const cy = (step.crop_y - page.height / 2) * scale;
         const cw = step.crop_w * scale;
         const ch = step.crop_h * scale;
-        ctx.strokeStyle = ACCENT_COLOR;
+        ctx.strokeStyle = accent;
         ctx.lineWidth = 2;
         ctx.strokeRect(cx, cy, cw, ch);
         ctx.fillStyle = "rgba(0,0,0,0.3)";
