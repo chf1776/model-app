@@ -353,30 +353,38 @@ Complete paint tracking — global shelf, per-build formulas, step-level referen
 
 **Goal**: Advanced step relation warnings, full settings page, keyboard shortcut completeness, and onboarding. Make the app feel complete before tackling export.
 
-### 7A: Advanced Step Relations
+### ~~7A: Advanced Step Relations~~ COMPLETE
 
-#### Completion warning dialog
-- Unified confirmation dialog fires when completing a step that has relation issues (button click or Space/Enter)
-- **Blocked by**: lists incomplete blocker steps with completion markers — user can check them off directly in the dialog to resolve blockers inline
-- **Blocks access to**: lists incomplete steps that will lose access, shown in a separate section below blocked-by
-- **Pre-paint trapping**: access-sealed steps with `pre_paint=true` get red/danger highlight + "Unpainted area will be sealed!" callout
-- Dialog shows only sections with issues; if no issues, step completes normally (no dialog)
-- Buttons: Cancel (default) / Complete Anyway
+#### ~~Completion warning dialog~~
+- ~~Unified confirmation dialog fires when completing a step that has relation issues (button click or Space/Enter)~~
+- ~~**Blocked by**: lists incomplete blocker steps with completion markers — user can check them off directly in the dialog to resolve blockers inline~~
+- ~~**Blocks access to**: lists incomplete steps that will lose access, shown in a separate section below blocked-by~~
+- ~~**Pre-paint trapping**: access-sealed steps with `pre_paint=true` get red/danger highlight + "Unpainted area will be sealed!" callout~~
+- ~~Dialog shows only sections with issues; if no issues, step completes normally (no dialog)~~
+- ~~Buttons: Cancel (default) / Complete Anyway~~
 
-#### Replaces step enhancements
-- Replaced steps show strikethrough + dimmed (0.4 opacity) in BuildingRail (already done in AssemblyMap)
-- Replaced steps excluded from `step_count`/`completed_count` in track SQL query
-- Replaced steps skipped during auto-advance after completion
-- "Replaces" label shown on the replacing step in BuildingRail
+#### ~~Replaces step enhancements~~
+- ~~Replaced steps show strikethrough + dimmed (0.4 opacity) in BuildingRail (already done in AssemblyMap)~~
+- ~~Replaced steps excluded from `step_count`/`completed_count` in track SQL query~~
+- ~~Replaced steps skipped during auto-advance after completion~~
+- ~~"Replaces" label shown on the replacing step in BuildingRail~~
 
 ### 7B: Settings Page
-- Dedicated full-width page accessible via gear icon in nav bar
-- **Appearance**: Theme (Light / Dark / System)
-- **Building Defaults**: default scale, auto-status change toggle, drying times, PDF DPI (72/150/300, default 150)
-- **Currency & Pricing**: default currency
-- **Data & Storage**: database location, backup/restore
-- **About**: app version
-- All settings auto-save with toast confirmation
+- **Layout**: 200px sidebar navigation (matching building rail width) + scrollable content area
+- **Appearance**: Theme picker (placeholder until Phase 8 — shows "Default" only)
+- **Building**: Auto-start drying timers toggle (default ON), drying time defaults per adhesive type (compact editable table with Save + Reset to defaults), completion photo prompt toggle (default ON — the "Capture your progress?" toast after step completion), auto-log control (3 individual toggles for step completions, milestones, timer expirations — all default ON)
+- **Track Colors**: Editable 8-color palette with hex color picker, reset to defaults button
+- **Step Tags**: Manage the predefined tag library — add custom tags, remove built-in tags, rename tags
+- **Defaults**: Default currency dropdown (~10 common currencies: USD, EUR, GBP, AUD, CAD, JPY, CNY, KRW, SEK, PLN)
+- **Wishlist**: Acquire behavior toggle — when marking a wishlist item as owned, preserve or clear price/retailer data
+- **PDF Import**: Render DPI selector (72/150/300) — existing, moved into new layout
+- **Data & Storage**: Database location (read-only + Show in Finder), storage usage stats (DB file size, stash folder size, photo count), full backup export as ZIP (DB + stash images), restore from backup with count comparison diff (projects, kits, paints, accessories, photos) and confirmation dialog
+- **About**: App version
+- All settings auto-save with immediate persistence (except drying times table which has explicit Save)
+
+**Behavioral persistence** (implemented alongside, no settings UI):
+- Remember last-used annotation color + stroke width across sessions (stored in `app_settings`)
+- Remember assembly map zoom level + pan position per project (stored in `project_ui_state`)
 
 ### 7C: Keyboard Shortcuts
 - All shortcuts wired; `?` overlay shows full table
@@ -392,7 +400,55 @@ A fully polished, complete app. Every edge case handled, settings dialled in, st
 
 ---
 
-## Phase 8: Export
+## Phase 8: Theme System
+
+**Goal**: A fully themeable app with 7 built-in themes — 3 light, 4 dark — including hobby-themed palettes that reflect scale modelling culture.
+
+### Theme architecture
+- All ~20 color tokens are CSS custom properties (already in `@theme` block in `index.css`)
+- Each theme is a TypeScript object mapping CSS variable names to hex values
+- Applying a theme sets all variables on `document.documentElement` at runtime
+- Active theme ID stored in `app_settings` (key: `theme`, default: `"default"`)
+- Tailwind v4 utility classes automatically use the CSS variables — no component changes needed
+- Konva canvas reads accent color from a `useTheme()` hook for crop regions, annotations, and step overlays
+
+### Built-in themes
+
+| # | ID | Name | Type | Accent | Inspiration |
+|---|-----|------|------|--------|-------------|
+| 1 | `default` | Default | Light | Teal-gray `#4E7282` | IJN Kure Grey (Tamiya XF-75) |
+| 2 | `claude-light` | Claude Light | Light | Terracotta `#D97757` | Claude's interface |
+| 3 | `claude-dark` | Claude Dark | Dark | Terracotta `#D97757` | Claude's interface |
+| 4 | `blueprint` | Blueprint | Dark | Cyan `#38BDF8` | Engineering drawings |
+| 5 | `us-army` | US Army | Dark | Brass `#C8B46A` | Military field manuals |
+| 6 | `quarterdeck` | Quarterdeck | Dark | Orange `#E05C1C` | Naval signal flags on steel hull |
+| 7 | `instruction-sheet` | Instruction Sheet | Light | Red `#C8200C` | Tamiya instruction manual callouts |
+
+Full color specifications for all 7 themes in UI_DESIGN.md section 37.
+
+### Settings integration
+- Theme picker in Settings → Appearance (from Phase 7B)
+- Each theme shown as a selectable card with name, swatch strip (background + card + accent + text), and Light/Dark label
+- Active theme has accent border + checkmark
+- Clicking a theme applies it immediately
+
+### Dark theme adjustments
+- Shadows: increased opacity for definition on dark surfaces
+- Status colors: `status-building` = accent, `status-completed` = success, `status-shelf` stays neutral
+- Accessory type colors: lightened ~15% for dark themes
+- Semantic backgrounds (badges, alerts): opacity increased from ~10% to ~15%
+
+### Exceptions
+- Instruction pages stay white (source material, not app chrome)
+- User photos are never tinted
+- Track colors are user data, used as-is regardless of theme
+
+### Deliverable
+The app has a distinct visual identity that users can personalize. Hobby-themed palettes give the app character and connect it to the modelling community.
+
+---
+
+## Phase 9: Export
 
 **Goal**: A complete, shareable build document. Finish a build, export it.
 
@@ -419,6 +475,7 @@ Shareable build documents in multiple formats. Every colour decision, photo, and
 | Custom color family definitions | Settings placeholder exists; full management UI deferred. |
 | Notification preferences | No notification system in v1 desktop app beyond OS timer alerts. |
 | Keyboard shortcut remapping | Display-only reference table in v1. |
+| Custom themes | User-defined color palettes beyond the 7 built-in themes. |
 
 ---
 
@@ -434,5 +491,7 @@ Shareable build documents in multiple formats. Every colour decision, photo, and
 | ~~4~~ | ~~Building — Enrichment~~ | ~~Annotations, references, timers, page mode~~ DONE |
 | 5 | Overview — Full | Focus mode, masonry gallery, build log composer, materials BOM, project lifecycle |
 | ~~6~~ | ~~Paint Tracking~~ | ~~Global shelf integration, formulas, step references~~ DONE |
-| 7A–7D | Settings, Relations + Polish | Advanced step relations, settings page, keyboard shortcuts, onboarding |
-| 8 | Export | Shareable documents (PDF, HTML, ZIP), export dialog, quick export |
+| ~~7A~~ | ~~Advanced Step Relations~~ | ~~Completion warnings, replaced step enhancements~~ DONE |
+| 7B–7D | Settings + Polish | Settings page, keyboard shortcuts, onboarding |
+| 8 | Theme System | 7 built-in themes (3 light, 4 dark), hobby-themed palettes, CSS variable architecture |
+| 9 | Export | Shareable documents (PDF, HTML, ZIP), export dialog, quick export |

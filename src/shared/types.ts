@@ -648,9 +648,19 @@ export const ADHESIVE_DEFAULT_MINUTES: Partial<Record<AdhesiveType, number>> = {
   pva: 30,              // PVA/white glue: firm hold in ~30 min
 };
 
-export function getEffectiveDryingMinutes(step: Step): number | null {
+export function getEffectiveDryingMinutes(step: Step, settings?: Record<string, string>): number | null {
   if (step.drying_time_min && step.drying_time_min > 0) return step.drying_time_min;
-  if (step.adhesive_type) return ADHESIVE_DEFAULT_MINUTES[step.adhesive_type] ?? null;
+  if (step.adhesive_type) {
+    if (settings) {
+      const key = `drying_time_${step.adhesive_type}`;
+      const custom = settings[key];
+      if (custom) {
+        const n = Number(custom);
+        if (n > 0) return n;
+      }
+    }
+    return ADHESIVE_DEFAULT_MINUTES[step.adhesive_type] ?? null;
+  }
   return null;
 }
 
@@ -743,3 +753,72 @@ export const PROJECT_STATUS_COLORS: Record<ProjectStatus, string> = {
   completed: "var(--color-status-completed)",
   archived: "var(--color-status-shelf)",
 };
+
+// ── Storage Stats ───────────────────────────────────────────────────────
+export interface StorageStats {
+  db_size_bytes: number;
+  stash_size_bytes: number;
+  photo_count: number;
+}
+
+// ── Backup Diff ─────────────────────────────────────────────────────────
+export interface BackupDiff {
+  projects: number;
+  kits: number;
+  paints: number;
+  accessories: number;
+  photos: number;
+}
+
+// ── Settings Defaults ───────────────────────────────────────────────────
+export const SETTINGS_DEFAULTS: Record<string, string> = {
+  theme: "default",
+  auto_start_timers: "true",
+  drying_time_liquid_cement: "10",
+  drying_time_tube_cement: "20",
+  drying_time_ca_thin: "2",
+  drying_time_ca_medium_thick: "5",
+  drying_time_epoxy: "30",
+  drying_time_pva: "30",
+  photo_prompt_enabled: "true",
+  auto_log_step_complete: "true",
+  auto_log_milestone: "true",
+  auto_log_timer_expiry: "true",
+  track_colors: JSON.stringify(TRACK_COLORS),
+  step_tags: JSON.stringify(PREDEFINED_TAGS),
+  default_currency: "",
+  acquire_clear_price: "false",
+  annotation_color: "#ef4444",
+  annotation_stroke_width: "0.003",
+  pdf_dpi: "150",
+};
+
+export function parseTrackColors(settings: Record<string, string>): { value: string; label: string }[] {
+  try {
+    return JSON.parse(settings.track_colors) as { value: string; label: string }[];
+  } catch {
+    return [...TRACK_COLORS];
+  }
+}
+
+export function parseStepTags(settings: Record<string, string>): string[] {
+  try {
+    return JSON.parse(settings.step_tags) as string[];
+  } catch {
+    return [...PREDEFINED_TAGS];
+  }
+}
+
+export function getSettingBool(settings: Record<string, string>, key: string): boolean {
+  const val = settings[key] ?? SETTINGS_DEFAULTS[key];
+  return val === "true";
+}
+
+export function getSettingString(settings: Record<string, string>, key: string): string {
+  return settings[key] ?? SETTINGS_DEFAULTS[key] ?? "";
+}
+
+export function getSettingNumber(settings: Record<string, string>, key: string): number {
+  const val = settings[key] ?? SETTINGS_DEFAULTS[key];
+  return val ? Number(val) : 0;
+}

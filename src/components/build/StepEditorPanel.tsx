@@ -30,7 +30,7 @@ import type { AdhesiveType, SourceType, StepRelationType } from "@/shared/types"
 import {
   ADHESIVE_TYPE_LABELS,
   SOURCE_TYPE_LABELS,
-  PREDEFINED_TAGS,
+  parseStepTags,
 } from "@/shared/types";
 import { CropPreview } from "./CropPreview";
 import { PaintRefChips } from "./PaintRefChips";
@@ -68,6 +68,9 @@ export function StepEditorPanel() {
   const [relationSearch, setRelationSearch] = useState("");
   const [editingCaptionId, setEditingCaptionId] = useState<string | null>(null);
   const [expandedImageId, setExpandedImageId] = useState<string | null>(null);
+
+  const settings = useAppStore((s) => s.settings);
+  const predefinedTags = useMemo(() => parseStepTags(settings), [settings.step_tags]);
 
   const step = steps.find((s) => s.id === activeStepId);
 
@@ -462,7 +465,7 @@ export function StepEditorPanel() {
                 </PopoverTrigger>
                 <PopoverContent align="start" className="w-44 p-1.5">
                   <div className="space-y-0.5">
-                    {PREDEFINED_TAGS.map((tagName) => {
+                    {predefinedTags.map((tagName) => {
                       const isActive = currentTagNames.has(tagName);
                       return (
                         <button

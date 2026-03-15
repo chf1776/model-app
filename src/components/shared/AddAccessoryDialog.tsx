@@ -33,6 +33,7 @@ export function AddAccessoryDialog({
 }: AddAccessoryDialogProps) {
   const addAccessory = useAppStore((s) => s.addAccessory);
   const kits = useAppStore((s) => s.kits);
+  const settings = useAppStore((s) => s.settings);
 
   const [name, setName] = useState("");
   const [type, setType] = useState<AccessoryType>("pe");
@@ -46,7 +47,7 @@ export function AddAccessoryDialog({
   const [kitSearch, setKitSearch] = useState("");
   const [notes, setNotes] = useState("");
   const [price, setPrice] = useState("");
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState(settings.default_currency || "USD");
   const [buyUrl, setBuyUrl] = useState("");
   const [imagePath, setImagePath] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -89,7 +90,7 @@ export function AddAccessoryDialog({
     setKitSearch("");
     setNotes("");
     setPrice("");
-    setCurrency("USD");
+    setCurrency(settings.default_currency || "USD");
     setBuyUrl("");
     setImagePath("");
   };

@@ -580,8 +580,9 @@ function StartTimerButton({ step }: { step: Step }) {
   const [showInput, setShowInput] = useState(false);
   const [customMin, setCustomMin] = useState("");
 
+  const settings = useAppStore((s) => s.settings);
   const hasTimer = activeTimers.some((t) => t.step_id === step.id);
-  const presetMin = getEffectiveDryingMinutes(step);
+  const presetMin = getEffectiveDryingMinutes(step, settings);
 
   const startTimer = async (minutes: number) => {
     try {

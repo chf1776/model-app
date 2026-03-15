@@ -11,7 +11,7 @@ import {
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useAppStore } from "@/store";
 import { useNavigateToStep } from "@/hooks/useNavigateToStep";
-import { listProjectStepRelations } from "@/api";
+import { listProjectStepRelations, getSetting, setSetting } from "@/api";
 import { getReplacedStepIds } from "@/components/build/tree-utils";
 import { cn } from "@/lib/utils";
 import type { Track, Step, StepRelation } from "@/shared/types";
@@ -44,6 +44,26 @@ export function AssemblyMap() {
   const [depsLoaded, setDepsLoaded] = useState(false);
   const [zoom, setZoom] = useState(1.0);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Load persisted zoom on mount
+  useEffect(() => {
+    if (!activeProjectId) return;
+    getSetting(`assembly_zoom_${activeProjectId}`)
+      .then((v) => {
+        const n = parseFloat(v);
+        if (n >= ZOOM_MIN && n <= ZOOM_MAX) setZoom(n);
+      })
+      .catch(() => {});
+  }, [activeProjectId]);
+
+  // Debounced save on zoom change
+  useEffect(() => {
+    if (!activeProjectId) return;
+    const timer = setTimeout(() => {
+      setSetting(`assembly_zoom_${activeProjectId}`, String(zoom)).catch(() => {});
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [zoom, activeProjectId]);
 
   const trackRows: TrackRow[] = useMemo(() => {
     return tracks.map((track) => ({

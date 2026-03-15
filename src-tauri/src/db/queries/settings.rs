@@ -18,3 +18,17 @@ pub fn set(conn: &Connection, key: &str, value: &str) -> Result<(), String> {
     .map_err(|e| e.to_string())?;
     Ok(())
 }
+
+pub fn get_all(conn: &Connection) -> Result<Vec<(String, String)>, String> {
+    let mut stmt = conn
+        .prepare("SELECT key, value FROM app_settings")
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+        .map_err(|e| e.to_string())?;
+    let mut result = Vec::new();
+    for row in rows {
+        result.push(row.map_err(|e| e.to_string())?);
+    }
+    Ok(result)
+}

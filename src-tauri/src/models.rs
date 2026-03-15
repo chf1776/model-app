@@ -588,3 +588,21 @@ pub struct ProjectUiState {
     pub image_pan_y: f64,
     pub updated_at: i64,
 }
+
+// ── Storage Stats ───────────────────────────────────────────────────────
+#[derive(Debug, Clone, Serialize)]
+pub struct StorageStats {
+    pub db_size_bytes: u64,
+    pub stash_size_bytes: u64,
+    pub photo_count: u64,
+}
+
+// ── Backup Diff ─────────────────────────────────────────────────────────
+#[derive(Debug, Clone, Serialize)]
+pub struct BackupDiff {
+    pub projects: u64,
+    pub kits: u64,
+    pub paints: u64,
+    pub accessories: u64,
+    pub photos: u64,
+}

@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Completion warning dialog**: Unified confirmation dialog fires when completing a step that has relation issues — shows incomplete blockers ("Blocked by") and access-loss steps ("Will block access to") with inline completion markers to resolve blockers directly in the dialog
+- **Pre-paint trapping warning**: Access-sealed steps with `pre_paint=true` get red/danger highlight + PRE-PAINT badge + "Unpainted area will be sealed!" callout in completion dialog
+- **Replaced step styling in BuildingRail**: Steps replaced by another show strikethrough title, hidden completion marker, 0.4 opacity; replacing steps show "Replaces [name]" subtitle
+- **Replaced step exclusion from counts**: Track `step_count`/`completed_count` SQL queries exclude steps that have been replaced by another step
+- **Replaced step navigation skip**: Auto-advance after completion, keyboard arrow keys, and "Step N of M" label all skip replaced steps
+- **App icon**: Custom icon generated for all platforms via `npx tauri icon`; macOS dev mode dock icon set via Cocoa APIs (`include_bytes!` + `NSImage`)
+- **Pre-paint toggle redesign**: Full-width styled button with distinct ON/OFF states using gold (#C4913A) theming, replacing the hard-to-see Switch component
+- **V7 migration**: `idx_steps_replaces` index on `steps(replaces_step_id)` for efficient replaced-step exclusion queries
+- **`getReplacedStepIds` utility**: Shared helper in tree-utils extracting replaced step set computation (was inline in AssemblyMap)
+- **`getCompletionWarnings` / `hasCompletionWarnings`**: Relation-aware warning computation for the completion dialog
+- **`requestStepCompletion` store action**: Entry point for all step completion — checks relations, shows dialog or completes directly
+- **`completeStepById` helper**: Extracted shared update-step + reload pattern, eliminating 3 duplicate copies
+- **Paint swatches in overview**: Square swatch design in PaletteSection with cross-zone palette sync
+- **Palette CRUD**: Full palette management in Overview Materials card — add/remove/rename palette entries with purpose names
+- **Step paint references**: Tag steps with palette entries via `step_paint_refs` junction table; Paints section in both BuildingStepPanel and StepEditorPanel; usage counts in PaletteSection
+- **Settings page (Phase 7B)**: Full settings page with 200px sidebar navigation and scrollable content area with IntersectionObserver-driven active section highlighting
+- **Settings — Building**: Auto-start drying timers toggle, drying time defaults per adhesive type (editable table with Save/Reset), completion photo prompt toggle, auto-log controls (step completions, milestones, timer expirations — individually toggleable)
+- **Settings — Track Colors**: Editable 8-color palette with native color picker + label editing, Save/Reset to defaults
+- **Settings — Step Tags**: Manage predefined tag library — add custom tags, remove tags inline with badge + X buttons
+- **Settings — Defaults**: Default currency dropdown (10 currencies: USD, EUR, GBP, AUD, CAD, JPY, CNY, KRW, SEK, PLN) — pre-fills currency selectors in Add Kit/Accessory/Paint dialogs
+- **Settings — Wishlist**: Acquire behavior toggle — optionally clear price/retailer/buy URL when marking wishlist items as owned
+- **Settings — Data & Storage**: Database location (read-only + Show in Finder), storage usage stats (DB file size, stash folder size, photo count), full backup export as ZIP, restore from backup with count comparison dialog and app restart
+- **Backup system**: Rust backend for ZIP export (WAL checkpoint + db.sqlite + stash images), preview (extract db to temp dir, count entities), and restore (extract to app data, restart app); `zip` crate dependency
+- **Settings Zustand slice**: `settings-slice.ts` with `loadSettings`/`updateSetting` actions, `SETTINGS_DEFAULTS` constants, loaded at app startup alongside other data
+- **Settings helpers**: `getSettingBool`, `getSettingString`, `getSettingNumber`, `parseTrackColors`, `parseStepTags` utilities in `types.ts`
+- **Annotation persistence**: Last-used annotation color and stroke width saved to `app_settings` and restored on next session
+- **Assembly map zoom persistence**: Zoom level saved per project in `app_settings` with debounced writes
+- **Tauri capabilities**: `dialog:allow-save` and `opener:allow-reveal-item-in-dir` permissions
+
+### Changed
+- **BuildingRail completion**: All completion paths route through `requestStepCompletion` instead of inline API calls
+- **BuildingRail progress**: `totalSteps`/`totalCompleted` derived from track counts (which exclude replaced steps) instead of raw step array
+- **BuildingRail lookups**: `stepsById` Map for O(1) step lookups instead of `steps.find()` in render loop
+- **`flattenTrackSteps`**: Accepts optional `excludeReplacedIds` parameter to skip replaced steps
+- **`getStepLabel`**: Accepts optional `excludeReplacedIds` parameter for correct "Step N of M" totals
+- **CompletionWarningDialog inline completion**: Uses `requestStepCompletion` from store instead of direct API calls
+- **`pendingCompletion` state**: Simplified to `{ stepId: string }` — warnings re-derived from live state, `useFullFlow` derived from `activeStepId` comparison
+- **AssemblyMap**: Uses shared `getReplacedStepIds` utility instead of inline computation
+- **PaintRefChips**: Square swatch design with improved layout
+- **MaterialsCard**: Integrated PaletteSection for overview palette display
+- **Drying timer defaults**: `getEffectiveDryingMinutes` now checks user-configured drying times from settings before falling back to hardcoded defaults
+- **Auto-start timers**: Completion-triggered drying timers now respect the `auto_start_timers` setting (default ON)
+- **Auto-log entries**: Step completion, milestone, and timer expiry build log entries now respect individual `auto_log_*` settings (all default ON)
+- **Step tag picker**: StepEditorPanel reads predefined tags from settings instead of hardcoded `PREDEFINED_TAGS` array
+- **Track color picker**: TrackDialogs reads colors from settings instead of hardcoded `TRACK_COLORS` array
+- **Currency defaults**: AddKitDialog, AddAccessoryDialog, AddPaintDialog pre-fill currency from `default_currency` setting
+- **Wishlist acquire behavior**: AccessoryRow, KitCard, PaintRow, PaintDetailPanel optionally clear price/currency/buy_url on status toggle based on `acquire_clear_price` setting
+
 ## [0.5.0] — 2026-03-08 — Overview Zone (Phase 5A–5C)
 
 ### Added

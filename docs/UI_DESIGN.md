@@ -1138,92 +1138,229 @@ Draggable, always-on-top element in Build zone. Position persists across session
 
 ---
 
-### 37. Dark Mode (Pass 5)
+### 37. Theme System (Pass 5)
 
-#### 37.1 Implementation Strategy
-All color tokens defined as CSS custom properties in `:root` (light) and `.dark` (dark). Tailwind v4 `@theme` directive maps them automatically. One class toggle on `<html>` switches the entire app. No component-level changes except Konva canvas (see 37.6).
+#### 37.1 Architecture
 
-#### 37.2 Surface Palette — Dark
+The app ships with 7 built-in themes (3 light, 4 dark), including hobby-themed palettes. All color tokens are CSS custom properties defined in `@theme` (default) and overridden at runtime via `document.documentElement.style.setProperty()`. One theme is active at a time, stored as a theme ID in `app_settings`.
 
-| Token            | Light       | Dark        | Notes                                      |
-|------------------|-------------|-------------|--------------------------------------------|
-| Background       | `#F8F6F3`   | `#1A1816`   | Warm dark grey, not pure black             |
-| Card             | `#FFFFFF`   | `#242220`   | Slightly lighter than bg (inverted hierarchy) |
-| Sidebar          | `#F2EFEB`   | `#1F1D1B`   | Between bg and card                        |
-| Border           | `#E5E0DA`   | `#3A3632`   | Visible but not harsh                      |
-| Tag Background   | `#EDEBE8`   | `#2E2B28`   | Subtle well                                |
+Each theme is a TypeScript object mapping the ~20 CSS variable names to hex values. Changing themes applies all variables immediately — no page reload needed. Tailwind v4 utility classes (`bg-background`, `text-accent`, etc.) automatically use the CSS variables.
 
-#### 37.3 Accent — Dark
+#### 37.2 Theme Definitions
 
-| Token         | Light         | Dark          | Notes                                    |
-|---------------|---------------|---------------|------------------------------------------|
-| Accent        | `#4E7282`     | `#6A9DB0`     | Lightened ~15% for dark surface readability |
-| Accent Hover  | `#3F5F6E`     | `#7FB3C5`     | Lighter on hover (inverted direction)    |
-| Accent Light  | `#4E728214`   | `#6A9DB015`   | Slightly higher opacity for visibility   |
-| On-Accent     | `#FFFFFF`     | `#1A1816`     | Flips to dark bg for button text         |
+**Token reference** (CSS variable names):
+- Surfaces: `background`, `card`, `sidebar`, `border`, `muted`, `popover`, `popover-foreground`
+- Accent: `accent`, `accent-hover`, `accent-muted`
+- Text: `text-primary`, `text-secondary`, `text-tertiary`
+- Semantic: `success`, `warning`, `error`, `destructive`
+- Status: `status-building` (= accent), `status-shelf`, `status-wishlist` (= warning), `status-completed` (= success)
+- Accessory types: `type-pe`, `type-resin`, `type-decal`, `type-3d-print`
 
-#### 37.4 Text — Dark
+---
 
-| Token         | Light       | Dark        |
-|---------------|-------------|-------------|
-| Primary       | `#0C0A09`   | `#E8E5E1`   |
-| Secondary     | `#44403C`   | `#B5B0A9`   |
-| Tertiary      | `#78716C`   | `#807A73`   |
+##### Theme 1: Default (Light)
 
-#### 37.5 Semantic & Destructive — Dark
+The original warm white palette. Accent derived from IJN Kure Grey (Tamiya XF-75).
 
-All semantic colors lightened slightly for dark background readability:
+| Token | Hex | Notes |
+|-------|-----|-------|
+| background | `#F8F6F3` | Warm off-white |
+| card | `#FFFFFF` | Pure white cards |
+| sidebar | `#F2EFEB` | Warm gray |
+| border | `#E5E0DA` | Warm border |
+| muted | `#EDEBE8` | Subtle wells |
+| accent | `#4E7282` | Kure Steel teal-gray |
+| accent-hover | `#3F5F6E` | Darker on hover |
+| text-primary | `#0C0A09` | Near-black |
+| text-secondary | `#44403C` | Medium gray |
+| text-tertiary | `#78716C` | Light gray |
+| success | `#5A9A5F` | Sage green |
+| warning | `#C4913A` | Amber gold |
+| error | `#C84B3A` | Warm red |
+| destructive | `#D43D3D` | Danger red |
 
-| Token       | Light       | Dark        |
-|-------------|-------------|-------------|
-| Success     | `#5A9A5F`   | `#72B878`   |
-| Warning     | `#C4913A`   | `#D9A64E`   |
-| Error       | `#C84B3A`   | `#D9675A`   |
-| Info        | `#5A7A88`   | `#7A9DAB`   |
-| Destructive | `#D43D3D`   | `#E06060`   |
+---
 
-Semantic usage opacity adjustments:
-- Alert backgrounds: 10% → 15%
-- Badge backgrounds: 18% → 20%
-- Crop region overlay fills: 15% → 20%
+##### Theme 2: Claude Light
 
-#### 37.6 Track Colors — Dark
+Inspired by Claude's interface. Warm parchment surfaces with a terracotta accent.
 
-All lightened ~15% to maintain visibility on dark surfaces. Hue preserved. Gold and Burnt Orange get the largest adjustments.
+| Token | Hex | Notes |
+|-------|-----|-------|
+| background | `#FFFFFF` | Clean white |
+| card | `#FAF9F5` | Warm parchment |
+| sidebar | `#F5F4ED` | Warm sidebar |
+| border | `#E9E9E8` | Neutral border |
+| muted | `#F0EEE6` | Warm muted |
+| accent | `#D97757` | Terracotta |
+| accent-hover | `#C6613F` | Deeper terracotta |
+| text-primary | `#141413` | Near-black |
+| text-secondary | `#3D3D3A` | Dark gray |
+| text-tertiary | `#73726C` | Medium gray |
+| success | `#2F7613` | Forest green |
+| warning | `#C4913A` | Amber gold |
+| error | `#B53333` | True red |
+| destructive | `#B53333` | Same as error |
 
-| Index | Name          | Light       | Dark        |
-|-------|---------------|-------------|-------------|
-| 1     | Terracotta    | `#C2553A`   | `#D4715B`   |
-| 2     | Steel Blue    | `#3A7CA5`   | `#52A0C7`   |
-| 3     | Olive         | `#5B8A3C`   | `#74A85A`   |
-| 4     | Gold          | `#C49A2A`   | `#D9B345`   |
-| 5     | Purple        | `#7B5EA7`   | `#9878BF`   |
-| 6     | Burnt Orange  | `#C47A2A`   | `#D99545`   |
-| 7     | Teal          | `#2A8A7A`   | `#45A898`   |
-| 8     | Mauve         | `#8B5E6B`   | `#A67888`   |
+---
 
-#### 37.7 Elevation — Dark
+##### Theme 3: Claude Dark
 
-| Surface Type                          | Border                  | Shadow                                   |
-|---------------------------------------|-------------------------|------------------------------------------|
-| Cards, sidebar, info bar, rails       | `1px solid #3A3632`     | None                                     |
-| Dialogs, popovers, dropdowns, bubble  | `1px solid #3A3632`     | `0 8px 30px rgba(0,0,0,0.30)`           |
-| Hover on interactive cards            | `1px solid #3A3632`     | `0 2px 8px rgba(0,0,0,0.20)`            |
+Dark companion to Claude Light. Same terracotta accent on warm dark surfaces.
 
-#### 37.8 Special Surfaces — Dark
+| Token | Hex | Notes |
+|-------|-----|-------|
+| background | `#30302E` | Warm charcoal |
+| card | `#262624` | Dark card |
+| sidebar | `#1F1E1D` | Deepest surface |
+| border | `#454542` | Subtle dark border |
+| muted | `#262624` | Same as card |
+| accent | `#D97757` | Terracotta |
+| accent-hover | `#C6613F` | Deeper terracotta |
+| text-primary | `#FAF9F5` | Warm white |
+| text-secondary | `#C2C0B6` | Light gray |
+| text-tertiary | `#9C9A92` | Medium gray |
+| success | `#65BB30` | Bright green |
+| warning | `#D9A64E` | Lightened amber |
+| error | `#DD5353` | Bright red |
+| destructive | `#DD5353` | Same as error |
 
-| Element              | Light            | Dark             | Notes                                    |
-|----------------------|------------------|------------------|------------------------------------------|
-| Canvas background    | `#E8E4DF`        | `#2A2725`        | Dark neutral, contrasts with white PDF pages |
-| Frosted glass bg     | `#FFFFFFE0`      | `#242220E0`      | Card color at ~88% opacity               |
-| Frosted glass border | `#E5E0DA`        | `#3A3632`        | Standard dark border                     |
-| Focus ring glow      | `#4E728240`      | `#6A9DB040`      | Uses dark accent                         |
+---
 
-#### 37.9 Exceptions
+##### Theme 4: Blueprint
 
-1. **Instruction pages stay white.** PDF renders are source material, not app chrome. White page on dark canvas (#2A2725) provides natural contrast.
-2. **Konva canvas reads theme from React context.** A `useTheme()` hook exposes the current palette object to Konva components (crop regions, annotations, step region overlays). This is the only code-level exception — all other components consume CSS custom properties automatically.
+Deep navy evoking engineering drawings. Cyan accent pops against the dark blue. Ideal for planning and setup phases.
+
+| Token | Hex | Notes |
+|-------|-----|-------|
+| background | `#0A1628` | Deep navy |
+| card | `#0F1F35` | Navy card |
+| sidebar | `#0C1A2E` | Dark navy |
+| border | `#1A3050` | Steel blue border |
+| muted | `#122640` | Muted navy |
+| accent | `#38BDF8` | Vivid cyan |
+| accent-hover | `#2EA8E0` | Deeper cyan |
+| text-primary | `#D4E4F4` | Blueprint white |
+| text-secondary | `#7A9BBF` | Faded blue |
+| text-tertiary | `#4A6A8A` | Dim blue |
+| success | `#5CB865` | Green |
+| warning | `#D9A64E` | Amber |
+| error | `#D9675A` | Warm red |
+| destructive | `#E06060` | Bright red |
+
+---
+
+##### Theme 5: US Army
+
+Military field manual aesthetic. Olive and tan tones with a brass/khaki accent. For armor, AFV, and military vehicle builders.
+
+| Token | Hex | Notes |
+|-------|-----|-------|
+| background | `#2C301E` | Olive drab |
+| card | `#363A26` | Field card |
+| sidebar | `#252918` | Dark camo |
+| border | `#4A5030` | Olive border |
+| muted | `#30341F` | Muted olive |
+| accent | `#C8B46A` | Brass/khaki |
+| accent-hover | `#B09E52` | Darker brass |
+| text-primary | `#EAE4C8` | Canvas white |
+| text-secondary | `#A89E78` | Dusty khaki |
+| text-tertiary | `#706850` | Faded olive |
+| success | `#6AB06F` | Green |
+| warning | `#D9A64E` | Amber |
+| error | `#D9675A` | Warm red |
+| destructive | `#E06060` | Bright red |
+
+---
+
+##### Theme 6: Quarterdeck
+
+Dark naval theme with a bold orange accent — like signal flags against a steel hull. For ship and maritime builders.
+
+| Token | Hex | Notes |
+|-------|-----|-------|
+| background | `#0C1420` | Deep hull |
+| card | `#101C2E` | Dark blue-gray |
+| sidebar | `#08101A` | Below decks |
+| border | `#1C2E44` | Bulkhead border |
+| muted | `#0E1828` | Shadow |
+| accent | `#E05C1C` | Signal orange |
+| accent-hover | `#C44C0C` | Deeper orange |
+| text-primary | `#C8D6E4` | Signal white |
+| text-secondary | `#5C7488` | Haze gray |
+| text-tertiary | `#384858` | Dark gray |
+| success | `#4CAF78` | Green |
+| warning | `#D9A64E` | Amber |
+| error | `#D9675A` | Warm red |
+| destructive | `#E06060` | Bright red |
+
+---
+
+##### Theme 7: Instruction Sheet (Light)
+
+Light parchment evoking printed instruction manuals. The red accent recalls Tamiya's iconic red instruction markings and callout arrows.
+
+| Token | Hex | Notes |
+|-------|-----|-------|
+| background | `#F5F0E8` | Aged paper |
+| card | `#FDFAF4` | Cream card |
+| sidebar | `#EDE8DC` | Warm sidebar |
+| border | `#C8C0B0` | Paper edge |
+| muted | `#EDE8DC` | Same as sidebar |
+| accent | `#C8200C` | Instruction red |
+| accent-hover | `#A81808` | Deeper red |
+| text-primary | `#1A1610` | Dark ink |
+| text-secondary | `#5A5044` | Faded ink |
+| text-tertiary | `#8A7E72` | Pencil gray |
+| success | `#3A7A3A` | Forest green |
+| warning | `#C4913A` | Amber gold |
+| error | `#B53333` | True red |
+| destructive | `#B53333` | Same as error |
+
+---
+
+#### 37.3 Derived Tokens
+
+Several tokens are derived from the core theme values and do not need per-theme definitions:
+
+- `status-building` = `accent`
+- `status-completed` = `success`
+- `status-wishlist` = `warning`
+- `status-shelf` = `text-tertiary` (neutral across all themes)
+- `accent-muted` = `accent` at 8% opacity
+- `popover` = `card`
+- `popover-foreground` = `text-primary`
+
+Accessory type colors (`type-pe`, `type-resin`, `type-decal`, `type-3d-print`) stay constant across light themes. For dark themes, each is lightened ~15% for surface contrast.
+
+#### 37.4 Track Colors
+
+Track colors (user-assigned per track) are stored as raw hex values and used directly regardless of theme. They are chosen by the user and are part of the project data, not the app chrome.
+
+#### 37.5 Shadows — Dark Themes
+
+Dark themes increase shadow opacity for definition against dark surfaces:
+
+| Shadow | Light | Dark |
+|--------|-------|------|
+| `shadow-sm` | `rgba(0,0,0,0.05)` | `rgba(0,0,0,0.20)` |
+| `shadow-md` | `rgba(0,0,0,0.06)` | `rgba(0,0,0,0.25)` |
+| `shadow-lg` | `rgba(0,0,0,0.08)` | `rgba(0,0,0,0.35)` |
+
+#### 37.6 Exceptions
+
+1. **Instruction pages stay white.** PDF renders are source material, not app chrome. White pages on dark canvas provide natural contrast.
+2. **Konva canvas reads theme from React context.** A `useTheme()` hook exposes the active theme's accent color to Konva components (crop regions, annotations, step region overlays). All other components consume CSS custom properties automatically.
 3. **User photos are never tinted.** Gallery thumbnails, progress photos, and reference images display at native colors regardless of theme.
+
+#### 37.7 Settings UI
+
+Theme picker in Settings → Appearance. Shows all 7 themes as selectable cards with:
+- Theme name
+- Small color swatch strip (background, card, accent, text-primary)
+- "Light" or "Dark" label
+
+Active theme has accent border + checkmark. Clicking a theme applies it immediately (preview before committing). Theme ID stored in `app_settings` table as `theme` key.
 
 ---
 

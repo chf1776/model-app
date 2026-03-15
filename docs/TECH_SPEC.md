@@ -159,8 +159,12 @@ Migrations managed via the `refinery` crate. Each migration is a numbered SQL fi
 ```
 src-tauri/migrations/
 ├── V1__initial.sql          # Full initial schema
-├── V2__add_brand_to_accessories.sql   # Example future migration
-└── ...
+├── V2__instruction_source_file_path.sql
+├── V3__accessory_image_path.sql
+├── V4__page_rotation.sql
+├── V5__active_track_id.sql
+├── V6__photo_starring.sql
+└── V7__replaces_step_index.sql
 ```
 
 ```sql
@@ -779,6 +783,10 @@ uuid = { version = "1", features = ["v4"] }
 mupdf = "0.6"                                          # PDF rasterization (instruction manuals, builds from C source)
 libheif-rs = "1"                                       # HEIC → JPEG conversion (iPhone photos)
 typst = "0.12"                                         # Build log PDF export (template-based typesetting)
+
+[target.'cfg(target_os = "macos")'.dependencies]
+cocoa = "0.26"                                         # macOS dock icon in dev mode
+objc = "0.2"                                           # Objective-C message passing for NSImage
 ```
 
 > **Note**: `uuid` is used in Rust for ID generation. Frontend uses `crypto.randomUUID()` where needed. Tailwind v4 uses CSS-first configuration via `@import "tailwindcss"` and `@theme { ... }` in the root CSS file.

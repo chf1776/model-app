@@ -91,6 +91,7 @@ export function AppShell() {
   const loadPaintProjectMap = useAppStore((s) => s.loadPaintProjectMap);
   const loadProjects = useAppStore((s) => s.loadProjects);
   const loadActiveProject = useAppStore((s) => s.loadActiveProject);
+  const loadSettings = useAppStore((s) => s.loadSettings);
   const activeEntityTab = useAppStore((s) => s.activeEntityTab);
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -108,8 +109,9 @@ export function AppShell() {
       loadPaintProjectMap(),
       loadProjects(),
       loadActiveProject(),
+      loadSettings(),
     ]).catch(console.error);
-  }, [loadKits, loadAccessories, loadPaints, loadPaintProjectMap, loadProjects, loadActiveProject]);
+  }, [loadKits, loadAccessories, loadPaints, loadPaintProjectMap, loadProjects, loadActiveProject, loadSettings]);
 
   // Sync zone state from URL
   useEffect(() => {

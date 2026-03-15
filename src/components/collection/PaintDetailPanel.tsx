@@ -9,6 +9,7 @@ import {
   PAINT_TYPE_LABELS,
   PAINT_FINISH_LABELS,
   COLOR_FAMILY_LABELS,
+  getSettingBool,
 } from "@/shared/types";
 
 interface PaintDetailPanelProps {
@@ -19,6 +20,7 @@ interface PaintDetailPanelProps {
 export function PaintDetailPanel({ paint, onEdit }: PaintDetailPanelProps) {
   const setSelectedPaintId = useAppStore((s) => s.setSelectedPaintId);
   const updatePaintStore = useAppStore((s) => s.updatePaint);
+  const settings = useAppStore((s) => s.settings);
   const paintProjectMap = useAppStore((s) => s.paintProjectMap);
   const paintProjects = paintProjectMap[paint.id] ?? [];
   const [notes, setNotes] = useState(paint.notes ?? "");
@@ -41,7 +43,12 @@ export function PaintDetailPanel({ paint, onEdit }: PaintDetailPanelProps) {
   const handleStatusToggle = async () => {
     const newStatus = paint.status === "owned" ? "wishlist" : "owned";
     try {
-      const updated = await api.updatePaint({ id: paint.id, status: newStatus });
+      const clearPrice = newStatus === "owned" && getSettingBool(settings, "acquire_clear_price");
+      const updated = await api.updatePaint({
+        id: paint.id,
+        status: newStatus,
+        ...(clearPrice ? { price: null, currency: null, buy_url: null } : {}),
+      });
       updatePaintStore(updated);
     } catch (err) {
       toast.error(`Failed to update status: ${err}`);

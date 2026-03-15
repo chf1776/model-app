@@ -1,5 +1,6 @@
 import type { StateCreator } from "zustand";
 import type { DryingTimer } from "@/shared/types";
+import { getSettingBool } from "@/shared/types";
 import type { AppStore } from "./index";
 import * as api from "@/api";
 import {
@@ -41,7 +42,7 @@ function handleTimerExpired(
   get: () => AppStore,
 ) {
   fireNotification(title, `${t.label} is done drying`);
-  if (get().activeProjectId) {
+  if (get().activeProjectId && getSettingBool(get().settings, "auto_log_timer_expiry")) {
     api
       .addBuildLogEntry({
         projectId: get().activeProjectId!,

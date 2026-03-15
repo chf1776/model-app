@@ -38,6 +38,8 @@ import type {
   DryingTimer,
   Annotation,
   StepAnnotations,
+  StorageStats,
+  BackupDiff,
   InstructionSource,
   InstructionPage,
   ProjectUiState,
@@ -237,6 +239,26 @@ export async function getSetting(key: string): Promise<string> {
 
 export async function setSetting(key: string, value: string): Promise<void> {
   return invoke<void>("set_setting", { key, value });
+}
+
+export async function getAllSettings(): Promise<[string, string][]> {
+  return invoke<[string, string][]>("get_all_settings");
+}
+
+export async function getStorageStats(): Promise<StorageStats> {
+  return invoke<StorageStats>("get_storage_stats");
+}
+
+export async function exportBackup(destPath: string): Promise<void> {
+  return invoke<void>("export_backup", { destPath });
+}
+
+export async function previewBackup(sourcePath: string): Promise<BackupDiff> {
+  return invoke<BackupDiff>("preview_backup", { sourcePath });
+}
+
+export async function applyBackup(sourcePath: string): Promise<void> {
+  return invoke<void>("apply_backup", { sourcePath });
 }
 
 // ── Media ───────────────────────────────────────────────────────────────────

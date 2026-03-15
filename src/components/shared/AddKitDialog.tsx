@@ -29,6 +29,7 @@ interface AddKitDialogProps {
 
 export function AddKitDialog({ open, onOpenChange }: AddKitDialogProps) {
   const addKit = useAppStore((s) => s.addKit);
+  const settings = useAppStore((s) => s.settings);
 
   const [name, setName] = useState("");
   const [manufacturer, setManufacturer] = useState("");
@@ -38,7 +39,7 @@ export function AddKitDialog({ open, onOpenChange }: AddKitDialogProps) {
   const [status, setStatus] = useState<"shelf" | "wishlist">("shelf");
   const [boxArtPath, setBoxArtPath] = useState("");
   const [price, setPrice] = useState("");
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState(settings.default_currency || "USD");
   const [retailerUrl, setRetailerUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -51,7 +52,7 @@ export function AddKitDialog({ open, onOpenChange }: AddKitDialogProps) {
     setStatus("shelf");
     setBoxArtPath("");
     setPrice("");
-    setCurrency("USD");
+    setCurrency(settings.default_currency || "USD");
     setRetailerUrl("");
   };
 

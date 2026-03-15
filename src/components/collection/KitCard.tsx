@@ -11,6 +11,7 @@ import {
   STATUS_LABELS,
   ACCESSORY_TYPE_COLORS,
   ACCESSORY_TYPE_LABELS,
+  getSettingBool,
 } from "@/shared/types";
 import {
   Popover,
@@ -37,6 +38,7 @@ export function KitCard({
   onStartProject,
 }: KitCardProps) {
   const updateAccessoryStore = useAppStore((s) => s.updateAccessory);
+  const settings = useAppStore((s) => s.settings);
   const statusColor = STATUS_COLORS[kit.status];
   const statusLabel = STATUS_LABELS[kit.status];
 
@@ -110,9 +112,11 @@ export function KitCard({
   ) => {
     const isOwned = accessory.status === "shelf";
     try {
+      const clearPrice = !isOwned && getSettingBool(settings, "acquire_clear_price");
       const updated = await api.updateAccessory({
         id: accessory.id,
         status: isOwned ? "wishlist" : "shelf",
+        ...(clearPrice ? { price: null, currency: null, buy_url: null } : {}),
       });
       updateAccessoryStore(updated);
       setKitAccessories((prev) =>

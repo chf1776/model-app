@@ -27,8 +27,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { TRACK_COLORS } from "@/shared/types";
+import { TRACK_COLORS, parseTrackColors } from "@/shared/types";
 import type { Track, Step } from "@/shared/types";
+import { useAppStore } from "@/store";
 
 // ── Color Picker ────────────────────────────────────────────────────────────
 
@@ -39,9 +40,11 @@ function ColorSwatches({
   value: string;
   onChange: (color: string) => void;
 }) {
+  const settings = useAppStore((s) => s.settings);
+  const trackColors = useMemo(() => parseTrackColors(settings), [settings.track_colors]);
   return (
     <div className="flex gap-1.5">
-      {TRACK_COLORS.map((c) => (
+      {trackColors.map((c) => (
         <button
           key={c.value}
           type="button"
@@ -72,15 +75,17 @@ export function AddTrackDialog({
   trackCount,
   onAdd,
 }: AddTrackDialogProps) {
+  const settings = useAppStore((s) => s.settings);
+  const trackColors = useMemo(() => parseTrackColors(settings), [settings.track_colors]);
   const [name, setName] = useState("");
   const [color, setColor] = useState<string>(TRACK_COLORS[0].value);
 
   useEffect(() => {
     if (open) {
       setName(`Track ${trackCount + 1}`);
-      setColor(TRACK_COLORS[trackCount % TRACK_COLORS.length].value);
+      setColor(trackColors[trackCount % trackColors.length].value);
     }
-  }, [open, trackCount]);
+  }, [open, trackCount, trackColors]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,7 +225,7 @@ export function ChangeColorDialog({
   track,
   onChangeColor,
 }: ChangeColorDialogProps) {
-  const [color, setColor] = useState<string>(TRACK_COLORS[0].value);
+  const [color, setColor] = useState<string>("");
 
   useEffect(() => {
     if (open && track) {

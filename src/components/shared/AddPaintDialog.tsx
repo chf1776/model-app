@@ -45,6 +45,7 @@ interface AddPaintDialogProps {
 
 export function AddPaintDialog({ open, onOpenChange }: AddPaintDialogProps) {
   const addPaint = useAppStore((s) => s.addPaint);
+  const settings = useAppStore((s) => s.settings);
   const [mode, setMode] = useState<"catalogue" | "manual">("catalogue");
 
   // Catalogue state
@@ -62,7 +63,7 @@ export function AddPaintDialog({ open, onOpenChange }: AddPaintDialogProps) {
   const [status, setStatus] = useState<"owned" | "wishlist">("owned");
   const [notes, setNotes] = useState("");
   const [price, setPrice] = useState("");
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState(settings.default_currency || "USD");
   const [buyUrl, setBuyUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -92,7 +93,7 @@ export function AddPaintDialog({ open, onOpenChange }: AddPaintDialogProps) {
     setStatus("owned");
     setNotes("");
     setPrice("");
-    setCurrency("USD");
+    setCurrency(settings.default_currency || "USD");
     setBuyUrl("");
     setMode("catalogue");
   };

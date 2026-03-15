@@ -13,7 +13,7 @@ import { useAppStore } from "@/store";
 import * as api from "@/api";
 import { cn } from "@/lib/utils";
 import type { Accessory } from "@/shared/types";
-import { ACCESSORY_TYPE_COLORS, ACCESSORY_TYPE_LABELS } from "@/shared/types";
+import { ACCESSORY_TYPE_COLORS, ACCESSORY_TYPE_LABELS, getSettingBool } from "@/shared/types";
 
 interface AccessoryRowProps {
   accessory: Accessory;
@@ -22,6 +22,7 @@ interface AccessoryRowProps {
 
 export function AccessoryRow({ accessory, onEdit }: AccessoryRowProps) {
   const updateAccessoryStore = useAppStore((s) => s.updateAccessory);
+  const settings = useAppStore((s) => s.settings);
   const [statusPopoverOpen, setStatusPopoverOpen] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -34,9 +35,11 @@ export function AccessoryRow({ accessory, onEdit }: AccessoryRowProps) {
     setToggling(true);
     try {
       const newStatus = isOwned ? "wishlist" : "shelf";
+      const clearPrice = newStatus === "shelf" && getSettingBool(settings, "acquire_clear_price");
       const updated = await api.updateAccessory({
         id: accessory.id,
         status: newStatus,
+        ...(clearPrice ? { price: null, currency: null, buy_url: null } : {}),
       });
       updateAccessoryStore(updated);
       toast.success(

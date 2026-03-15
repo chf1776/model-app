@@ -1,6 +1,6 @@
 import type { StateCreator } from "zustand";
 import type { Project, UpdateProjectInput, InstructionSource, InstructionPage, Track, Step, Tag, StepRelation, ReferenceImage, Annotation, AnnotationTool, PaletteEntry } from "@/shared/types";
-import { getEffectiveDryingMinutes, ANNOTATION_TOOL_LABELS } from "@/shared/types";
+import { getEffectiveDryingMinutes, ANNOTATION_TOOL_LABELS, getSettingBool } from "@/shared/types";
 import type { AppStore } from "./index";
 import * as api from "@/api";
 import { toast } from "sonner";
@@ -716,8 +716,14 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   },
 
   setAnnotationMode: (mode) => set({ annotationMode: mode }),
-  setAnnotationColor: (color) => set({ annotationColor: color }),
-  setAnnotationStrokeWidth: (width) => set({ annotationStrokeWidth: width }),
+  setAnnotationColor: (color) => {
+    set({ annotationColor: color });
+    api.setSetting("annotation_color", color).catch(() => {});
+  },
+  setAnnotationStrokeWidth: (width) => {
+    set({ annotationStrokeWidth: width });
+    api.setSetting("annotation_stroke_width", String(width)).catch(() => {});
+  },
 
   undoAnnotation: (stepId) => {
     const undoStack = get().annotationUndoStacks[stepId] ?? [];
@@ -873,7 +879,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       // On completion (not un-completion)
       if (!step.is_completed) {
         // Log step_complete
-        if (activeProjectId) {
+        if (activeProjectId && getSettingBool(get().settings, "auto_log_step_complete")) {
           api.addBuildLogEntry({
             projectId: activeProjectId,
             entryType: "step_complete",
@@ -883,9 +889,9 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         }
 
         // Auto-start drying timer if step has adhesive/drying time
-        const dryingMin = getEffectiveDryingMinutes(step);
+        const dryingMin = getEffectiveDryingMinutes(step, get().settings);
         const alreadyHasTimer = get().activeTimers.some((t) => t.step_id === step.id);
-        if (dryingMin && !alreadyHasTimer) {
+        if (getSettingBool(get().settings, "auto_start_timers") && dryingMin && !alreadyHasTimer) {
           get().addTimer(step.id, step.title, dryingMin).then((created) => {
             toast.info(`Drying timer started: ${dryingMin} min`, {
               action: {
@@ -901,8 +907,8 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         const freshTracks = get().tracks;
         const track = freshTracks.find((t) => t.id === step.track_id);
         if (track && track.completed_count === track.step_count && track.step_count > 0) {
-          // Milestone detected — log it and show dialog (skip auto-advance)
-          if (activeProjectId) {
+          // Milestone detected — show dialog (skip auto-advance)
+          if (activeProjectId && getSettingBool(get().settings, "auto_log_milestone")) {
             api.addBuildLogEntry({
               projectId: activeProjectId,
               entryType: "milestone",

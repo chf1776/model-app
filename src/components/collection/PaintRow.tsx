@@ -4,7 +4,7 @@ import { useAppStore } from "@/store";
 import * as api from "@/api";
 import { cn } from "@/lib/utils";
 import type { Paint } from "@/shared/types";
-import { PAINT_TYPE_LABELS } from "@/shared/types";
+import { PAINT_TYPE_LABELS, getSettingBool } from "@/shared/types";
 
 interface PaintRowProps {
   paint: Paint;
@@ -16,6 +16,7 @@ export function PaintRow({ paint }: PaintRowProps) {
   const selectedPaintId = useAppStore((s) => s.selectedPaintId);
   const setSelectedPaintId = useAppStore((s) => s.setSelectedPaintId);
   const updatePaintStore = useAppStore((s) => s.updatePaint);
+  const settings = useAppStore((s) => s.settings);
   const paintProjects = useAppStore((s) => s.paintProjectMap[paint.id] ?? EMPTY_PROJECTS);
   const isSelected = selectedPaintId === paint.id;
 
@@ -23,7 +24,12 @@ export function PaintRow({ paint }: PaintRowProps) {
     e.stopPropagation();
     const newStatus = paint.status === "owned" ? "wishlist" : "owned";
     try {
-      const updated = await api.updatePaint({ id: paint.id, status: newStatus });
+      const clearPrice = newStatus === "owned" && getSettingBool(settings, "acquire_clear_price");
+      const updated = await api.updatePaint({
+        id: paint.id,
+        status: newStatus,
+        ...(clearPrice ? { price: null, currency: null, buy_url: null } : {}),
+      });
       updatePaintStore(updated);
     } catch (err) {
       toast.error(`Failed to update status: ${err}`);
