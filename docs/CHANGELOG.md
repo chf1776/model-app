@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] — 2026-03-17 — Scalemates Integration
+
+### Added
+- **Scalemates web scraping**: Fetch kit metadata (name, manufacturer, scale, kit number, category, box art) from any Scalemates kit URL
+- **Import diff dialog**: Side-by-side comparison of current vs Scalemates data with per-field checkboxes to selectively apply updates
+- **Box art download**: Automatically download box art images from Scalemates and save to file stash
+- **Instruction manual download**: Download instruction PDFs from Scalemates with related-boxing detection and confirmation dialog
+- **Provenance tracking**: `source_kit_name` / `source_kit_year` columns on `kit_files` and `instruction_sources` tables; "Scalemates" badge on downloaded files
+- **Scalemates URL field**: Added to Add Kit and Edit Kit dialogs with Import/Refresh button
+- **`scalemates_id` field on kits**: Tracks the Scalemates numeric ID for refresh detection
+- **V8 migration**: `scalemates_id` on kits, provenance columns on kit_files and instruction_sources
+- **Rust scraping service**: `reqwest` (blocking) + `scraper` crate for HTML parsing with browser-like UA, timeout handling, and related-boxing detection
+- **`formatProvenanceLabel` utility**: Shared provenance display logic for kit files and instruction sources
+- **`SCALEMATES_KIT_URL_PATTERN` constant**: Shared URL validation pattern
+
+### Changed
+- **ProjectInfoCard**: Scalemates link prefers kit-level `scalemates_url` over project-level URL
+- **AddKitDialog save flow**: Box art and manual downloads run in parallel via `Promise.allSettled`
+- **EditKitDialog box art**: Download updates Zustand state directly using returned path instead of re-fetching all kits
+
 ## [0.5.1] — 2026-03-16 — Phase 6–8: Palettes, Settings, Themes & Polish
 
 ### Added

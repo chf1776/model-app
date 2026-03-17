@@ -8,6 +8,7 @@ export interface Kit {
   status: KitStatus;
   category: KitCategory | null;
   scalemates_url: string | null;
+  scalemates_id: string | null;
   retailer_url: string | null;
   price: number | null;
   currency: string | null;
@@ -34,6 +35,7 @@ export interface CreateKitInput {
   status?: KitStatus | null;
   category?: KitCategory | null;
   scalemates_url?: string | null;
+  scalemates_id?: string | null;
   price?: number | null;
   currency?: string | null;
   retailer_url?: string | null;
@@ -50,6 +52,7 @@ export interface UpdateKitInput {
   status?: KitStatus | null;
   category?: KitCategory | null;
   scalemates_url?: string | null;
+  scalemates_id?: string | null;
   retailer_url?: string | null;
   price?: number | null;
   currency?: string | null;
@@ -63,6 +66,8 @@ export interface KitFile {
   file_type: "pdf" | "image";
   label: string | null;
   display_order: number;
+  source_kit_name: string | null;
+  source_kit_year: string | null;
   created_at: number;
 }
 
@@ -83,6 +88,7 @@ export interface Project {
   kit_name: string | null;
   kit_scale: string | null;
   kit_box_art_path: string | null;
+  kit_scalemates_url: string | null;
 }
 
 export type ProjectStatus = "active" | "paused" | "completed" | "archived";
@@ -679,6 +685,8 @@ export interface InstructionSource {
   file_path: string;
   page_count: number;
   display_order: number;
+  source_kit_name: string | null;
+  source_kit_year: string | null;
   created_at: number;
 }
 
@@ -753,6 +761,38 @@ export const PROJECT_STATUS_COLORS: Record<ProjectStatus, string> = {
   completed: "var(--color-status-completed)",
   archived: "var(--color-status-shelf)",
 };
+
+// ── Scalemates ──────────────────────────────────────────────────────────
+
+export const SCALEMATES_KIT_URL_PATTERN = "scalemates.com/kits/";
+
+export interface ScalematesKitData {
+  scalemates_id: string;
+  name: string | null;
+  manufacturer: string | null;
+  scale: string | null;
+  kit_number: string | null;
+  category: KitCategory | null;
+  box_art_url: string | null;
+  manual: ScalematesManual | null;
+}
+
+export interface ScalematesManual {
+  pdf_url: string;
+  is_exact_match: boolean;
+  source_kit_name: string | null;
+  source_kit_year: string | null;
+}
+
+/** Format a Scalemates provenance label from source_kit_name / source_kit_year */
+export function formatProvenanceLabel(
+  sourceKitName: string | null | undefined,
+  sourceKitYear: string | null | undefined,
+): string | null {
+  if (!sourceKitName) return null;
+  if (sourceKitName === "Scalemates") return "Scalemates";
+  return `Scalemates \u00b7 From: ${sourceKitName}${sourceKitYear ? ` (${sourceKitYear})` : ""}`;
+}
 
 // ── Storage Stats ───────────────────────────────────────────────────────
 export interface StorageStats {

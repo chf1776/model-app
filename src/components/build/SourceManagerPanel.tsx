@@ -14,6 +14,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAppStore } from "@/store";
+import { formatProvenanceLabel } from "@/shared/types";
 import * as api from "@/api";
 import { useUploadPdf } from "./useUploadPdf";
 
@@ -102,6 +103,11 @@ export function SourceManagerPanel({ onClose }: SourceManagerPanelProps) {
                       ? `${source.page_count} pages`
                       : "Unprocessed"}
                   </p>
+                  {formatProvenanceLabel(source.source_kit_name, source.source_kit_year) && (
+                    <p className="text-[9px] text-text-tertiary">
+                      {formatProvenanceLabel(source.source_kit_name, source.source_kit_year)}
+                    </p>
+                  )}
                 </div>
               </button>
 

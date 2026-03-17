@@ -288,10 +288,10 @@ export function ProjectInfoCard({ expanded, onExpand, onCollapse }: ProjectInfoC
                   {project.status}
                 </span>
               </div>
-              {project.scalemates_url && (
+              {(project.kit_scalemates_url || project.scalemates_url) && (
                 <button
                   type="button"
-                  onClick={() => openPath(project.scalemates_url!).catch((err) => toast.error(`Failed to open: ${err}`))}
+                  onClick={() => openPath((project.kit_scalemates_url ?? project.scalemates_url)!).catch((err) => toast.error(`Failed to open: ${err}`))}
                   className="inline-flex items-center gap-1 text-[9px] text-accent hover:underline"
                 >
                   <ExternalLink className="h-2.5 w-2.5" />

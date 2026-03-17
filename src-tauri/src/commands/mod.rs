@@ -12,6 +12,7 @@ pub mod palette_entries;
 pub mod progress_photos;
 pub mod projects;
 pub mod reference_images;
+pub mod scalemates;
 pub mod settings;
 pub mod step_paint_refs;
 pub mod step_relations;

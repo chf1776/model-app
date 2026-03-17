@@ -3,36 +3,39 @@ use crate::util::now;
 use rusqlite::{params, Connection};
 use uuid::Uuid;
 
+const SELECT_COLS: &str =
+    "id, name, manufacturer, scale, kit_number, box_art_path,
+     status, category, scalemates_url, scalemates_id, retailer_url, price, currency,
+     notes, created_at, updated_at";
+
+fn map_row(row: &rusqlite::Row) -> rusqlite::Result<Kit> {
+    Ok(Kit {
+        id: row.get(0)?,
+        name: row.get(1)?,
+        manufacturer: row.get(2)?,
+        scale: row.get(3)?,
+        kit_number: row.get(4)?,
+        box_art_path: row.get(5)?,
+        status: row.get(6)?,
+        category: row.get(7)?,
+        scalemates_url: row.get(8)?,
+        scalemates_id: row.get(9)?,
+        retailer_url: row.get(10)?,
+        price: row.get(11)?,
+        currency: row.get(12)?,
+        notes: row.get(13)?,
+        created_at: row.get(14)?,
+        updated_at: row.get(15)?,
+    })
+}
+
 pub fn list_all(conn: &Connection) -> Result<Vec<Kit>, String> {
     let mut stmt = conn
-        .prepare(
-            "SELECT id, name, manufacturer, scale, kit_number, box_art_path,
-                    status, category, scalemates_url, retailer_url, price, currency,
-                    notes, created_at, updated_at
-             FROM kits ORDER BY updated_at DESC",
-        )
+        .prepare(&format!("SELECT {SELECT_COLS} FROM kits ORDER BY updated_at DESC"))
         .map_err(|e| e.to_string())?;
 
     let kits = stmt
-        .query_map([], |row| {
-            Ok(Kit {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                manufacturer: row.get(2)?,
-                scale: row.get(3)?,
-                kit_number: row.get(4)?,
-                box_art_path: row.get(5)?,
-                status: row.get(6)?,
-                category: row.get(7)?,
-                scalemates_url: row.get(8)?,
-                retailer_url: row.get(9)?,
-                price: row.get(10)?,
-                currency: row.get(11)?,
-                notes: row.get(12)?,
-                created_at: row.get(13)?,
-                updated_at: row.get(14)?,
-            })
-        })
+        .query_map([], |row| map_row(row))
         .map_err(|e| e.to_string())?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;
@@ -49,8 +52,8 @@ pub fn insert(conn: &Connection, input: CreateKitInput) -> Result<Kit, String> {
 
     conn.execute(
         "INSERT INTO kits (id, name, manufacturer, scale, kit_number, status, category,
-                           scalemates_url, price, currency, retailer_url, notes, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+                           scalemates_url, scalemates_id, price, currency, retailer_url, notes, created_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
         params![
             id,
             input.name,
@@ -60,6 +63,7 @@ pub fn insert(conn: &Connection, input: CreateKitInput) -> Result<Kit, String> {
             status,
             input.category,
             input.scalemates_url,
+            input.scalemates_id,
             input.price,
             currency,
             input.retailer_url,
@@ -80,6 +84,7 @@ pub fn insert(conn: &Connection, input: CreateKitInput) -> Result<Kit, String> {
         status,
         category: input.category,
         scalemates_url: input.scalemates_url,
+        scalemates_id: input.scalemates_id,
         retailer_url: input.retailer_url,
         price: input.price,
         currency,
@@ -101,6 +106,7 @@ pub fn update(conn: &Connection, input: UpdateKitInput) -> Result<Kit, String> {
     let status = input.status.unwrap_or(existing.status);
     let category = input.category.or(existing.category);
     let scalemates_url = input.scalemates_url.or(existing.scalemates_url);
+    let scalemates_id = input.scalemates_id.or(existing.scalemates_id);
     let retailer_url = input.retailer_url.or(existing.retailer_url);
     let price = input.price.or(existing.price);
     let currency = input.currency.or(existing.currency);
@@ -109,8 +115,8 @@ pub fn update(conn: &Connection, input: UpdateKitInput) -> Result<Kit, String> {
     conn.execute(
         "UPDATE kits SET name=?1, manufacturer=?2, scale=?3, kit_number=?4,
                 box_art_path=?5, status=?6, category=?7, scalemates_url=?8,
-                retailer_url=?9, price=?10, currency=?11, notes=?12
-         WHERE id=?13",
+                scalemates_id=?9, retailer_url=?10, price=?11, currency=?12, notes=?13
+         WHERE id=?14",
         params![
             name,
             manufacturer,
@@ -120,6 +126,7 @@ pub fn update(conn: &Connection, input: UpdateKitInput) -> Result<Kit, String> {
             status,
             category,
             scalemates_url,
+            scalemates_id,
             retailer_url,
             price,
             currency,
@@ -134,30 +141,9 @@ pub fn update(conn: &Connection, input: UpdateKitInput) -> Result<Kit, String> {
 
 pub fn get_by_id(conn: &Connection, id: &str) -> Result<Kit, String> {
     conn.query_row(
-        "SELECT id, name, manufacturer, scale, kit_number, box_art_path,
-                status, category, scalemates_url, retailer_url, price, currency,
-                notes, created_at, updated_at
-         FROM kits WHERE id = ?1",
+        &format!("SELECT {SELECT_COLS} FROM kits WHERE id = ?1"),
         params![id],
-        |row| {
-            Ok(Kit {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                manufacturer: row.get(2)?,
-                scale: row.get(3)?,
-                kit_number: row.get(4)?,
-                box_art_path: row.get(5)?,
-                status: row.get(6)?,
-                category: row.get(7)?,
-                scalemates_url: row.get(8)?,
-                retailer_url: row.get(9)?,
-                price: row.get(10)?,
-                currency: row.get(11)?,
-                notes: row.get(12)?,
-                created_at: row.get(13)?,
-                updated_at: row.get(14)?,
-            })
-        },
+        |row| map_row(row),
     )
     .map_err(|e| e.to_string())
 }

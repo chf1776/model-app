@@ -147,6 +147,9 @@ pub fn run() {
             commands::gallery_photos::update_gallery_photo_caption,
             commands::gallery_photos::delete_gallery_photo,
             commands::gallery_photos::toggle_photo_star,
+            commands::scalemates::fetch_scalemates_data,
+            commands::scalemates::download_scalemates_manual,
+            commands::scalemates::download_scalemates_box_art,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

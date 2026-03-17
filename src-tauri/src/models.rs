@@ -13,6 +13,7 @@ pub struct Kit {
     pub status: String,
     pub category: Option<String>,
     pub scalemates_url: Option<String>,
+    pub scalemates_id: Option<String>,
     pub retailer_url: Option<String>,
     pub price: Option<f64>,
     pub currency: Option<String>,
@@ -30,6 +31,7 @@ pub struct CreateKitInput {
     pub status: Option<String>,
     pub category: Option<String>,
     pub scalemates_url: Option<String>,
+    pub scalemates_id: Option<String>,
     pub price: Option<f64>,
     pub currency: Option<String>,
     pub retailer_url: Option<String>,
@@ -47,6 +49,7 @@ pub struct UpdateKitInput {
     pub status: Option<String>,
     pub category: Option<String>,
     pub scalemates_url: Option<String>,
+    pub scalemates_id: Option<String>,
     pub retailer_url: Option<String>,
     pub price: Option<f64>,
     pub currency: Option<String>,
@@ -180,6 +183,8 @@ pub struct KitFile {
     pub file_type: String,
     pub label: Option<String>,
     pub display_order: i32,
+    pub source_kit_name: Option<String>,
+    pub source_kit_year: Option<String>,
     pub created_at: i64,
 }
 
@@ -204,6 +209,7 @@ pub struct Project {
     pub kit_name: Option<String>,
     pub kit_scale: Option<String>,
     pub kit_box_art_path: Option<String>,
+    pub kit_scalemates_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -245,6 +251,8 @@ pub struct InstructionSource {
     pub file_path: String,
     pub page_count: i32,
     pub display_order: i32,
+    pub source_kit_name: Option<String>,
+    pub source_kit_year: Option<String>,
     pub created_at: i64,
 }
 

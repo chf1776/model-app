@@ -7,7 +7,7 @@ const SELECT_COLS: &str =
     "p.id, p.name, p.kit_id, p.status, p.category, p.scalemates_url,
      p.product_code, p.hero_photo_path, p.start_date, p.completion_date, p.notes,
      p.created_at, p.updated_at,
-     k.name, k.scale, k.box_art_path";
+     k.name, k.scale, k.box_art_path, k.scalemates_url";
 
 fn map_row(row: &rusqlite::Row) -> rusqlite::Result<Project> {
     Ok(Project {
@@ -27,6 +27,7 @@ fn map_row(row: &rusqlite::Row) -> rusqlite::Result<Project> {
         kit_name: row.get(13)?,
         kit_scale: row.get(14)?,
         kit_box_art_path: row.get(15)?,
+        kit_scalemates_url: row.get(16)?,
     })
 }
 

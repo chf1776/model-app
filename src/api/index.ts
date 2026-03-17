@@ -43,6 +43,7 @@ import type {
   InstructionSource,
   InstructionPage,
   ProjectUiState,
+  ScalematesKitData,
 } from "@/shared/types";
 
 // ── Kits ────────────────────────────────────────────────────────────────────
@@ -656,4 +657,35 @@ export async function saveViewState(
   panY: number,
 ): Promise<void> {
   return invoke<void>("save_view_state", { projectId, zoom, panX, panY });
+}
+
+// ── Scalemates ──────────────────────────────────────────────────────────────
+
+export async function fetchScalematesData(
+  url: string,
+): Promise<ScalematesKitData> {
+  return invoke<ScalematesKitData>("fetch_scalemates_data", { url });
+}
+
+export async function downloadScalematesManual(
+  kitId: string,
+  pdfUrl: string,
+  label: string,
+  sourceKitName?: string | null,
+  sourceKitYear?: string | null,
+): Promise<KitFile> {
+  return invoke<KitFile>("download_scalemates_manual", {
+    kitId,
+    pdfUrl,
+    label,
+    sourceKitName: sourceKitName ?? null,
+    sourceKitYear: sourceKitYear ?? null,
+  });
+}
+
+export async function downloadScalematesBoxArt(
+  kitId: string,
+  imageUrl: string,
+): Promise<string> {
+  return invoke<string>("download_scalemates_box_art", { kitId, imageUrl });
 }

@@ -3,11 +3,26 @@ use crate::util::now;
 use rusqlite::{params, Connection};
 use uuid::Uuid;
 
+fn map_row(row: &rusqlite::Row) -> rusqlite::Result<InstructionSource> {
+    Ok(InstructionSource {
+        id: row.get(0)?,
+        project_id: row.get(1)?,
+        name: row.get(2)?,
+        original_filename: row.get(3)?,
+        file_path: row.get(4)?,
+        page_count: row.get(5)?,
+        display_order: row.get(6)?,
+        source_kit_name: row.get(7)?,
+        source_kit_year: row.get(8)?,
+        created_at: row.get(9)?,
+    })
+}
+
 pub fn list_by_project(conn: &Connection, project_id: &str) -> Result<Vec<InstructionSource>, String> {
     let mut stmt = conn
         .prepare(
             "SELECT id, project_id, name, original_filename, file_path, page_count,
-                    display_order, created_at
+                    display_order, source_kit_name, source_kit_year, created_at
              FROM instruction_sources
              WHERE project_id = ?1
              ORDER BY display_order, created_at",
@@ -15,18 +30,7 @@ pub fn list_by_project(conn: &Connection, project_id: &str) -> Result<Vec<Instru
         .map_err(|e| e.to_string())?;
 
     let sources = stmt
-        .query_map(params![project_id], |row| {
-            Ok(InstructionSource {
-                id: row.get(0)?,
-                project_id: row.get(1)?,
-                name: row.get(2)?,
-                original_filename: row.get(3)?,
-                file_path: row.get(4)?,
-                page_count: row.get(5)?,
-                display_order: row.get(6)?,
-                created_at: row.get(7)?,
-            })
-        })
+        .query_map(params![project_id], |row| map_row(row))
         .map_err(|e| e.to_string())?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;
@@ -37,21 +41,10 @@ pub fn list_by_project(conn: &Connection, project_id: &str) -> Result<Vec<Instru
 pub fn get_by_id(conn: &Connection, id: &str) -> Result<InstructionSource, String> {
     conn.query_row(
         "SELECT id, project_id, name, original_filename, file_path, page_count,
-                display_order, created_at
+                display_order, source_kit_name, source_kit_year, created_at
          FROM instruction_sources WHERE id = ?1",
         params![id],
-        |row| {
-            Ok(InstructionSource {
-                id: row.get(0)?,
-                project_id: row.get(1)?,
-                name: row.get(2)?,
-                original_filename: row.get(3)?,
-                file_path: row.get(4)?,
-                page_count: row.get(5)?,
-                display_order: row.get(6)?,
-                created_at: row.get(7)?,
-            })
-        },
+        |row| map_row(row),
     )
     .map_err(|e| e.to_string())
 }
@@ -62,6 +55,18 @@ pub fn insert(
     name: &str,
     original_filename: &str,
     file_path: &str,
+) -> Result<InstructionSource, String> {
+    insert_with_provenance(conn, project_id, name, original_filename, file_path, None, None)
+}
+
+pub fn insert_with_provenance(
+    conn: &Connection,
+    project_id: &str,
+    name: &str,
+    original_filename: &str,
+    file_path: &str,
+    source_kit_name: Option<&str>,
+    source_kit_year: Option<&str>,
 ) -> Result<InstructionSource, String> {
     let id = Uuid::new_v4().to_string();
     let ts = now();
@@ -76,9 +81,10 @@ pub fn insert(
         .map_err(|e| e.to_string())?;
 
     conn.execute(
-        "INSERT INTO instruction_sources (id, project_id, name, original_filename, file_path, page_count, display_order, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, 0, ?6, ?7)",
-        params![id, project_id, name, original_filename, file_path, display_order, ts],
+        "INSERT INTO instruction_sources (id, project_id, name, original_filename, file_path,
+                                          page_count, display_order, source_kit_name, source_kit_year, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, 0, ?6, ?7, ?8, ?9)",
+        params![id, project_id, name, original_filename, file_path, display_order, source_kit_name, source_kit_year, ts],
     )
     .map_err(|e| e.to_string())?;
 
@@ -90,6 +96,8 @@ pub fn insert(
         file_path: file_path.to_string(),
         page_count: 0,
         display_order,
+        source_kit_name: source_kit_name.map(|s| s.to_string()),
+        source_kit_year: source_kit_year.map(|s| s.to_string()),
         created_at: ts,
     })
 }

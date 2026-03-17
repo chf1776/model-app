@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { openPath } from "@tauri-apps/plugin-opener";
-import { FileText, ImageIcon, Trash2, Paperclip } from "lucide-react";
+import { FileText, ImageIcon, Trash2, Paperclip, Globe, RefreshCw, Loader2, Download } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -37,12 +37,16 @@ import { cn } from "@/lib/utils";
 import {
   COMMON_SCALES,
   KIT_CATEGORIES,
+  SCALEMATES_KIT_URL_PATTERN,
   STATUS_LABELS,
+  formatProvenanceLabel,
   type Kit,
   type KitFile,
   type KitCategory,
   type KitStatus,
+  type ScalematesKitData,
 } from "@/shared/types";
+import { ScalematesDiffDialog } from "./ScalematesDiffDialog";
 
 interface EditKitDialogProps {
   kit: Kit | null;
@@ -63,8 +67,17 @@ export function EditKitDialog({ kit, onClose }: EditKitDialogProps) {
   const [price, setPrice] = useState("");
   const [currency, setCurrency] = useState("USD");
   const [retailerUrl, setRetailerUrl] = useState("");
+  const [scalematesUrl, setScalematesUrl] = useState("");
+  const [scalematesId, setScalematesId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [kitFiles, setKitFiles] = useState<KitFile[]>([]);
+
+  // Scalemates import state
+  const [importResult, setImportResult] = useState<ScalematesKitData | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [showDiffDialog, setShowDiffDialog] = useState(false);
+  const [downloadingManual, setDownloadingManual] = useState(false);
+  const [showRelatedConfirm, setShowRelatedConfirm] = useState(false);
 
   useEffect(() => {
     if (kit) {
@@ -78,12 +91,90 @@ export function EditKitDialog({ kit, onClose }: EditKitDialogProps) {
       setPrice(kit.price != null ? String(kit.price) : "");
       setCurrency(kit.currency ?? "USD");
       setRetailerUrl(kit.retailer_url ?? "");
+      setScalematesUrl(kit.scalemates_url ?? "");
+      setScalematesId(kit.scalemates_id ?? null);
+      // Reset import state
+      setImportResult(null);
+      setDownloadingManual(false);
+      setShowRelatedConfirm(false);
       // Load attached files
       api.listKitFiles(kit.id).then(setKitFiles).catch(() => setKitFiles([]));
     } else {
       setKitFiles([]);
     }
   }, [kit]);
+
+  const isScalematesUrl = scalematesUrl.includes(SCALEMATES_KIT_URL_PATTERN);
+  const hasScalematesId = !!scalematesId;
+
+  const handleImport = async () => {
+    if (!isScalematesUrl) return;
+    setImportResult(null);
+    setIsImporting(true);
+    try {
+      const data = await api.fetchScalematesData(scalematesUrl);
+      setImportResult(data);
+      setShowDiffDialog(true);
+    } catch (err) {
+      toast.error(String(err));
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleDiffApply = (updates: {
+    name?: string;
+    manufacturer?: string;
+    scale?: string;
+    kitNumber?: string;
+    category?: KitCategory | "";
+    boxArtUrl?: string | null;
+    scalematesId?: string;
+  }) => {
+    if (updates.name) setName(updates.name);
+    if (updates.manufacturer) setManufacturer(updates.manufacturer);
+    if (updates.scale) setScale(updates.scale);
+    if (updates.kitNumber) setKitNumber(updates.kitNumber);
+    if (updates.category !== undefined) setCategory(updates.category ?? "");
+    if (updates.scalematesId) setScalematesId(updates.scalematesId);
+    if (updates.boxArtUrl && kit) {
+      // Download immediately since kit already exists
+      api.downloadScalematesBoxArt(kit.id, updates.boxArtUrl)
+        .then((path) => {
+          updateKitStore({ ...kit, box_art_path: path });
+          toast.success("Box art downloaded");
+        })
+        .catch(() => toast.error("Box art download failed. You can add it manually."));
+    }
+  };
+
+  const handleDownloadManual = async () => {
+    if (!kit || !importResult?.manual) return;
+    const manual = importResult.manual;
+
+    if (!manual.is_exact_match && !showRelatedConfirm) {
+      setShowRelatedConfirm(true);
+      return;
+    }
+
+    setDownloadingManual(true);
+    setShowRelatedConfirm(false);
+    try {
+      const newFile = await api.downloadScalematesManual(
+        kit.id,
+        manual.pdf_url,
+        "Instruction Manual",
+        manual.source_kit_name,
+        manual.source_kit_year,
+      );
+      toast.success("Instruction manual downloaded");
+      setKitFiles((prev) => [...prev, newFile]);
+    } catch (err) {
+      toast.error(`Manual download failed: ${err}`);
+    } finally {
+      setDownloadingManual(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!kit || !name.trim()) return;
@@ -97,6 +188,8 @@ export function EditKitDialog({ kit, onClose }: EditKitDialogProps) {
         kit_number: kitNumber.trim() || null,
         category: (category as KitCategory) || null,
         status: status,
+        scalemates_url: scalematesUrl.trim() || null,
+        scalemates_id: scalematesId,
         price: price ? parseFloat(price) : null,
         currency: currency.trim() || null,
         retailer_url: retailerUrl.trim() || null,
@@ -223,6 +316,12 @@ export function EditKitDialog({ kit, onClose }: EditKitDialogProps) {
                   {s}
                 </button>
               ))}
+              {/* Show custom scale pill if not in common list */}
+              {scale && !COMMON_SCALES.includes(scale) && (
+                <span className="rounded-[10px] bg-accent px-2.5 py-[3px] text-[10px] font-semibold text-white">
+                  {scale}
+                </span>
+              )}
             </div>
           </div>
 
@@ -259,6 +358,71 @@ export function EditKitDialog({ kit, onClose }: EditKitDialogProps) {
               ))}
             </div>
           </div>
+
+          {/* Scalemates URL + Import */}
+          <div className="flex flex-col gap-1">
+            <Label className="text-[11px] font-medium">Scalemates URL</Label>
+            <div className="flex gap-1.5">
+              <Input
+                value={scalematesUrl}
+                onChange={(e) => setScalematesUrl(e.target.value)}
+                placeholder="https://www.scalemates.com/kits/..."
+                className="h-8 flex-1 text-xs"
+              />
+              {isScalematesUrl && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleImport}
+                  disabled={isImporting}
+                  className="h-8 gap-1 text-[10px]"
+                >
+                  {isImporting ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : hasScalematesId ? (
+                    <RefreshCw className="h-3 w-3" />
+                  ) : (
+                    <Globe className="h-3 w-3" />
+                  )}
+                  {hasScalematesId ? "Refresh" : "Import"}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Manual download section (after import) */}
+          {importResult?.manual && (
+            <div className="rounded-md border border-border bg-sidebar p-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-medium text-text-primary">
+                  {importResult.manual.is_exact_match
+                    ? "Instruction manual available"
+                    : `Manual from ${importResult.manual.source_kit_name ?? "related kit"}${importResult.manual.source_kit_year ? ` (${importResult.manual.source_kit_year})` : ""}`}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadManual}
+                  disabled={downloadingManual}
+                  className="h-6 gap-1 text-[10px]"
+                >
+                  {downloadingManual ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Download className="h-3 w-3" />
+                  )}
+                  Download
+                </Button>
+              </div>
+              {!importResult.manual.is_exact_match && (
+                <p className="mt-1 text-[10px] text-text-tertiary">
+                  This manual may have minor differences from your kit.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Notes */}
           <div className="flex flex-col gap-1">
@@ -324,18 +488,25 @@ export function EditKitDialog({ kit, onClose }: EditKitDialogProps) {
                       ) : (
                         <ImageIcon className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
                       )}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          openPath(f.file_path).catch((err) => {
-                            console.error("openPath failed:", f.file_path, err);
-                            toast.error(`Failed to open file: ${err}`);
-                          });
-                        }}
-                        className="min-w-0 flex-1 truncate text-left text-[11px] text-text-secondary hover:text-accent"
-                      >
-                        {f.label || filename}
-                      </button>
+                      <div className="min-w-0 flex-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            openPath(f.file_path).catch((err) => {
+                              console.error("openPath failed:", f.file_path, err);
+                              toast.error(`Failed to open file: ${err}`);
+                            });
+                          }}
+                          className="block truncate text-left text-[11px] text-text-secondary hover:text-accent"
+                        >
+                          {f.label || filename}
+                        </button>
+                        {formatProvenanceLabel(f.source_kit_name, f.source_kit_year) && (
+                          <span className="text-[9px] text-text-tertiary">
+                            {formatProvenanceLabel(f.source_kit_name, f.source_kit_year)}
+                          </span>
+                        )}
+                      </div>
                       <button
                         type="button"
                         onClick={() => handleDeleteFile(f.id)}
@@ -417,6 +588,47 @@ export function EditKitDialog({ kit, onClose }: EditKitDialogProps) {
           </div>
         </DialogFooter>
       </DialogContent>
+
+      {/* Scalemates diff dialog */}
+      {importResult && (
+        <ScalematesDiffDialog
+          open={showDiffDialog}
+          onOpenChange={setShowDiffDialog}
+          importResult={importResult}
+          currentValues={{
+            name,
+            manufacturer,
+            scale,
+            kitNumber,
+            category,
+            boxArtPath: kit?.box_art_path ?? null,
+          }}
+          onApply={handleDiffApply}
+        />
+      )}
+
+      {/* Related boxing confirmation */}
+      <AlertDialog open={showRelatedConfirm} onOpenChange={setShowRelatedConfirm}>
+        <AlertDialogContent className="max-w-[360px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-sm">Download Related Manual?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs">
+              This manual is from {importResult?.manual?.source_kit_name ?? "a related kit"}
+              {importResult?.manual?.source_kit_year ? ` (${importResult.manual.source_kit_year})` : ""}.
+              It may have minor differences from your kit.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="text-xs">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDownloadManual}
+              className="bg-accent text-xs text-white hover:bg-accent-hover"
+            >
+              Download Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

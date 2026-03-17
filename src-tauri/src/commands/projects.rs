@@ -41,6 +41,7 @@ pub fn create_project(app: tauri::AppHandle, db: State<'_, AppDb>, input: Create
                 status: Some("building".to_string()),
                 category: input.category.clone(),
                 scalemates_url: None,
+                scalemates_id: None,
                 price: None,
                 currency: None,
                 retailer_url: None,
@@ -80,12 +81,14 @@ pub fn create_project(app: tauri::AppHandle, db: State<'_, AppDb>, input: Create
                 .unwrap_or("unknown.pdf")
                 .to_string();
 
-            let source = crate::db::queries::instruction_sources::insert(
+            let source = crate::db::queries::instruction_sources::insert_with_provenance(
                 &conn,
                 &project.id,
                 &name,
                 &original_filename,
                 &kf.file_path,
+                kf.source_kit_name.as_deref(),
+                kf.source_kit_year.as_deref(),
             )?;
 
             let instructions_dir = crate::util::instructions_dir(&app_data, &project.id, &source.id);
