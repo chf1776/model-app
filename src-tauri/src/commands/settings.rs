@@ -7,6 +7,19 @@ use tauri::{AppHandle, Manager, State};
 
 const PHOTO_COUNT_SQL: &str = "SELECT (SELECT COUNT(*) FROM progress_photos) + (SELECT COUNT(*) FROM milestone_photos) + (SELECT COUNT(*) FROM gallery_photos)";
 
+const RESET_SQL: &str = "
+BEGIN TRANSACTION;
+DELETE FROM projects;
+DELETE FROM kits;
+DELETE FROM accessories;
+DELETE FROM paints;
+DELETE FROM tags;
+DELETE FROM build_log_entries;
+DELETE FROM drying_timers;
+DELETE FROM app_settings;
+COMMIT;
+";
+
 #[tauri::command]
 pub fn get_setting(db: State<'_, AppDb>, key: String) -> Result<String, String> {
     let conn = db.conn()?;
@@ -180,6 +193,13 @@ pub fn preview_backup(source_path: String) -> Result<BackupDiff, String> {
 pub fn apply_backup(app: AppHandle, source_path: String) -> Result<(), String> {
     let app_data = app.path().app_data_dir().map_err(|e| e.to_string())?;
     let base = app_data.join("model-builder");
+    let db = app.state::<AppDb>();
+
+    // Flush WAL to main file before overwriting
+    {
+        let conn = db.conn()?;
+        let _ = conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE)");
+    }
 
     let file = fs::File::open(&source_path).map_err(|e| e.to_string())?;
     let mut archive = zip::ZipArchive::new(file).map_err(|e| e.to_string())?;
@@ -189,7 +209,6 @@ pub fn apply_backup(app: AppHandle, source_path: String) -> Result<(), String> {
         let name = entry.name().to_string();
 
         if name.ends_with('/') {
-            // Directory entry
             let dir_path = base.join(&name);
             fs::create_dir_all(&dir_path).map_err(|e| e.to_string())?;
             continue;
@@ -204,8 +223,31 @@ pub fn apply_backup(app: AppHandle, source_path: String) -> Result<(), String> {
         io::copy(&mut entry, &mut out).map_err(|e| e.to_string())?;
     }
 
-    app.restart();
+    // Remove stale WAL/SHM from old connection, then reopen
+    let _ = fs::remove_file(base.join("db.sqlite-wal"));
+    let _ = fs::remove_file(base.join("db.sqlite-shm"));
+    db.reopen()?;
 
-    #[allow(unreachable_code)]
+    Ok(())
+}
+
+#[tauri::command]
+pub fn reset_app_data(app: AppHandle) -> Result<(), String> {
+    let app_data = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let base = app_data.join("model-builder");
+    let stash_path = base.join("stash");
+
+    // Clear all user data from the database
+    let db = app.state::<AppDb>();
+    let conn = db.conn()?;
+    conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE)")
+        .map_err(|e| e.to_string())?;
+    conn.execute_batch(RESET_SQL).map_err(|e| e.to_string())?;
+    drop(conn);
+
+    // Remove stash directory and recreate it empty
+    let _ = fs::remove_dir_all(&stash_path);
+    fs::create_dir_all(&stash_path).map_err(|e| e.to_string())?;
+
     Ok(())
 }

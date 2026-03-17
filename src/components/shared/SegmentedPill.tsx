@@ -32,9 +32,10 @@ export function SegmentedPill<T extends string>({
             size === "md"
               ? "px-3 py-[5px] text-xs"
               : "px-2 py-[3px] text-[10px]",
+            "font-medium",
             value === item.value
-              ? "bg-card font-semibold text-accent shadow-sm"
-              : "bg-transparent font-normal text-text-tertiary hover:text-text-secondary",
+              ? "bg-card text-accent shadow-sm"
+              : "bg-transparent text-text-tertiary hover:text-text-secondary",
           )}
         >
           {item.icon}

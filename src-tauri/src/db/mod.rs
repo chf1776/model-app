@@ -3,13 +3,28 @@ pub mod queries;
 use refinery::embed_migrations;
 use rusqlite::Connection;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 embed_migrations!("migrations");
 
 pub struct AppDb {
     pub conn: Mutex<Connection>,
+    db_path: PathBuf,
+}
+
+fn open_conn(db_path: &Path) -> Result<Connection, String> {
+    let mut conn =
+        Connection::open(db_path).map_err(|e| format!("Failed to open database: {e}"))?;
+    conn.execute_batch(
+        "PRAGMA journal_mode = WAL;
+         PRAGMA foreign_keys = ON;",
+    )
+    .map_err(|e| format!("Failed to set pragmas: {e}"))?;
+    migrations::runner()
+        .run(&mut conn)
+        .map_err(|e| format!("Failed to run migrations: {e}"))?;
+    Ok(conn)
 }
 
 impl AppDb {
@@ -22,28 +37,23 @@ impl AppDb {
         fs::create_dir_all(&stash_dir).map_err(|e| format!("Failed to create stash dir: {e}"))?;
 
         let db_path = db_dir.join("db.sqlite");
-        let mut conn =
-            Connection::open(&db_path).map_err(|e| format!("Failed to open database: {e}"))?;
-
-        // Enable WAL mode and foreign keys
-        conn.execute_batch(
-            "PRAGMA journal_mode = WAL;
-             PRAGMA foreign_keys = ON;",
-        )
-        .map_err(|e| format!("Failed to set pragmas: {e}"))?;
-
-        // Run migrations
-        migrations::runner()
-            .run(&mut conn)
-            .map_err(|e| format!("Failed to run migrations: {e}"))?;
+        let conn = open_conn(&db_path)?;
 
         Ok(Self {
             conn: Mutex::new(conn),
+            db_path,
         })
     }
 
     pub fn conn(&self) -> Result<std::sync::MutexGuard<'_, Connection>, String> {
         self.conn.lock().map_err(|e| e.to_string())
+    }
+
+    /// Reopen the database connection (e.g. after file replacement via backup import).
+    pub fn reopen(&self) -> Result<(), String> {
+        let mut guard = self.conn.lock().map_err(|e| e.to_string())?;
+        *guard = open_conn(&self.db_path)?;
+        Ok(())
     }
 
     pub fn stash_dir(app_data_dir: &PathBuf) -> PathBuf {

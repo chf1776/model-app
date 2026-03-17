@@ -193,7 +193,7 @@ export function AppShell() {
   return (
     <div className="flex h-full flex-col">
       {/* Zone Bar */}
-      <div className="flex items-center gap-3 border-b border-border bg-sidebar px-3 py-1.5">
+      <div className="flex h-10 items-center gap-3 border-b border-border bg-sidebar px-3">
         {/* Left: Zone switcher */}
         <SegmentedPill
           items={ZONE_ITEMS}
@@ -210,7 +210,7 @@ export function AppShell() {
                 value={project?.id ?? ""}
                 onValueChange={(id) => setActiveProject(id)}
               >
-                <SelectTrigger className="h-7 w-auto min-w-[160px] gap-2 border bg-card text-xs">
+                <SelectTrigger className="h-auto! w-auto min-w-[160px] gap-2 border bg-card py-[5px] text-xs">
                   {project && (
                     <span
                       className="h-1.5 w-1.5 rounded-full bg-accent"

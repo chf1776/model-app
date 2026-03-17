@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { ArrowLeft, FolderOpen, Plus, X, Download, Upload, RotateCcw, Check } from "lucide-react";
+import { ArrowLeft, FolderOpen, Plus, X, Download, Upload, RotateCcw, Check, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getVersion } from "@tauri-apps/api/app";
@@ -19,6 +19,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -199,6 +206,9 @@ export default function SettingsRoute() {
   const [backupDiff, setBackupDiff] = useState<BackupDiff | null>(null);
   const [backupPath, setBackupPath] = useState<string | null>(null);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [showResetAppDialog, setShowResetAppDialog] = useState(false);
+  const [resetConfirmText, setResetConfirmText] = useState("");
 
   // Drying times local state
   const [dryingTimes, setDryingTimes] = useState<Record<string, string>>({});
@@ -351,14 +361,40 @@ export default function SettingsRoute() {
     }
   }, []);
 
+  const handleResetSettings = useCallback(async () => {
+    try {
+      await Promise.all(
+        Object.entries(SETTINGS_DEFAULTS).map(([key, value]) =>
+          updateSetting(key, value),
+        ),
+      );
+      toast.success("Settings reset to defaults");
+      setShowResetDialog(false);
+    } catch (err) {
+      toast.error(`Reset failed: ${err}`);
+    }
+  }, [updateSetting]);
+
+  const handleResetApp = useCallback(async () => {
+    try {
+      await api.resetAppData();
+      toast.success("App data reset");
+      setShowResetAppDialog(false);
+      window.location.reload();
+    } catch (err) {
+      toast.error(`Reset failed: ${err}`);
+    }
+  }, []);
+
   const handleConfirmImport = useCallback(async () => {
     if (!backupPath) return;
     try {
       await api.applyBackup(backupPath);
-      toast.success("Backup imported successfully");
+      toast.success("Backup imported — reloading...");
       setShowImportDialog(false);
       setBackupDiff(null);
       setBackupPath(null);
+      window.location.reload();
     } catch (err) {
       toast.error(`Import failed: ${err}`);
     }
@@ -791,9 +827,114 @@ export default function SettingsRoute() {
                 Built with Tauri + React
               </p>
             </div>
+            <Separator className="my-4" />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1.5 border-red-300 text-[10px] text-red-500 hover:bg-red-50 hover:text-red-600"
+                onClick={() => setShowResetDialog(true)}
+              >
+                <RotateCcw className="h-3 w-3" />
+                Reset Settings
+              </Button>
+              <Button
+                size="sm"
+                className="h-7 gap-1.5 bg-red-500 text-[10px] text-white hover:bg-red-600"
+                onClick={() => { setResetConfirmText(""); setShowResetAppDialog(true); }}
+              >
+                <Trash2 className="h-3 w-3" />
+                Reset App
+              </Button>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Reset App Confirmation */}
+      <Dialog open={showResetAppDialog} onOpenChange={setShowResetAppDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-sm text-red-500">Reset App Data</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <p className="text-xs text-text-secondary">
+              This will permanently delete all your data:
+            </p>
+            <ul className="list-inside list-disc space-y-0.5 text-[11px] text-text-tertiary">
+              <li>All projects, tracks, steps, and annotations</li>
+              <li>All kits, accessories, and paints</li>
+              <li>All photos, manuals, and uploaded files</li>
+              <li>Build logs and timer history</li>
+            </ul>
+            <p className="text-[11px] text-text-tertiary">
+              Settings will be restored to defaults. The page will reload.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1.5 text-[10px]"
+              onClick={handleExportBackup}
+            >
+              <Download className="h-3 w-3" />
+              Export Backup First
+            </Button>
+            <Separator />
+            <div>
+              <Label htmlFor="reset-confirm" className="text-[11px] text-text-secondary">
+                Type <span className="font-semibold">RESET</span> to confirm
+              </Label>
+              <Input
+                id="reset-confirm"
+                className="mt-1 text-sm"
+                value={resetConfirmText}
+                onChange={(e) => setResetConfirmText(e.target.value)}
+                placeholder="RESET"
+                autoComplete="off"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              onClick={() => setShowResetAppDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="bg-red-500 text-xs text-white hover:bg-red-600"
+              disabled={resetConfirmText !== "RESET"}
+              onClick={handleResetApp}
+            >
+              Reset Everything
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Settings Confirmation */}
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset All Settings?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will restore all settings to their default values. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="text-xs">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResetSettings}
+              className="bg-red-500 text-xs hover:bg-red-600"
+            >
+              Reset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Import Backup Confirmation Dialog */}
       <AlertDialog open={showImportDialog} onOpenChange={setShowImportDialog}>

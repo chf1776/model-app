@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-03-16 — Phase 6–8: Palettes, Settings, Themes & Polish
+
 ### Added
 - **Completion warning dialog**: Unified confirmation dialog fires when completing a step that has relation issues — shows incomplete blockers ("Blocked by") and access-loss steps ("Will block access to") with inline completion markers to resolve blockers directly in the dialog
 - **Pre-paint trapping warning**: Access-sealed steps with `pre_paint=true` get red/danger highlight + PRE-PAINT badge + "Unpainted area will be sealed!" callout in completion dialog
@@ -57,12 +59,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Wishlist acquire behavior**: AccessoryRow, KitCard, PaintRow, PaintDetailPanel optionally clear price/currency/buy_url on status toggle based on `acquire_clear_price` setting
 - **Theme system (Phase 8)**: 7 built-in themes (3 light, 4 dark) — Default, Claude Light, Claude Dark, Blueprint, US Army, Quarterdeck, Instruction Sheet
 - **Theme definitions**: `src/shared/themes.ts` with typed `ThemeDefinition` objects, `THEME_MAP` for O(1) lookup, light/dark accessory type color variants
-- **Theme engine**: `src/shared/theme-engine.ts` applies themes by setting CSS variables on `documentElement`, handles derived tokens (status colors, accent-muted, popover), shadow adjustments for dark themes, `.dark` class toggle for shadcn components, accessory type color lightening
+- **Theme engine**: `src/shared/theme-engine.ts` applies themes by setting CSS variables on `documentElement`, handles derived tokens (status colors, popover), shadow adjustments for dark themes, `.dark` class toggle for shadcn components, accessory type color lightening
 - **`useTheme` hook**: `src/hooks/useTheme.ts` provides resolved theme colors to Konva canvas components that cannot consume CSS variables
 - **Theme picker**: Settings Appearance section shows all 7 themes as selectable cards with color swatch strips, Light/Dark labels, and active checkmark
 - **Hardcoded hex cleanup**: Replaced 19 hardcoded color values across 10 components with theme-aware alternatives (CSS variables for DOM, `useTheme()` for Konva)
 - **Sonner dark mode**: Toast notifications now adapt to dark/light theme via `useTheme()` hook
 - **`ACCESSORY_TYPE_COLORS`**: Now references CSS variables instead of hardcoded hex, automatically adapting to theme
+- **Reset Settings button**: Red outlined button at bottom of Settings About section, restores all settings to `SETTINGS_DEFAULTS` with AlertDialog confirmation
+- **Reset App button**: Red filled button with destructive confirmation — lists all data that will be deleted, requires typing "RESET" to proceed, offers "Export Backup First" shortcut; clears all database tables (transactional) and wipes stash directory, then reloads the page
+- **`reset_app_data` Tauri command**: Backend command that checkpoints WAL, clears all user data tables in a transaction, removes and recreates the stash directory
+- **Database reconnection (`AppDb::reopen`)**: Extracted `open_conn()` helper for shared connection setup; `reopen()` method closes and reopens the database connection after file replacement (backup import)
+- **Backup import reload**: `apply_backup` no longer calls `app.restart()` — instead checkpoints WAL before extraction, removes stale WAL/SHM files after, reopens the database connection, and frontend triggers `window.location.reload()`
+
+### Changed
+- **Zone bar fixed height**: Zone bar uses `h-10` (40px) fixed height instead of content-dependent sizing, preventing height jitter between zones
+- **Project selector height**: SelectTrigger uses `h-auto!` with `py-[5px]` to match SegmentedPill button height exactly
+- **SegmentedPill font consistency**: Active tab no longer toggles between `font-semibold`/`font-normal` — all tabs use `font-medium` to prevent width shift when switching zones
+- **Claude Light theme background**: Changed from `#FFFFFF` to `#F8F6F3` to match the default theme's viewport background color
+- **Removed unused `accent-muted`**: Deleted CSS variable from `index.css` and derived token from theme engine (was defined but never consumed)
+- **Backup import no longer restarts app**: Replaced `app.restart()` with frontend page reload for dev-mode compatibility; backend reopens database connection in-place
+
+### Fixed
+- **Backup import white screen**: `app.restart()` in dev mode launched the production binary disconnected from Vite; replaced with `window.location.reload()` and `AppDb::reopen()` so imported data is visible without restarting
+- **Backup import data not loading**: Old database connection persisted after db.sqlite file replacement; added WAL checkpoint before extraction, WAL/SHM file cleanup after, and `db.reopen()` to establish a fresh connection to the imported database
+- **Reset SQL atomicity**: Wrapped all DELETE statements in an explicit transaction to prevent partial data clears if an error occurs mid-batch
+- **TOCTOU in stash removal**: Removed `stash_path.exists()` check before `remove_dir_all()` — just attempt deletion and ignore errors
+- **`open_conn` parameter type**: Changed from `&PathBuf` to idiomatic `&Path`
 
 ## [0.5.0] — 2026-03-08 — Overview Zone (Phase 5A–5C)
 

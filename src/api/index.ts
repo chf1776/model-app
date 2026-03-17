@@ -261,6 +261,10 @@ export async function applyBackup(sourcePath: string): Promise<void> {
   return invoke<void>("apply_backup", { sourcePath });
 }
 
+export async function resetAppData(): Promise<void> {
+  return invoke<void>("reset_app_data");
+}
+
 // ── Media ───────────────────────────────────────────────────────────────────
 
 export async function saveAccessoryImage(

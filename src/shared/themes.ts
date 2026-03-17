@@ -62,7 +62,7 @@ const CLAUDE_LIGHT: ThemeDefinition = {
   name: "Claude Light",
   type: "light",
   colors: {
-    background: "#FFFFFF",
+    background: "#F8F6F3",
     card: "#FAF9F5",
     sidebar: "#F5F4ED",
     border: "#E9E9E8",

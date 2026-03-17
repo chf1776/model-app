@@ -66,6 +66,7 @@ pub fn run() {
             commands::settings::export_backup,
             commands::settings::preview_backup,
             commands::settings::apply_backup,
+            commands::settings::reset_app_data,
             commands::media::save_box_art,
             commands::media::save_accessory_image,
             commands::collection::list_kit_files,

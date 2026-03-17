@@ -28,7 +28,6 @@ export function applyTheme(theme: ThemeDefinition): void {
   set("status-completed", theme.colors.success);
   set("status-wishlist", theme.colors.warning);
   set("status-shelf", theme.colors["text-tertiary"]);
-  set("accent-muted", theme.colors.accent + "14");
   set("popover", theme.colors.card);
   set("popover-foreground", theme.colors["text-primary"]);
 
