@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
-import { Package, ChevronDown, Check } from "lucide-react";
+import { Package, Check } from "lucide-react";
 import type { Kit } from "@/shared/types";
 import {
   Dialog,
@@ -16,11 +16,7 @@ import { Label } from "@/components/ui/label";
 import { useAppStore } from "@/store";
 import * as api from "@/api";
 import { cn } from "@/lib/utils";
-import {
-  COMMON_SCALES,
-  KIT_CATEGORIES,
-  type KitCategory,
-} from "@/shared/types";
+import { COMMON_SCALES } from "@/shared/types";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -48,10 +44,6 @@ export function CreateProjectDialog({
   const [newKitName, setNewKitName] = useState("");
   const [newKitManufacturer, setNewKitManufacturer] = useState("");
   const [newKitScale, setNewKitScale] = useState("");
-  const [showOptional, setShowOptional] = useState(false);
-  const [category, setCategory] = useState<KitCategory | "">("");
-  const [scalematesUrl, setScalematesUrl] = useState("");
-  const [productCode, setProductCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   // When a preselected kit is provided, auto-populate
@@ -94,10 +86,6 @@ export function CreateProjectDialog({
     setNewKitName("");
     setNewKitManufacturer("");
     setNewKitScale("");
-    setShowOptional(false);
-    setCategory("");
-    setScalematesUrl("");
-    setProductCode("");
   };
 
   const handleSubmit = async () => {
@@ -122,9 +110,6 @@ export function CreateProjectDialog({
         new_kit_manufacturer:
           kitMode === "new" ? newKitManufacturer.trim() || null : null,
         new_kit_scale: kitMode === "new" ? newKitScale || null : null,
-        category: (category as KitCategory) || null,
-        new_kit_scalemates_url: scalematesUrl.trim() || null,
-        product_code: productCode.trim() || null,
       });
 
       await loadKits();
@@ -319,77 +304,6 @@ export function CreateProjectDialog({
             </div>
           )}
 
-          {/* Optional fields toggle — only for new kit (shelf kits already have this data) */}
-          {kitMode === "new" && (
-          <button
-            onClick={() => setShowOptional(!showOptional)}
-            className="flex items-center gap-1 text-[10px] font-medium text-text-tertiary hover:text-text-secondary"
-          >
-            <ChevronDown
-              className={cn(
-                "h-3 w-3 transition-transform",
-                showOptional && "rotate-180",
-              )}
-            />
-            More details (optional)
-          </button>
-          )}
-
-          {showOptional && kitMode === "new" && (
-            <div className="flex flex-col gap-2 pl-1">
-              {/* Category */}
-              <div className="flex flex-col gap-1">
-                <Label className="text-[10px] text-text-tertiary">
-                  Category
-                </Label>
-                <div className="flex flex-wrap gap-1">
-                  {KIT_CATEGORIES.map((c) => (
-                    <button
-                      key={c.value}
-                      type="button"
-                      onClick={() =>
-                        setCategory(category === c.value ? "" : c.value)
-                      }
-                      className={cn(
-                        "rounded-[10px] px-2 py-[2px] text-[10px] transition-colors",
-                        category === c.value
-                          ? "bg-accent font-semibold text-white"
-                          : "bg-muted text-text-tertiary",
-                      )}
-                    >
-                      {c.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Scalemates URL */}
-              <div className="flex flex-col gap-0.5">
-                <Label className="text-[10px] text-text-tertiary">
-                  Scalemates URL
-                </Label>
-                <Input
-                  value={scalematesUrl}
-                  onChange={(e) => setScalematesUrl(e.target.value)}
-                  placeholder="https://www.scalemates.com/kits/..."
-                  className="h-7 text-[10px]"
-                />
-              </div>
-
-              {/* Product code */}
-              <div className="flex flex-col gap-0.5">
-                <Label className="text-[10px] text-text-tertiary">
-                  Product Code
-                </Label>
-                <Input
-                  value={productCode}
-                  onChange={(e) => setProductCode(e.target.value)}
-                  placeholder="e.g. #78030"
-                  className="h-7 w-[140px] text-[10px]"
-                />
-              </div>
-            </div>
-          )}
         </div>
         </div>
 
