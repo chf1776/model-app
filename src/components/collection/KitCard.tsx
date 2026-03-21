@@ -213,7 +213,7 @@ export function KitCard({
                       <Link className="h-3 w-3" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent>Linked to Scalemates</TooltipContent>
+                  <TooltipContent>Open on Scalemates</TooltipContent>
                 </Tooltip>
               </>
             )}
