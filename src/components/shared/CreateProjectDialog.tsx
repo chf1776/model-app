@@ -319,7 +319,8 @@ export function CreateProjectDialog({
             </div>
           )}
 
-          {/* Optional fields toggle */}
+          {/* Optional fields toggle — only for new kit (shelf kits already have this data) */}
+          {kitMode === "new" && (
           <button
             onClick={() => setShowOptional(!showOptional)}
             className="flex items-center gap-1 text-[10px] font-medium text-text-tertiary hover:text-text-secondary"
@@ -332,8 +333,9 @@ export function CreateProjectDialog({
             />
             More details (optional)
           </button>
+          )}
 
-          {showOptional && (
+          {showOptional && kitMode === "new" && (
             <div className="flex flex-col gap-2 pl-1">
               {/* Category */}
               <div className="flex flex-col gap-1">
