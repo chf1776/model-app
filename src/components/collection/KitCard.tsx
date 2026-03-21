@@ -11,6 +11,7 @@ import {
   STATUS_LABELS,
   ACCESSORY_TYPE_COLORS,
   ACCESSORY_TYPE_LABELS,
+  KIT_CATEGORIES,
   getSettingBool,
 } from "@/shared/types";
 import {
@@ -277,7 +278,7 @@ export function KitCard({
                 <span className="font-medium text-text-secondary">
                   Category:
                 </span>{" "}
-                {kit.category}
+                {KIT_CATEGORIES.find((c) => c.value === kit.category)?.label ?? kit.category}
               </span>
             )}
             {kit.kit_number && (
