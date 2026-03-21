@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Can't clear nullable fields**: Kit and project update forms now properly clear fields like `box_art_path`, `category`, `scalemates_url`, `scalemates_id`, `retailer_url`, `notes`, and `product_code` — previously, sending `null` was indistinguishable from "not sent" due to `Option<T>` vs `Option<Option<T>>` serde handling
+- **Auto-clear `scalemates_id` when URL cleared**: Clearing the Scalemates URL in Edit Kit now also clears the linked Scalemates ID
+
+### Changed
+- **Scalemates data consolidated onto kits**: Removed `scalemates_url` column from projects table (V9 migration migrates existing data to associated kit); project creation now stores Scalemates URL on the kit via `new_kit_scalemates_url`
+- **ProjectInfoCard**: Scalemates link sourced exclusively from kit; removed project-level Scalemates URL edit field
+- **`kit_scalemates_id` surfaced on Project**: Joined from kits table for downstream use
+
+### Added
+- **KitCard Scalemates link icon**: Link icon appears in kit metadata row when `scalemates_url` is set; clicking opens the Scalemates page
+
 ## [0.5.2] — 2026-03-17 — Scalemates Integration
 
 ### Added

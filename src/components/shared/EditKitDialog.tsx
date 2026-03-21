@@ -189,7 +189,7 @@ export function EditKitDialog({ kit, onClose }: EditKitDialogProps) {
         category: (category as KitCategory) || null,
         status: status,
         scalemates_url: scalematesUrl.trim() || null,
-        scalemates_id: scalematesId,
+        scalemates_id: scalematesUrl.trim() ? scalematesId : null,
         price: price ? parseFloat(price) : null,
         currency: currency.trim() || null,
         retailer_url: retailerUrl.trim() || null,

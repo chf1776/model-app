@@ -52,7 +52,6 @@ export function ProjectInfoCard({ expanded, onExpand, onCollapse }: ProjectInfoC
 
   // Local editable state
   const [name, setName] = useState(project?.name ?? "");
-  const [scalematesUrl, setScalematesUrl] = useState(project?.scalemates_url ?? "");
   const [productCode, setProductCode] = useState(project?.product_code ?? "");
   const [notes, setNotes] = useState(project?.notes ?? "");
 
@@ -70,7 +69,6 @@ export function ProjectInfoCard({ expanded, onExpand, onCollapse }: ProjectInfoC
   useEffect(() => {
     if (project) {
       setName(project.name);
-      setScalematesUrl(project.scalemates_url ?? "");
       setProductCode(project.product_code ?? "");
       setNotes(project.notes ?? "");
     }
@@ -288,10 +286,10 @@ export function ProjectInfoCard({ expanded, onExpand, onCollapse }: ProjectInfoC
                   {project.status}
                 </span>
               </div>
-              {(project.kit_scalemates_url || project.scalemates_url) && (
+              {project.kit_scalemates_url && (
                 <button
                   type="button"
-                  onClick={() => openPath((project.kit_scalemates_url ?? project.scalemates_url)!).catch((err) => toast.error(`Failed to open: ${err}`))}
+                  onClick={() => openPath(project.kit_scalemates_url!).catch((err) => toast.error(`Failed to open: ${err}`))}
                   className="inline-flex items-center gap-1 text-[9px] text-accent hover:underline"
                 >
                   <ExternalLink className="h-2.5 w-2.5" />
@@ -504,28 +502,6 @@ export function ProjectInfoCard({ expanded, onExpand, onCollapse }: ProjectInfoC
                         {c.label}
                       </button>
                     ))}
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-0.5">
-                  <label className="text-[9px] font-medium text-text-tertiary">Scalemates URL</label>
-                  <div className="flex gap-1">
-                    <Input
-                      value={scalematesUrl}
-                      onChange={(e) => setScalematesUrl(e.target.value)}
-                      onBlur={() => { if (scalematesUrl !== (project.scalemates_url ?? "")) saveField("scalemates_url", scalematesUrl); }}
-                      placeholder="https://www.scalemates.com/..."
-                      className="h-7 flex-1 text-[11px]"
-                    />
-                    {scalematesUrl && (
-                      <button
-                        type="button"
-                        onClick={() => openPath(scalematesUrl).catch((err) => toast.error(`Failed to open: ${err}`))}
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-border text-text-tertiary hover:text-text-primary"
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                      </button>
-                    )}
                   </div>
                 </div>
 

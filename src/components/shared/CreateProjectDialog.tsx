@@ -123,7 +123,7 @@ export function CreateProjectDialog({
           kitMode === "new" ? newKitManufacturer.trim() || null : null,
         new_kit_scale: kitMode === "new" ? newKitScale || null : null,
         category: (category as KitCategory) || null,
-        scalemates_url: scalematesUrl.trim() || null,
+        new_kit_scalemates_url: scalematesUrl.trim() || null,
         product_code: productCode.trim() || null,
       });
 

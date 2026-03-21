@@ -45,15 +45,21 @@ pub struct UpdateKitInput {
     pub manufacturer: Option<String>,
     pub scale: Option<String>,
     pub kit_number: Option<String>,
-    pub box_art_path: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_optional_nullable")]
+    pub box_art_path: Option<Option<String>>,
     pub status: Option<String>,
-    pub category: Option<String>,
-    pub scalemates_url: Option<String>,
-    pub scalemates_id: Option<String>,
-    pub retailer_url: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_optional_nullable")]
+    pub category: Option<Option<String>>,
+    #[serde(default, deserialize_with = "deserialize_optional_nullable")]
+    pub scalemates_url: Option<Option<String>>,
+    #[serde(default, deserialize_with = "deserialize_optional_nullable")]
+    pub scalemates_id: Option<Option<String>>,
+    #[serde(default, deserialize_with = "deserialize_optional_nullable")]
+    pub retailer_url: Option<Option<String>>,
     pub price: Option<f64>,
     pub currency: Option<String>,
-    pub notes: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_optional_nullable")]
+    pub notes: Option<Option<String>>,
 }
 
 // ── Accessory ────────────────────────────────────────────────────────────────
@@ -197,7 +203,6 @@ pub struct Project {
     pub kit_id: Option<String>,
     pub status: String,
     pub category: Option<String>,
-    pub scalemates_url: Option<String>,
     pub product_code: Option<String>,
     pub hero_photo_path: Option<String>,
     pub start_date: Option<i64>,
@@ -210,6 +215,7 @@ pub struct Project {
     pub kit_scale: Option<String>,
     pub kit_box_art_path: Option<String>,
     pub kit_scalemates_url: Option<String>,
+    pub kit_scalemates_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -221,7 +227,7 @@ pub struct CreateProjectInput {
     pub new_kit_manufacturer: Option<String>,
     pub new_kit_scale: Option<String>,
     pub category: Option<String>,
-    pub scalemates_url: Option<String>,
+    pub new_kit_scalemates_url: Option<String>,
     pub product_code: Option<String>,
 }
 
@@ -230,10 +236,12 @@ pub struct UpdateProjectInput {
     pub id: String,
     pub name: Option<String>,
     pub status: Option<String>,
-    pub category: Option<String>,
-    pub scalemates_url: Option<String>,
-    pub product_code: Option<String>,
-    pub notes: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_optional_nullable")]
+    pub category: Option<Option<String>>,
+    #[serde(default, deserialize_with = "deserialize_optional_nullable")]
+    pub product_code: Option<Option<String>>,
+    #[serde(default, deserialize_with = "deserialize_optional_nullable")]
+    pub notes: Option<Option<String>>,
     #[serde(default, deserialize_with = "deserialize_optional_nullable")]
     pub hero_photo_path: Option<Option<String>>,
     #[serde(default, deserialize_with = "deserialize_optional_nullable")]

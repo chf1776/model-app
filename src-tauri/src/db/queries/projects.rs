@@ -4,10 +4,10 @@ use rusqlite::{params, Connection};
 use uuid::Uuid;
 
 const SELECT_COLS: &str =
-    "p.id, p.name, p.kit_id, p.status, p.category, p.scalemates_url,
+    "p.id, p.name, p.kit_id, p.status, p.category,
      p.product_code, p.hero_photo_path, p.start_date, p.completion_date, p.notes,
      p.created_at, p.updated_at,
-     k.name, k.scale, k.box_art_path, k.scalemates_url";
+     k.name, k.scale, k.box_art_path, k.scalemates_url, k.scalemates_id";
 
 fn map_row(row: &rusqlite::Row) -> rusqlite::Result<Project> {
     Ok(Project {
@@ -16,18 +16,18 @@ fn map_row(row: &rusqlite::Row) -> rusqlite::Result<Project> {
         kit_id: row.get(2)?,
         status: row.get(3)?,
         category: row.get(4)?,
-        scalemates_url: row.get(5)?,
-        product_code: row.get(6)?,
-        hero_photo_path: row.get(7)?,
-        start_date: row.get(8)?,
-        completion_date: row.get(9)?,
-        notes: row.get(10)?,
-        created_at: row.get(11)?,
-        updated_at: row.get(12)?,
-        kit_name: row.get(13)?,
-        kit_scale: row.get(14)?,
-        kit_box_art_path: row.get(15)?,
-        kit_scalemates_url: row.get(16)?,
+        product_code: row.get(5)?,
+        hero_photo_path: row.get(6)?,
+        start_date: row.get(7)?,
+        completion_date: row.get(8)?,
+        notes: row.get(9)?,
+        created_at: row.get(10)?,
+        updated_at: row.get(11)?,
+        kit_name: row.get(12)?,
+        kit_scale: row.get(13)?,
+        kit_box_art_path: row.get(14)?,
+        kit_scalemates_url: row.get(15)?,
+        kit_scalemates_id: row.get(16)?,
     })
 }
 
@@ -69,10 +69,18 @@ pub fn update(conn: &Connection, input: UpdateProjectInput) -> Result<Project, S
 
     let name = input.name.unwrap_or(existing.name);
     let status = input.status.unwrap_or(existing.status);
-    let category = input.category.or(existing.category);
-    let scalemates_url = input.scalemates_url.or(existing.scalemates_url);
-    let product_code = input.product_code.or(existing.product_code);
-    let notes = input.notes.or(existing.notes);
+    let category = match input.category {
+        Some(v) => v,
+        None => existing.category,
+    };
+    let product_code = match input.product_code {
+        Some(v) => v,
+        None => existing.product_code,
+    };
+    let notes = match input.notes {
+        Some(v) => v,
+        None => existing.notes,
+    };
 
     let hero_photo_path = match input.hero_photo_path {
         Some(v) => v,               // Some(Some("path")) or Some(None) — explicit set/clear
@@ -85,14 +93,13 @@ pub fn update(conn: &Connection, input: UpdateProjectInput) -> Result<Project, S
     };
 
     conn.execute(
-        "UPDATE projects SET name=?1, status=?2, category=?3, scalemates_url=?4,
-                product_code=?5, hero_photo_path=?6, completion_date=?7, notes=?8
-         WHERE id=?9",
+        "UPDATE projects SET name=?1, status=?2, category=?3,
+                product_code=?4, hero_photo_path=?5, completion_date=?6, notes=?7
+         WHERE id=?8",
         params![
             name,
             status,
             category,
-            scalemates_url,
             product_code,
             hero_photo_path,
             completion_date,
@@ -110,15 +117,14 @@ pub fn insert(conn: &Connection, input: &CreateProjectInput, kit_id: &str) -> Re
     let ts = now();
 
     conn.execute(
-        "INSERT INTO projects (id, name, kit_id, status, category, scalemates_url,
+        "INSERT INTO projects (id, name, kit_id, status, category,
                                product_code, start_date, created_at, updated_at)
-         VALUES (?1, ?2, ?3, 'active', ?4, ?5, ?6, ?7, ?8, ?9)",
+         VALUES (?1, ?2, ?3, 'active', ?4, ?5, ?6, ?7, ?8)",
         params![
             id,
             input.name,
             kit_id,
             input.category,
-            input.scalemates_url,
             input.product_code,
             ts,
             ts,

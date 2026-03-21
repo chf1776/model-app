@@ -102,15 +102,33 @@ pub fn update(conn: &Connection, input: UpdateKitInput) -> Result<Kit, String> {
     let manufacturer = input.manufacturer.or(existing.manufacturer);
     let scale = input.scale.or(existing.scale);
     let kit_number = input.kit_number.or(existing.kit_number);
-    let box_art_path = input.box_art_path.or(existing.box_art_path);
+    let box_art_path = match input.box_art_path {
+        Some(v) => v,
+        None => existing.box_art_path,
+    };
     let status = input.status.unwrap_or(existing.status);
-    let category = input.category.or(existing.category);
-    let scalemates_url = input.scalemates_url.or(existing.scalemates_url);
-    let scalemates_id = input.scalemates_id.or(existing.scalemates_id);
-    let retailer_url = input.retailer_url.or(existing.retailer_url);
+    let category = match input.category {
+        Some(v) => v,
+        None => existing.category,
+    };
+    let scalemates_url = match input.scalemates_url {
+        Some(v) => v,
+        None => existing.scalemates_url,
+    };
+    let scalemates_id = match input.scalemates_id {
+        Some(v) => v,
+        None => existing.scalemates_id,
+    };
+    let retailer_url = match input.retailer_url {
+        Some(v) => v,
+        None => existing.retailer_url,
+    };
     let price = input.price.or(existing.price);
     let currency = input.currency.or(existing.currency);
-    let notes = input.notes.or(existing.notes);
+    let notes = match input.notes {
+        Some(v) => v,
+        None => existing.notes,
+    };
 
     conn.execute(
         "UPDATE kits SET name=?1, manufacturer=?2, scale=?3, kit_number=?4,

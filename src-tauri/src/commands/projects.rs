@@ -28,6 +28,14 @@ pub fn create_project(app: tauri::AppHandle, db: State<'_, AppDb>, input: Create
             rusqlite::params![existing_id],
         )
         .map_err(|e| e.to_string())?;
+        // Set scalemates_url on the kit if provided and kit doesn't have one
+        if let Some(ref url) = input.new_kit_scalemates_url {
+            conn.execute(
+                "UPDATE kits SET scalemates_url = ?1 WHERE id = ?2 AND scalemates_url IS NULL",
+                rusqlite::params![url, existing_id],
+            )
+            .map_err(|e| e.to_string())?;
+        }
         existing_id.clone()
     } else if let Some(ref new_name) = input.new_kit_name {
         // Create a new kit inline
@@ -40,7 +48,7 @@ pub fn create_project(app: tauri::AppHandle, db: State<'_, AppDb>, input: Create
                 kit_number: None,
                 status: Some("building".to_string()),
                 category: input.category.clone(),
-                scalemates_url: None,
+                scalemates_url: input.new_kit_scalemates_url.clone(),
                 scalemates_id: None,
                 price: None,
                 currency: None,

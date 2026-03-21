@@ -77,7 +77,6 @@ export interface Project {
   kit_id: string | null;
   status: ProjectStatus;
   category: KitCategory | null;
-  scalemates_url: string | null;
   product_code: string | null;
   hero_photo_path: string | null;
   start_date: number | null;
@@ -89,6 +88,7 @@ export interface Project {
   kit_scale: string | null;
   kit_box_art_path: string | null;
   kit_scalemates_url: string | null;
+  kit_scalemates_id: string | null;
 }
 
 export type ProjectStatus = "active" | "paused" | "completed" | "archived";
@@ -100,7 +100,7 @@ export interface CreateProjectInput {
   new_kit_manufacturer?: string | null;
   new_kit_scale?: string | null;
   category?: KitCategory | null;
-  scalemates_url?: string | null;
+  new_kit_scalemates_url?: string | null;
   product_code?: string | null;
 }
 
@@ -109,7 +109,6 @@ export interface UpdateProjectInput {
   name?: string | null;
   status?: ProjectStatus | null;
   category?: KitCategory | null;
-  scalemates_url?: string | null;
   product_code?: string | null;
   hero_photo_path?: string | null;
   notes?: string | null;
