@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
-import { openPath } from "@tauri-apps/plugin-opener";
+import { openPath, openUrl } from "@tauri-apps/plugin-opener";
 import { Play, ChevronDown, Pencil, Plus, FileText, ImageIcon, Paperclip, Link } from "lucide-react";
 import { toast } from "sonner";
 import { ImageLightbox } from "@/components/shared/ImageLightbox";
@@ -203,7 +203,7 @@ export function KitCard({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    openPath(kit.scalemates_url!);
+                    openUrl(kit.scalemates_url!);
                   }}
                   className="flex items-center text-text-tertiary hover:text-accent cursor-pointer"
                   title="Linked to Scalemates"

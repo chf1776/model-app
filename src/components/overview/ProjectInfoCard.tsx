@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Info, ExternalLink, Calendar, Layers, Camera, Package, Palette, ChevronDown, ChevronUp, ListChecks } from "lucide-react";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { openPath } from "@tauri-apps/plugin-opener";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { toast } from "sonner";
 import { useNavigate } from "react-router";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -289,7 +289,7 @@ export function ProjectInfoCard({ expanded, onExpand, onCollapse }: ProjectInfoC
               {project.kit_scalemates_url && (
                 <button
                   type="button"
-                  onClick={() => openPath(project.kit_scalemates_url!).catch((err) => toast.error(`Failed to open: ${err}`))}
+                  onClick={() => openUrl(project.kit_scalemates_url!).catch((err) => toast.error(`Failed to open: ${err}`))}
                   className="inline-flex items-center gap-1 text-[9px] text-accent hover:underline"
                 >
                   <ExternalLink className="h-2.5 w-2.5" />
