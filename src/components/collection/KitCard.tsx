@@ -207,7 +207,7 @@ export function KitCard({
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        openUrl(kit.scalemates_url!);
+                        openUrl(kit.scalemates_url!).catch(() => {});
                       }}
                       className="flex items-center text-text-tertiary hover:text-accent cursor-pointer"
                     >
