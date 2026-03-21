@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useAppStore } from "@/store";
 import { cn } from "@/lib/utils";
 import * as api from "@/api";
@@ -199,17 +200,21 @@ export function KitCard({
             {kit.scalemates_url && (
               <>
                 <span className="text-text-tertiary">·</span>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openUrl(kit.scalemates_url!);
-                  }}
-                  className="flex items-center text-text-tertiary hover:text-accent cursor-pointer"
-                  title="Linked to Scalemates"
-                >
-                  <Link className="h-3 w-3" />
-                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openUrl(kit.scalemates_url!);
+                      }}
+                      className="flex items-center text-text-tertiary hover:text-accent cursor-pointer"
+                    >
+                      <Link className="h-3 w-3" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Linked to Scalemates</TooltipContent>
+                </Tooltip>
               </>
             )}
           </div>
