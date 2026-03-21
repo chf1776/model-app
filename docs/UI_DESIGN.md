@@ -11,7 +11,7 @@ The UI design process started by establishing fundamentals (mood, palette, typog
 ### Companion Documents
 
 - `WISHLIST_FEATURE.md` — Wishlist/owned badge system, acquire interactions, price & buy link display, batch operations, prominence escalation, Materials card BOM, shopping list export. Cross-cuts sections 27, 28, 30, 32, 34, 35.
-- `EXPORT_FEATURE.md` — Build log export dialog, PDF page design (Typst), HTML/ZIP formats, photo curation, section customization. Implements the export referenced in Project Info card (section 41).
+- `EXPORT_FEATURE.md` — Build log export dialog, PDF page design (Typst), PDF/ZIP formats, photo curation, section customization. Implements the export referenced in Project Info card (section 41).
 ### Interactive Mockups
 
 - `paint-shelf.jsx` — Paint shelf with catalogue lookup, grouping, and detail panel (section 32.6–32.7)

@@ -462,11 +462,10 @@ The build log is an exportable, shareable document that captures the story of th
 
 **Export formats**:
 
-- **PDF** — Typst-rendered, A4, with full layout control. Cover page with hero photo, track-by-track build story with photo grids, gallery spreads, paint palette with swatches, and optional appendices. The showcase format.
-- **HTML** — Self-contained single-page document with all images embedded. Viewable in any browser. Suitable for hosting on a personal or self-hosted site, or viewing locally.
-- **ZIP** — All photos plus a narrative Markdown file. For archival or manual formatting.
+- **PDF** — Typst-rendered (in-process crate), A4 or US Letter, with full layout control. Two cover styles (full-bleed with hero photo, or classic), gallery showcase, track-by-track build story with photo grids, paint palette with swatches, and optional appendices.
+- **ZIP** — Selected photos organized by track plus a narrative Markdown file. For archival or manual formatting.
 
-**Export behaviour**: Full export dialog with section toggles, photo curation, narrative editing, and live PDF preview. A "Quick Export" button bypasses the dialog and uses smart defaults: all progress and milestone photos, step notes as captions, tracks in display order. The project's hero photo is used as the cover — set in the Gallery card (right-click → "Set as hero photo"). See EXPORT_FEATURE.md for the complete specification.
+**Export behaviour**: Full export dialog with two-panel layout (section sidebar + section editor), section toggles, photo curation, and track narrative editing. No live preview — generate-then-review workflow. A "Quick Export" button bypasses the dialog and uses smart defaults or saved settings. The project's hero photo is used as the cover. See EXPORT_FEATURE.md for the complete specification.
 
 ---
 

@@ -453,12 +453,11 @@ The app has a distinct visual identity that users can personalize. Hobby-themed 
 **Goal**: A complete, shareable build document. Finish a build, export it.
 
 ### Build log export
-- Full export dialog with three-panel layout: section list, section editor, PDF preview (see EXPORT_FEATURE.md for complete specification)
-- **PDF**: Typst-rendered, A4, cover page + track sections + gallery + appendix. Full customization: section toggles, photo curation, narrative editing, gallery layout options.
-- **HTML**: self-contained single-page with all images base64-embedded; suitable for browser or self-hosted site
-- **ZIP**: all photos + narrative Markdown file
-- **Quick Export**: one-click export with smart defaults (hero photo as cover, all photos, tracks in display order)
-- Export history with "Show in Finder"; same-day exports get `-2`, `-3` suffix
+- Full export dialog with two-panel layout: section sidebar + section editor (see EXPORT_FEATURE.md for complete specification)
+- **PDF**: Typst-rendered (in-process crate), A4/Letter, cover page + gallery + track sections + appendix. Section toggles, photo curation, track narrative editing.
+- **ZIP**: selected photos organized by track + narrative Markdown file
+- **Quick Export**: one-click PDF with smart defaults or saved settings
+- Export history with "Show in Finder"
 - Paint palette summary included in exported document
 
 ### Deliverable
@@ -494,4 +493,4 @@ Shareable build documents in multiple formats. Every colour decision, photo, and
 | ~~7A~~ | ~~Advanced Step Relations~~ | ~~Completion warnings, replaced step enhancements~~ DONE |
 | 7B–7D | Settings + Polish | Settings page, keyboard shortcuts, onboarding |
 | 8 | Theme System | 7 built-in themes (3 light, 4 dark), hobby-themed palettes, CSS variable architecture |
-| 9 | Export | Shareable documents (PDF, HTML, ZIP), export dialog, quick export |
+| 9 | Export | Shareable documents (PDF, ZIP), export dialog, quick export |

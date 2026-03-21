@@ -50,7 +50,7 @@ model-app/
 │   │       ├── scalemates.rs    # Scalemates URL scraping (paste-only, no search)
 │   │       ├── pdf.rs            # PDF rasterization (MuPDF)
 │   │       ├── paint_catalog.rs # Load and search bundled paint catalogue JSON
-│   │       └── export.rs         # Build log export (HTML / PDF / ZIP)
+│   │       └── export.rs         # Build log export (PDF / ZIP)
 │   ├── catalogue/               # Bundled paint catalogue data (generated from Arcturus5404 repo)
 │   │   ├── tamiya.json
 │   │   ├── vallejo.json
@@ -523,7 +523,7 @@ CREATE TABLE IF NOT EXISTS export_history (
   id           TEXT PRIMARY KEY,
   project_id   TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   format       TEXT NOT NULL
-               CHECK(format IN ('html','pdf','zip')),
+               CHECK(format IN ('pdf','zip')),        -- V1 has 'html'; migration VN drops it
   file_path    TEXT NOT NULL,       -- relative to project dir
   created_at   INTEGER NOT NULL
 );
@@ -841,10 +841,9 @@ Coordinates are normalized (0–1 relative to the step image dimensions) so they
 
 > **Full specification**: See EXPORT_FEATURE.md for the complete export dialog UX, PDF page design, section customization, and photo curation flow. This section covers the technical implementation.
 
-- **Method**: Rust backend generates PDF using the `typst` crate. A `.typ` template defines the document layout (cover page, track sections, photo grids, paint palette). The backend populates the template with structured data from the build log, then renders to PDF. Typst is a Rust-native typesetting engine, so no external subprocess or dependency is needed.
-- **Template features**: Proper cover page with hero photo, track-colored section headers, photo grids with consistent sizing and captions, paint palette with color swatches and formulas, running headers/footers with project name and page numbers, intelligent page break handling.
-- **HTML export**: Separate code path. Self-contained single-page HTML with images base64-embedded. Serves a different purpose (web viewing, hosting) from the typeset PDF.
-- **ZIP export**: all photos copied into an `images/` directory alongside a narrative Markdown file; bundled using Rust's `zip` crate
+- **Method**: Rust backend generates PDF using the `typst` crate (in-process library, no external binary). `.typ` templates define the document layout; the backend populates them with structured project data and photo file paths, then renders to PDF bytes. See EXPORT_FEATURE.md for complete specification.
+- **Template features**: Two cover styles (full-bleed + classic), gallery showcase pages, track-colored section headers, photo grids with captions, paint palette with color swatches, running headers/footers, intelligent page breaks.
+- **ZIP export**: Selected photos copied into an `images/` directory (organized by track) alongside a narrative Markdown file; bundled using Rust's `zip` crate.
 
 ---
 
