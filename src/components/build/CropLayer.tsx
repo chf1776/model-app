@@ -62,6 +62,50 @@ function effectiveToImage(
   }
 }
 
+/**
+ * Convert a single image-space point to effective (post-rotation) space.
+ */
+export function imagePointToEffective(
+  ix: number,
+  iy: number,
+  rotation: number,
+  imgW: number,
+  imgH: number,
+): { x: number; y: number } {
+  switch (rotation) {
+    case 90:
+      return { x: imgH - iy, y: ix };
+    case 180:
+      return { x: imgW - ix, y: imgH - iy };
+    case 270:
+      return { x: iy, y: imgW - ix };
+    default:
+      return { x: ix, y: iy };
+  }
+}
+
+/**
+ * Convert a single effective-space point back to image-space.
+ */
+export function effectivePointToImage(
+  ex: number,
+  ey: number,
+  rotation: number,
+  imgW: number,
+  imgH: number,
+): { x: number; y: number } {
+  switch (rotation) {
+    case 90:
+      return { x: ey, y: imgH - ex };
+    case 180:
+      return { x: imgW - ex, y: imgH - ey };
+    case 270:
+      return { x: imgW - ey, y: ex };
+    default:
+      return { x: ex, y: ey };
+  }
+}
+
 export function CropLayer({ drawingRect, zoom }: CropLayerProps) {
   const steps = useAppStore((s) => s.steps);
   const tracks = useAppStore((s) => s.tracks);
@@ -99,14 +143,15 @@ export function CropLayer({ drawingRect, zoom }: CropLayerProps) {
 
   if (!currentPage) return null;
 
-  // Filter steps that belong to the current page and have crop data
+  // Filter steps that belong to the current page and have crop data (but no polygon — those render via PolygonLayer)
   const pageSteps = steps.filter(
     (s) =>
       s.source_page_id === currentPage.id &&
       s.crop_x != null &&
       s.crop_y != null &&
       s.crop_w != null &&
-      s.crop_h != null,
+      s.crop_h != null &&
+      s.clip_polygon == null,
   );
 
   const rotation = currentPage.rotation;

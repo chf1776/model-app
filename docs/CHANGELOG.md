@@ -7,9 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Polygon crop tool**: Draw freeform polygon crop regions on instruction pages (P key or toolbar button) with closing line, rubber-band cursor preview, click-first-vertex to close, Enter to accept, and double-click to finish
+- **Polygon visual feedback**: Saved polygon outlines on canvas with click-to-select, active highlight, and polygon badge on thumbnails/previews
+- **Polygon clip rendering**: CropCanvas clips step images to polygon shape instead of bounding rectangle
+- **Polygon editing**: Press P with a polygon step selected to edit its vertices; save/discard dialog when switching steps mid-edit
+- **Clear polygon button**: Eraser icon in toolbar to remove polygon from active step
+- **Canvas-scoped toasts**: Step creation and polygon save/clear toasts now appear in the bottom-right of the canvas area instead of the app corner
+- **Step creation toasts**: Crop and full-page step creation now show "Step created" confirmation (matching polygon's "Polygon saved")
+- **Keyboard shortcuts**: P for polygon mode, Enter to accept polygon; documented in shortcuts dialog
+- **Auto-open devtools**: WebKit devtools open automatically in debug builds
+
 ### Fixed
 - **Can't clear nullable fields**: Kit and project update forms now properly clear fields like `box_art_path`, `category`, `scalemates_url`, `scalemates_id`, `retailer_url`, `notes`, and `product_code` — previously, sending `null` was indistinguishable from "not sent" due to `Option<T>` vs `Option<Option<T>>` serde handling
 - **Auto-clear `scalemates_id` when URL cleared**: Clearing the Scalemates URL in Edit Kit now also clears the linked Scalemates ID
+- **Step title numbering**: Full-page and F-key step creation now count only root steps (excluding sub-steps) for title numbering, matching crop mode behavior
+- **Polygon steps show rectangle**: Polygon steps no longer render a rectangular CropRegion overlay — only the polygon outline is shown
 
 ### Changed
 - **Scalemates data consolidated onto kits**: Removed `scalemates_url` column from projects table (V9 migration migrates existing data to associated kit); project creation now stores Scalemates URL on the kit via `new_kit_scalemates_url`

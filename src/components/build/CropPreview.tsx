@@ -140,6 +140,16 @@ export function CropPreview({ step }: CropPreviewProps) {
           Page {pageIndex + 1}
         </span>
       )}
+      {step.clip_polygon && (
+        <div
+          className="absolute bottom-1 left-1 flex h-4 w-4 items-center justify-center rounded bg-accent/80"
+          title="Polygon crop"
+        >
+          <svg viewBox="0 0 10 10" className="h-2.5 w-2.5 text-white" fill="currentColor">
+            <polygon points="5,0 10,4 8,10 2,10 0,4" />
+          </svg>
+        </div>
+      )}
     </div>
   );
 }

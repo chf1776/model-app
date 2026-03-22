@@ -1,5 +1,5 @@
-import { useRef, useEffect, useState, useCallback } from "react";
-import { Stage, Layer, Rect, Image as KonvaImage } from "react-konva";
+import { useRef, useEffect, useState, useCallback, useMemo } from "react";
+import { Stage, Layer, Rect, Image as KonvaImage, Group } from "react-konva";
 import useImage from "use-image";
 import { Expand } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -7,6 +7,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { useAppStore } from "@/store";
 import type { Step, InstructionPage } from "@/shared/types";
 import { getEffectiveDimensions } from "./tree-utils";
+import { imagePointToEffective } from "./CropLayer";
 import { AnnotationLayer, DEFAULT_CHECKMARK_SIZE, DEFAULT_CROSS_SIZE, DEFAULT_OPACITY, HIGHLIGHT_COLOR } from "./AnnotationLayer";
 import type { DrawPreview } from "./AnnotationLayer";
 import { MIN_RELATIVE_ZOOM, MAX_RELATIVE_ZOOM } from "./zoom-utils";
@@ -391,6 +392,12 @@ export function CropCanvas() {
     [pendingText, step, addAnnotation, annotationColor, annotationStrokeWidth],
   );
 
+  // Pre-parse polygon clip path (avoid JSON.parse inside Konva clipFunc which runs every draw cycle)
+  const clipPolygonPts = useMemo(() => {
+    if (!step?.clip_polygon) return null;
+    return JSON.parse(step.clip_polygon) as { x: number; y: number }[];
+  }, [step?.clip_polygon]);
+
   // ── Early returns (after all hooks) ─────────────────────────────────────
 
   if (!step) {
@@ -438,14 +445,43 @@ export function CropCanvas() {
           >
             <Layer>
               <Rect width={effectiveW} height={effectiveH} fill="#FFFFFF" />
-              <CropImage
-                src={imageSrc}
-                cropX={step.crop_x!}
-                cropY={step.crop_y!}
-                cropW={step.crop_w!}
-                cropH={step.crop_h!}
-                rotation={rotation}
-              />
+              {clipPolygonPts && clipPolygonPts.length >= 3 ? (
+                <Group
+                  clipFunc={(ctx) => {
+                    const cropX = step.crop_x!;
+                    const cropY = step.crop_y!;
+                    const cropW = step.crop_w!;
+                    const cropH = step.crop_h!;
+                    ctx.beginPath();
+                    clipPolygonPts.forEach((pt, i) => {
+                      const local = imagePointToEffective(
+                        pt.x - cropX, pt.y - cropY, rotation, cropW, cropH,
+                      );
+                      if (i === 0) ctx.moveTo(local.x, local.y);
+                      else ctx.lineTo(local.x, local.y);
+                    });
+                    ctx.closePath();
+                  }}
+                >
+                  <CropImage
+                    src={imageSrc}
+                    cropX={step.crop_x!}
+                    cropY={step.crop_y!}
+                    cropW={step.crop_w!}
+                    cropH={step.crop_h!}
+                    rotation={rotation}
+                  />
+                </Group>
+              ) : (
+                <CropImage
+                  src={imageSrc}
+                  cropX={step.crop_x!}
+                  cropY={step.crop_y!}
+                  cropW={step.crop_w!}
+                  cropH={step.crop_h!}
+                  rotation={rotation}
+                />
+              )}
             </Layer>
             <AnnotationLayer
               stepId={step.id}

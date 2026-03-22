@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Wrench, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { useAppStore } from "@/store";
 import * as api from "@/api";
 import { CreateProjectDialog } from "@/components/shared/CreateProjectDialog";
@@ -23,6 +24,7 @@ import { PageRail } from "@/components/build/PageRail";
 import { PageCanvas } from "@/components/build/PageCanvas";
 import { MilestoneDialog } from "@/components/build/MilestoneDialog";
 import { CompletionWarningDialog } from "@/components/build/CompletionWarningDialog";
+import { PolygonSwitchDialog } from "@/components/build/PolygonSwitchDialog";
 import { RelationPill } from "@/components/build/RelationPill";
 import { TimerBubble } from "@/components/build/TimerBubble";
 import { flattenTrackSteps, getReplacedStepIds } from "@/components/build/tree-utils";
@@ -155,6 +157,12 @@ export default function BuildRoute() {
       }
 
       switch (e.key) {
+        case "Enter":
+          if (s.canvasMode === "polygon" && s.polygonDraftPoints.length >= 3) {
+            e.preventDefault();
+            s.savePolygon();
+          }
+          break;
         case "Tab":
           e.preventDefault();
           if (e.shiftKey) {
@@ -186,6 +194,11 @@ export default function BuildRoute() {
           e.preventDefault();
           if (s.buildMode === "setup") s.setCanvasMode("crop");
           break;
+        case "p":
+        case "P":
+          e.preventDefault();
+          if (s.buildMode === "setup") s.setCanvasMode("polygon");
+          break;
         case "v":
           e.preventDefault();
           s.setCanvasMode("view");
@@ -201,7 +214,8 @@ export default function BuildRoute() {
           }
           if (!page) break;
           const trackSteps = s.steps.filter((st) => st.track_id === s.activeTrackId);
-          const title = `Step ${trackSteps.length + 1}`;
+          const rootCount = trackSteps.filter((st) => !st.parent_step_id).length;
+          const title = `Step ${rootCount + 1}`;
           api
             .createStep({
               track_id: s.activeTrackId,
@@ -219,13 +233,20 @@ export default function BuildRoute() {
               fresh.pushUndo(step.id);
               fresh.setActiveStep(step.id);
               if (fresh.activeProjectId) fresh.loadTracks(fresh.activeProjectId);
+              toast.success("Step created", { toasterId: "canvas" });
             })
-            .catch((err) => toast.error(`Failed to create step: ${err}`));
+            .catch((err) => toast.error(`Failed to create step: ${err}`, { toasterId: "canvas" }));
           break;
         }
         case "Escape":
           e.preventDefault();
-          if (s.selectedStepIds.length > 0) {
+          if (s.canvasMode === "polygon") {
+            if (s.polygonDraftPoints.length > 0) {
+              s.removeLastPolygonPoint();
+            } else {
+              s.setCanvasMode("view");
+            }
+          } else if (s.selectedStepIds.length > 0) {
             s.clearSelectedSteps();
           } else if (s.activeStepId) {
             s.setActiveStep(null);
@@ -298,6 +319,13 @@ export default function BuildRoute() {
                 ) : (
                   <EmptyInstructionsState onUpload={handleUploadPdf} />
                 )}
+
+                <Toaster
+                  id="canvas"
+                  position="bottom-right"
+                  style={{ position: "absolute" }}
+                  offset={8}
+                />
               </div>
             </div>
 
@@ -319,6 +347,7 @@ export default function BuildRoute() {
             {activeStepId && <BuildingStepPanel />}
             <MilestoneDialog />
             <CompletionWarningDialog />
+            <PolygonSwitchDialog />
           </>
         )}
       </div>

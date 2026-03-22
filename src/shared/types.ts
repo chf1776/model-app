@@ -473,6 +473,7 @@ export interface Step {
   completed_at: number | null;
   quantity_current: number;
   replaces_step_id: string | null;
+  clip_polygon: string | null;
   notes: string | null;
   created_at: number;
   updated_at: number;
@@ -517,6 +518,7 @@ export interface UpdateStepInput {
   quantity_current?: number | null;
   is_completed?: boolean | null;
   replaces_step_id?: string | null;
+  clip_polygon?: string | null;
   notes?: string | null;
 }
 

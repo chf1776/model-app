@@ -105,7 +105,7 @@ export function StepThumbnail({ step, page, isActive, isCompleted }: StepThumbna
 
   return (
     <div
-      className="shrink-0 overflow-hidden rounded"
+      className="relative shrink-0 overflow-hidden rounded"
       style={{
         width: size.w,
         height: size.h,
@@ -115,6 +115,16 @@ export function StepThumbnail({ step, page, isActive, isCompleted }: StepThumbna
       }}
     >
       <canvas ref={canvasRef} className="block" />
+      {step.clip_polygon && (
+        <div
+          className="absolute bottom-0 right-0 flex h-3 w-3 items-center justify-center rounded-tl bg-accent/80"
+          title="Polygon crop"
+        >
+          <svg viewBox="0 0 10 10" className="h-2 w-2 text-white" fill="currentColor">
+            <polygon points="5,0 10,4 8,10 2,10 0,4" />
+          </svg>
+        </div>
+      )}
     </div>
   );
 }

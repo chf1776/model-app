@@ -52,6 +52,8 @@ export function KeyboardShortcutsDialog({ open, onOpenChange }: KeyboardShortcut
           <Section title="Canvas">
             <ShortcutRow keys={<Kbd>V</Kbd>} label="View mode" />
             <ShortcutRow keys={<Kbd>C</Kbd>} label="Crop mode" />
+            <ShortcutRow keys={<Kbd>P</Kbd>} label="Polygon crop mode" />
+            <ShortcutRow keys={<Kbd>Enter</Kbd>} label="Accept polygon" />
             <ShortcutRow keys={<Kbd>F</Kbd>} label="Full page step" />
             <ShortcutRow keys={<><Kbd>+</Kbd> / <Kbd>-</Kbd></>} label="Zoom in / out" />
             <ShortcutRow keys={<Kbd>0</Kbd>} label="Fit to view" />

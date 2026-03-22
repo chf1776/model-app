@@ -44,6 +44,12 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             set_dock_icon(app);
 
+            // Auto-open devtools in debug builds
+            #[cfg(debug_assertions)]
+            if let Some(window) = app.get_webview_window("main") {
+                window.open_devtools();
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

@@ -26,9 +26,10 @@ fn map_step(row: &rusqlite::Row) -> rusqlite::Result<Step> {
         completed_at: row.get(18)?,
         quantity_current: row.get(19)?,
         replaces_step_id: row.get(20)?,
-        notes: row.get(21)?,
-        created_at: row.get(22)?,
-        updated_at: row.get(23)?,
+        clip_polygon: row.get(21)?,
+        notes: row.get(22)?,
+        created_at: row.get(23)?,
+        updated_at: row.get(24)?,
     })
 }
 
@@ -36,7 +37,7 @@ const SELECT_COLS: &str =
     "id, track_id, parent_step_id, title, display_order, source_page_id,
      crop_x, crop_y, crop_w, crop_h, is_full_page, source_type, source_name,
      adhesive_type, drying_time_min, pre_paint, quantity, is_completed,
-     completed_at, quantity_current, replaces_step_id, notes, created_at, updated_at";
+     completed_at, quantity_current, replaces_step_id, clip_polygon, notes, created_at, updated_at";
 
 pub fn list_by_track(conn: &Connection, track_id: &str) -> Result<Vec<Step>, String> {
     let mut stmt = conn
@@ -60,7 +61,7 @@ pub fn list_by_project(conn: &Connection, project_id: &str) -> Result<Vec<Step>,
             "SELECT s.id, s.track_id, s.parent_step_id, s.title, s.display_order, s.source_page_id,
                     s.crop_x, s.crop_y, s.crop_w, s.crop_h, s.is_full_page, s.source_type, s.source_name,
                     s.adhesive_type, s.drying_time_min, s.pre_paint, s.quantity, s.is_completed,
-                    s.completed_at, s.quantity_current, s.replaces_step_id, s.notes, s.created_at, s.updated_at
+                    s.completed_at, s.quantity_current, s.replaces_step_id, s.clip_polygon, s.notes, s.created_at, s.updated_at
              FROM steps s
              JOIN tracks t ON s.track_id = t.id
              WHERE t.project_id = ?1
@@ -185,6 +186,10 @@ pub fn update(conn: &Connection, input: UpdateStepInput) -> Result<Step, String>
         Some(v) => v,           // explicitly set (to Some(val) or None/null)
         None => existing.replaces_step_id, // not provided, keep existing
     };
+    let clip_polygon = match input.clip_polygon {
+        Some(v) => v,           // explicitly set (to Some(val) or None/null)
+        None => existing.clip_polygon, // not provided, keep existing
+    };
     let notes = input.notes.or(existing.notes);
 
     // Set completed_at when marking complete
@@ -206,8 +211,9 @@ pub fn update(conn: &Connection, input: UpdateStepInput) -> Result<Step, String>
                 adhesive_type = ?13, drying_time_min = ?14, pre_paint = ?15,
                 quantity = ?16, quantity_current = ?17,
                 is_completed = ?18, completed_at = ?19,
-                replaces_step_id = ?20, notes = ?21, updated_at = ?22
-         WHERE id = ?23",
+                replaces_step_id = ?20, clip_polygon = ?21,
+                notes = ?22, updated_at = ?23
+         WHERE id = ?24",
         params![
             track_id,
             display_order,
@@ -229,6 +235,7 @@ pub fn update(conn: &Connection, input: UpdateStepInput) -> Result<Step, String>
             is_completed,
             completed_at,
             replaces_step_id,
+            clip_polygon,
             notes,
             ts,
             step_id,

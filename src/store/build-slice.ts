@@ -1,13 +1,25 @@
 import type { StateCreator } from "zustand";
-import type { Project, UpdateProjectInput, InstructionSource, InstructionPage, Track, Step, Tag, StepRelation, ReferenceImage, Annotation, AnnotationTool, PaletteEntry } from "@/shared/types";
+import type { Project, UpdateProjectInput, UpdateStepInput, InstructionSource, InstructionPage, Track, Step, Tag, StepRelation, ReferenceImage, Annotation, AnnotationTool, PaletteEntry } from "@/shared/types";
 import { getEffectiveDryingMinutes, ANNOTATION_TOOL_LABELS, getSettingBool } from "@/shared/types";
 import type { AppStore } from "./index";
 import * as api from "@/api";
 import { toast } from "sonner";
 import { flattenTrackSteps, getReplacedStepIds, getCompletionWarnings, hasCompletionWarnings } from "@/components/build/tree-utils";
 
-export type CanvasMode = "view" | "crop";
+export type CanvasMode = "view" | "crop" | "polygon";
 export type BuildMode = "setup" | "building";
+
+/** Compute axis-aligned bounding box from polygon points (image-space, rounded). */
+function polygonBoundingBox(points: { x: number; y: number }[]) {
+  const xs = points.map((p) => p.x);
+  const ys = points.map((p) => p.y);
+  return {
+    crop_x: Math.round(Math.min(...xs)),
+    crop_y: Math.round(Math.min(...ys)),
+    crop_w: Math.round(Math.max(...xs) - Math.min(...xs)),
+    crop_h: Math.round(Math.max(...ys) - Math.min(...ys)),
+  };
+}
 
 const MAX_ANNOTATION_UNDO = 50;
 
@@ -167,6 +179,20 @@ export interface BuildSlice {
   canvasMode: CanvasMode;
   setCanvasMode: (mode: CanvasMode) => void;
 
+  // Polygon crop
+  polygonDraftPoints: { x: number; y: number }[];
+  polygonDraftStepId: string | null;
+  addPolygonPoint: (pt: { x: number; y: number }) => void;
+  removeLastPolygonPoint: () => void;
+  clearPolygonDraft: () => void;
+  savePolygon: () => Promise<void>;
+  pendingPolygonSwitch: { targetStepId: string | null } | null;
+  requestPolygonSwitch: (targetStepId: string | null) => void;
+  confirmPolygonDiscard: () => void;
+  confirmPolygonSave: () => Promise<void>;
+  dismissPolygonSwitch: () => void;
+  clearClipPolygon: (stepId: string) => Promise<void>;
+
   // Processing state
   isProcessingPdf: boolean;
   setIsProcessingPdf: (processing: boolean) => void;
@@ -202,6 +228,9 @@ const DEFAULT_BUILD_STATE = {
   navMode: "track" as NavMode,
   pendingMilestone: null as { trackId: string; trackName: string; trackColor: string } | null,
   pendingCompletion: null as { stepId: string } | null,
+  polygonDraftPoints: [] as { x: number; y: number }[],
+  polygonDraftStepId: null as string | null,
+  pendingPolygonSwitch: null as { targetStepId: string | null } | null,
 };
 
 const DEFAULT_VIEWER_STATE = {
@@ -451,6 +480,12 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   },
 
   setActiveStep: (id) => {
+    // If mid-polygon draft and switching to a different step, prompt save/discard
+    const { polygonDraftStepId, polygonDraftPoints, canvasMode: currentCanvasMode } = get();
+    if (currentCanvasMode === "polygon" && polygonDraftPoints.length > 0 && id !== polygonDraftStepId) {
+      get().requestPolygonSwitch(id);
+      return;
+    }
     if (id) {
       const state = get();
       const step = state.steps.find((s) => s.id === id);
@@ -1001,6 +1036,8 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     // Force canvas back to view mode and reset viewer when entering building
     if (mode === "building") {
       updates.canvasMode = "view" as CanvasMode;
+      updates.polygonDraftPoints = [];
+      updates.polygonDraftStepId = null;
       Object.assign(updates, DEFAULT_VIEWER_STATE);
 
       // Auto-select first incomplete step if none active
@@ -1050,13 +1087,157 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   },
 
   setCanvasMode: (mode) => {
-    // Block crop mode in building mode
-    if (mode === "crop" && get().buildMode === "building") return;
+    // Block crop/polygon mode in building mode
+    if ((mode === "crop" || mode === "polygon") && get().buildMode === "building") return;
     if (mode === "crop" && !get().activeTrackId) {
       toast.info("Select a track first");
       return;
     }
-    set({ canvasMode: mode });
+    if (mode === "polygon") {
+      if (!get().activeTrackId) {
+        toast.info("Select a track first");
+        return;
+      }
+      const state = get();
+      const step = state.activeStepId ? state.steps.find((s) => s.id === state.activeStepId) : null;
+      // If active step has an existing polygon, pre-populate for editing
+      if (step && step.clip_polygon) {
+        const existing: { x: number; y: number }[] = JSON.parse(step.clip_polygon);
+        set({
+          canvasMode: mode,
+          polygonDraftPoints: existing,
+          polygonDraftStepId: step.id,
+        });
+      } else {
+        // No existing polygon — create new step on save
+        set({
+          canvasMode: mode,
+          polygonDraftPoints: [],
+          polygonDraftStepId: null,
+        });
+      }
+      return;
+    }
+    // If leaving polygon mode, clear draft
+    if (get().canvasMode === "polygon") {
+      set({ canvasMode: mode, polygonDraftPoints: [], polygonDraftStepId: null });
+    } else {
+      set({ canvasMode: mode });
+    }
+  },
+
+  // ── Polygon crop ────────────────────────────────────────────────────────────
+
+  addPolygonPoint: (pt) => {
+    set({ polygonDraftPoints: [...get().polygonDraftPoints, pt] });
+  },
+
+  removeLastPolygonPoint: () => {
+    const pts = get().polygonDraftPoints;
+    if (pts.length > 0) {
+      set({ polygonDraftPoints: pts.slice(0, -1) });
+    }
+  },
+
+  clearPolygonDraft: () => {
+    set({ polygonDraftPoints: [], polygonDraftStepId: null, canvasMode: "view" as CanvasMode });
+  },
+
+  savePolygon: async () => {
+    const { polygonDraftStepId, polygonDraftPoints } = get();
+    if (polygonDraftPoints.length < 3) {
+      toast.info("Need at least 3 points to save a polygon", { toasterId: "canvas" });
+      return;
+    }
+    const json = JSON.stringify(polygonDraftPoints);
+    try {
+      const bbox = polygonBoundingBox(polygonDraftPoints);
+      if (polygonDraftStepId) {
+        // Update existing step — return to view mode when done editing
+        const step = get().steps.find((s) => s.id === polygonDraftStepId);
+        const updateInput: UpdateStepInput = { id: polygonDraftStepId, clip_polygon: json };
+        // If the step has no crop rect, auto-derive from polygon bounding box
+        if (step && step.crop_x == null) {
+          Object.assign(updateInput, bbox);
+        }
+        const updated = await api.updateStep(updateInput);
+        get().updateStepStore(updated);
+        set({ polygonDraftPoints: [], polygonDraftStepId: null, canvasMode: "view" as CanvasMode });
+      } else {
+        // Create new step — stay in polygon mode so user can draw the next one
+        const state = get();
+        const { activeTrackId, currentSourcePages, currentPageIndex, activeProjectId } = state;
+        if (!activeTrackId) {
+          toast.info("Select a track first");
+          return;
+        }
+        const currentPage = currentSourcePages[currentPageIndex];
+        if (!currentPage) {
+          toast.info("No page selected");
+          return;
+        }
+        const trackSteps = state.steps.filter((s) => s.track_id === activeTrackId);
+        const rootCount = trackSteps.filter((s) => !s.parent_step_id).length;
+        const step = await api.createStep({
+          track_id: activeTrackId,
+          title: `Step ${rootCount + 1}`,
+          source_page_id: currentPage.id,
+          ...bbox,
+        });
+        // Now set the clip_polygon on the new step
+        const updated = await api.updateStep({ id: step.id, clip_polygon: json });
+        get().addStep(updated);
+        get().pushUndo(updated.id);
+        // Clear draft and deselect BEFORE re-entering idle polygon state
+        set({ polygonDraftPoints: [], polygonDraftStepId: null });
+        get().setActiveStep(updated.id);
+        if (activeProjectId) get().loadTracks(activeProjectId);
+      }
+      toast.success("Polygon saved", { toasterId: "canvas" });
+    } catch (e) {
+      toast.error(`Failed to save polygon: ${e}`, { toasterId: "canvas" });
+    }
+  },
+
+  clearClipPolygon: async (stepId) => {
+    try {
+      const updated = await api.updateStep({ id: stepId, clip_polygon: null });
+      get().updateStepStore(updated);
+      toast.success("Polygon cleared", { toasterId: "canvas" });
+    } catch (e) {
+      toast.error(`Failed to clear polygon: ${e}`, { toasterId: "canvas" });
+    }
+  },
+
+  // Save/discard prompt when switching steps mid-polygon
+  requestPolygonSwitch: (targetStepId) => {
+    set({ pendingPolygonSwitch: { targetStepId } });
+  },
+
+  confirmPolygonDiscard: () => {
+    const pending = get().pendingPolygonSwitch;
+    set({
+      pendingPolygonSwitch: null,
+      polygonDraftPoints: [],
+      polygonDraftStepId: null,
+      canvasMode: "view" as CanvasMode,
+    });
+    if (pending) {
+      get().setActiveStep(pending.targetStepId);
+    }
+  },
+
+  confirmPolygonSave: async () => {
+    const pending = get().pendingPolygonSwitch;
+    await get().savePolygon();
+    set({ pendingPolygonSwitch: null });
+    if (pending) {
+      get().setActiveStep(pending.targetStepId);
+    }
+  },
+
+  dismissPolygonSwitch: () => {
+    set({ pendingPolygonSwitch: null });
   },
 
   setIsProcessingPdf: (processing) => {

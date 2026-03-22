@@ -1,4 +1,4 @@
-import { Upload, ZoomIn, ZoomOut, Maximize2, FileStack, RotateCw, MousePointer, Crop, RectangleHorizontal, Keyboard, Settings2, Hammer, List, FileText } from "lucide-react";
+import { Upload, ZoomIn, ZoomOut, Maximize2, FileStack, RotateCw, MousePointer, Crop, Pentagon, RectangleHorizontal, Keyboard, Settings2, Hammer, List, FileText, Eraser } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -27,6 +27,8 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
   const rotatePage = useAppStore((s) => s.rotatePage);
   const canvasMode = useAppStore((s) => s.canvasMode);
   const setCanvasMode = useAppStore((s) => s.setCanvasMode);
+  const activeStepId = useAppStore((s) => s.activeStepId);
+  const clearClipPolygon = useAppStore((s) => s.clearClipPolygon);
   const navMode = useAppStore((s) => s.navMode);
   const setNavMode = useAppStore((s) => s.setNavMode);
   const currentSourcePages = useAppStore((s) => s.currentSourcePages);
@@ -52,6 +54,11 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
 
   const currentPage = currentSourcePages[currentPageIndex];
 
+  // Polygon mode requires a track (same as crop mode)
+  const activeStep = activeStepId ? steps.find((s) => s.id === activeStepId) : null;
+  const canPolygon = activeTrackId != null;
+  const hasPolygon = activeStep != null && activeStep.clip_polygon != null;
+
   const handleFullPage = async () => {
     if (!activeTrackId) {
       toast.info("Select a track first");
@@ -62,7 +69,8 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
       return;
     }
     const trackSteps = steps.filter((s) => s.track_id === activeTrackId);
-    const title = `Step ${trackSteps.length + 1}`;
+    const rootCount = trackSteps.filter((s) => !s.parent_step_id).length;
+    const title = `Step ${rootCount + 1}`;
     try {
       const step = await api.createStep({
         track_id: activeTrackId,
@@ -78,8 +86,9 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
       pushUndo(step.id);
       setActiveStep(step.id);
       if (activeProjectId) loadTracks(activeProjectId);
+      toast.success("Step created", { toasterId: "canvas" });
     } catch (e) {
-      toast.error(`Failed to create step: ${e}`);
+      toast.error(`Failed to create step: ${e}`, { toasterId: "canvas" });
     }
   };
 
@@ -160,7 +169,7 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => setCanvasMode("crop")}
-                      className={`rounded-r-[5px] px-1.5 py-1 ${
+                      className={`px-1.5 py-1 ${
                         canvasMode === "crop"
                           ? "bg-accent text-white"
                           : "text-text-tertiary hover:bg-muted hover:text-text-secondary"
@@ -171,7 +180,40 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
                   </TooltipTrigger>
                   <TooltipContent>Crop mode (C)</TooltipContent>
                 </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => setCanvasMode("polygon")}
+                      disabled={!canPolygon}
+                      className={`rounded-r-[5px] px-1.5 py-1 ${
+                        canvasMode === "polygon"
+                          ? "bg-accent text-white"
+                          : canPolygon
+                            ? "text-text-tertiary hover:bg-muted hover:text-text-secondary"
+                            : "cursor-not-allowed text-text-tertiary/40"
+                      }`}
+                    >
+                      <Pentagon className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Polygon crop (P)</TooltipContent>
+                </Tooltip>
               </div>
+
+              {/* Clear Polygon button — only when active step has a saved polygon */}
+              {hasPolygon && canvasMode !== "polygon" && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => activeStepId && clearClipPolygon(activeStepId)}
+                      className="rounded p-1 text-text-tertiary hover:bg-muted hover:text-text-secondary"
+                    >
+                      <Eraser className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Clear polygon</TooltipContent>
+                </Tooltip>
+              )}
 
               {/* Full page button */}
               <Tooltip>

@@ -6,6 +6,7 @@ import { useAppStore } from "@/store";
 import * as api from "@/api";
 import { useCropDrawing } from "@/hooks/useCropDrawing";
 import { CropLayer, imageToEffective } from "./CropLayer";
+import { PolygonLayer } from "./PolygonLayer";
 import type Konva from "konva";
 import { MIN_ZOOM, MAX_ZOOM, ZOOM_STEP } from "./zoom-utils";
 
@@ -255,6 +256,7 @@ export function InstructionCanvas() {
     };
   }, []);
 
+  const isPolygonMode = canvasMode === "polygon";
   const cursor = isViewMode ? "grab" : "crosshair";
 
   return (
@@ -271,9 +273,9 @@ export function InstructionCanvas() {
           draggable={isViewMode}
           onWheel={handleWheel}
           onDragEnd={handleDragEnd}
-          onMouseDown={onMouseDown}
-          onMouseMove={onMouseMove}
-          onMouseUp={onMouseUp}
+          onMouseDown={isPolygonMode ? undefined : onMouseDown}
+          onMouseMove={isPolygonMode ? undefined : onMouseMove}
+          onMouseUp={isPolygonMode ? undefined : onMouseUp}
           style={{ cursor }}
         >
           <Layer>
@@ -290,6 +292,7 @@ export function InstructionCanvas() {
             />
           </Layer>
           <CropLayer drawingRect={drawingRect} zoom={viewerZoom} />
+          <PolygonLayer zoom={viewerZoom} stageRef={stageRef} />
         </Stage>
       )}
     </div>

@@ -223,10 +223,11 @@ export function useCropDrawing(stageRef: React.RefObject<Konva.Stage | null>) {
           addStep(step);
           pushUndo(step.id);
           setActiveStep(step.id);
+          toast.success("Step created", { toasterId: "canvas" });
         }
         if (activeProjectId) loadTracks(activeProjectId);
       } catch (err) {
-        toast.error(`Failed to ${shouldUpdate ? "update" : "create"} step: ${err}`);
+        toast.error(`Failed to ${shouldUpdate ? "update" : "create"} step: ${err}`, { toasterId: "canvas" });
       } finally {
         isCreating.current = false;
       }

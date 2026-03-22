@@ -343,6 +343,7 @@ pub struct Step {
     pub completed_at: Option<i64>,
     pub quantity_current: i32,
     pub replaces_step_id: Option<String>,
+    pub clip_polygon: Option<String>,
     pub notes: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
@@ -390,6 +391,8 @@ pub struct UpdateStepInput {
     pub is_completed: Option<bool>,
     #[serde(default, deserialize_with = "deserialize_optional_nullable")]
     pub replaces_step_id: Option<Option<String>>,
+    #[serde(default, deserialize_with = "deserialize_optional_nullable")]
+    pub clip_polygon: Option<Option<String>>,
     pub notes: Option<String>,
 }
 
