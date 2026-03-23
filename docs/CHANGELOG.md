@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Polygon steps show rectangle**: Polygon steps no longer render a rectangular CropRegion overlay — only the polygon outline is shown
 
 ### Changed
+- **Page mode simplified**: Removed crop region overlays from PageCanvas and nested step lists from PageRail — page mode now shows clean full pages with page-level step counts
+- **Thicker checkmark annotations**: Checkmark stroke width now scales proportionally to the checkmark size for consistent visibility at all zoom levels
 - **Scalemates data consolidated onto kits**: Removed `scalemates_url` column from projects table (V9 migration migrates existing data to associated kit); project creation now stores Scalemates URL on the kit via `new_kit_scalemates_url`
 - **ProjectInfoCard**: Scalemates link sourced exclusively from kit; removed project-level Scalemates URL edit field
 - **`kit_scalemates_id` surfaced on Project**: Joined from kits table for downstream use

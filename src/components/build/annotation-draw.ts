@@ -1,5 +1,5 @@
 import type { Annotation } from "@/shared/types";
-import { DEFAULT_CHECKMARK_SIZE, DEFAULT_CROSS_SIZE } from "./AnnotationLayer";
+import { DEFAULT_CHECKMARK_SIZE, DEFAULT_CROSS_SIZE, CHECKMARK_STROKE_RATIO } from "./AnnotationLayer";
 
 export function drawAnnotationsOnCanvas(
   ctx: CanvasRenderingContext2D,
@@ -17,9 +17,14 @@ export function drawAnnotationsOnCanvas(
     ctx.lineJoin = "round";
 
     switch (ann.type) {
-      case "checkmark":
-        drawCheckmark(ctx, ann.x * canvasW, ann.y * canvasH, ann.size ?? DEFAULT_CHECKMARK_SIZE * Math.min(canvasW, canvasH));
+      case "checkmark": {
+        const savedLw = ctx.lineWidth;
+        const cmSize = ann.size ?? DEFAULT_CHECKMARK_SIZE * Math.min(canvasW, canvasH);
+        ctx.lineWidth = cmSize * CHECKMARK_STROKE_RATIO;
+        drawCheckmark(ctx, ann.x * canvasW, ann.y * canvasH, cmSize);
+        ctx.lineWidth = savedLw;
         break;
+      }
       case "circle":
         drawCircle(ctx, ann.x * canvasW, ann.y * canvasH, ann.rx * canvasW, ann.ry * canvasH);
         break;

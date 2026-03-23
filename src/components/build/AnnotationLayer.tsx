@@ -25,6 +25,7 @@ interface AnnotationLayerProps {
 }
 
 export const DEFAULT_CHECKMARK_SIZE = 0.06;
+export const CHECKMARK_STROKE_RATIO = 0.2;
 export const DEFAULT_CROSS_SIZE = 0.05;
 export const DEFAULT_STROKE_WIDTH = 0.003;
 export const DEFAULT_OPACITY = 0.9;
@@ -124,11 +125,11 @@ export function AnnotationLayer({ stepId, effectiveW, effectiveH, zoom, drawPrev
               cx + size * 0.5, cy - size * 0.4,
             ]}
             stroke={color}
-            strokeWidth={3 * strokeScale}
+            strokeWidth={size * CHECKMARK_STROKE_RATIO}
             lineCap="round"
             lineJoin="round"
             opacity={0.6}
-            dash={[6 * strokeScale, 4 * strokeScale]}
+            dash={[size * 0.12, size * 0.08]}
             listening={false}
           />
         );
@@ -289,7 +290,7 @@ function AnnotationShape({
               cx + size * 0.5, cy - size * 0.4,
             ]}
             stroke={ann.color}
-            strokeWidth={Math.max(sw, 3 * strokeScale)}
+            strokeWidth={size * CHECKMARK_STROKE_RATIO}
             lineCap="round"
             lineJoin="round"
             opacity={ann.opacity}
