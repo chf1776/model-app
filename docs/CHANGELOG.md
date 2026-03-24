@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] — 2026-03-23 — v1.0 Release
+
 ### Added
 - **Polygon crop tool**: Draw freeform polygon crop regions on instruction pages (P key or toolbar button) with closing line, rubber-band cursor preview, click-first-vertex to close, Enter to accept, and double-click to finish
 - **Polygon visual feedback**: Saved polygon outlines on canvas with click-to-select, active highlight, and polygon badge on thumbnails/previews
@@ -17,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Step creation toasts**: Crop and full-page step creation now show "Step created" confirmation (matching polygon's "Polygon saved")
 - **Keyboard shortcuts**: P for polygon mode, Enter to accept polygon; documented in shortcuts dialog
 - **Auto-open devtools**: WebKit devtools open automatically in debug builds
+- **KitCard Scalemates link icon**: Link icon appears in kit metadata row when `scalemates_url` is set; clicking opens the Scalemates page
 
 ### Fixed
 - **Can't clear nullable fields**: Kit and project update forms now properly clear fields like `box_art_path`, `category`, `scalemates_url`, `scalemates_id`, `retailer_url`, `notes`, and `product_code` — previously, sending `null` was indistinguishable from "not sent" due to `Option<T>` vs `Option<Option<T>>` serde handling
@@ -30,9 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Scalemates data consolidated onto kits**: Removed `scalemates_url` column from projects table (V9 migration migrates existing data to associated kit); project creation now stores Scalemates URL on the kit via `new_kit_scalemates_url`
 - **ProjectInfoCard**: Scalemates link sourced exclusively from kit; removed project-level Scalemates URL edit field
 - **`kit_scalemates_id` surfaced on Project**: Joined from kits table for downstream use
-
-### Added
-- **KitCard Scalemates link icon**: Link icon appears in kit metadata row when `scalemates_url` is set; clicking opens the Scalemates page
 
 ## [0.5.2] — 2026-03-17 — Scalemates Integration
 
