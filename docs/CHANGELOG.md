@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-03-28 — Sprue Tracking System
+
 ### Added
 - **Sprue & parts tracking**: Full sprue reference system — define lettered sprues (A, B, C...) per project with auto-assigned colors, draw crop regions on instruction pages, and track individual part usage per step
 - **AI part detection**: Claude Vision API integration auto-detects part callouts (e.g. A14, B7) from step crop images when creating steps; auto-creates placeholder sprue refs for unknown labels
