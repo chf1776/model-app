@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] — 2026-03-28 — Part Tick-Off
+
+### Added
+- **Part tick-off**: Click individual parts in the "Parts Used" section to mark them as used during assembly — ticked parts show a green checkmark with strikethrough, per-sprue progress counter (e.g. "3/5"), and success border when all parts are ticked
+- **Sprue thumbnails in step panel**: Building mode "Parts Used" section now shows horizontal cards with sprue crop thumbnail on the left and tickable part chips on the right; click thumbnail to open lightbox
+- **V13 migration**: `is_ticked` column on `step_sprue_parts` for tick-off persistence
+- **Ticked state in lightbox and overview**: SprueLightbox and overview SprueCard show ticked/unticked indicators per part
+
+### Changed
+- **Floating sprue panel removed**: Tick-off and thumbnails integrated into the right-hand step panel; floating SpruePanel overlay and S key shortcut removed
+
 ## [1.1.0] — 2026-03-28 — Sprue Tracking System
 
 ### Added

@@ -28,7 +28,6 @@ import { CompletionWarningDialog } from "@/components/build/CompletionWarningDia
 import { PolygonSwitchDialog } from "@/components/build/PolygonSwitchDialog";
 import { RelationPill } from "@/components/build/RelationPill";
 import { TimerBubble } from "@/components/build/TimerBubble";
-import { SpruePanel } from "@/components/build/SpruePanel";
 import { flattenTrackSteps, getReplacedStepIds } from "@/components/build/tree-utils";
 import { useUploadPdf } from "@/components/build/useUploadPdf";
 import { getEffectiveDryingMinutes } from "@/shared/types";
@@ -132,11 +131,6 @@ export default function BuildRoute() {
               toast.info("Use the Start Timer button to enter a duration");
             }
           }
-          return;
-        }
-        if (e.key === "s" || e.key === "S") {
-          e.preventDefault();
-          s.toggleSpruePanel();
           return;
         }
         if (e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "ArrowRight" || e.key === "ArrowDown") {
@@ -349,7 +343,6 @@ export default function BuildRoute() {
                 {navMode === "track" ? <CropCanvas /> : <PageCanvas />}
                 {navMode === "track" && <AnnotationToolbar />}
                 <RelationPill />
-                <SpruePanel />
               </div>
               <NavigationBar />
             </div>

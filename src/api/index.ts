@@ -757,6 +757,10 @@ export async function removeAiSpruePartsForStep(stepId: string): Promise<void> {
   return invoke<void>("remove_ai_sprue_parts_for_step", { stepId });
 }
 
+export async function setSpruePartTicked(id: string, isTicked: boolean): Promise<void> {
+  return invoke<void>("set_sprue_part_ticked", { id, isTicked });
+}
+
 export async function sprueDepletionSummary(projectId: string): Promise<SprueDepletionSummary[]> {
   return invoke<SprueDepletionSummary[]>("sprue_depletion_summary", { projectId });
 }

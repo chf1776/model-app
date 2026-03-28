@@ -45,6 +45,16 @@ pub fn remove_step_sprue_part(db: State<'_, AppDb>, id: String) -> Result<(), St
 }
 
 #[tauri::command]
+pub fn set_sprue_part_ticked(
+    db: State<'_, AppDb>,
+    id: String,
+    is_ticked: bool,
+) -> Result<(), String> {
+    let conn = db.conn()?;
+    crate::db::queries::step_sprue_parts::set_ticked(&conn, &id, is_ticked)
+}
+
+#[tauri::command]
 pub fn remove_ai_sprue_parts_for_step(
     db: State<'_, AppDb>,
     step_id: String,

@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback } from "react";
-import { Grid3X3, ChevronRight } from "lucide-react";
+import { Grid3X3, ChevronRight, Check, Circle } from "lucide-react";
 import { useAppStore } from "@/store";
 import { comparePartNumbers } from "@/shared/utils";
 import { OverviewCard } from "./OverviewCard";
@@ -157,7 +157,7 @@ export function SprueCard({ expanded, onExpand, onCollapse }: SprueCardProps) {
 
 interface ExpandableSprueProps {
   sprueRef: SprueRef;
-  parts: { id: string; step_id: string; sprue_label: string; part_number: string | null }[];
+  parts: { id: string; step_id: string; sprue_label: string; part_number: string | null; is_ticked: boolean }[];
   stepMap: Map<string, string>;
   onGoToStep: (stepId: string) => void;
 }
@@ -217,8 +217,14 @@ function ExpandableSprue({ sprueRef, parts, stepMap, onGoToStep }: ExpandableSpr
                     onClick={() => onGoToStep(part.step_id)}
                     className="flex items-center gap-1.5 px-2 py-1 text-left hover:bg-sidebar"
                   >
-                    <span className="text-[10px] text-success">&#10003;</span>
-                    <span className="text-[10px] font-medium text-text-primary">{label}</span>
+                    {part.is_ticked ? (
+                      <span className="flex h-3 w-3 shrink-0 items-center justify-center rounded-full bg-success">
+                        <Check className="h-2 w-2 text-white" strokeWidth={3} />
+                      </span>
+                    ) : (
+                      <Circle className="h-3 w-3 shrink-0 text-text-quaternary" />
+                    )}
+                    <span className={`text-[10px] font-medium ${part.is_ticked ? "text-text-tertiary line-through" : "text-text-primary"}`}>{label}</span>
                     <span className="min-w-0 flex-1 truncate text-[10px] text-text-tertiary">
                       {stepTitle}
                     </span>

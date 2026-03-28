@@ -166,6 +166,7 @@ pub fn run() {
             commands::step_sprue_parts::list_project_sprue_parts,
             commands::step_sprue_parts::add_step_sprue_part,
             commands::step_sprue_parts::remove_step_sprue_part,
+            commands::step_sprue_parts::set_sprue_part_ticked,
             commands::step_sprue_parts::remove_ai_sprue_parts_for_step,
             commands::step_sprue_parts::sprue_depletion_summary,
             // AI detection

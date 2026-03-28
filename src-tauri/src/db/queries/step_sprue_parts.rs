@@ -10,11 +10,12 @@ fn map_step_sprue_part(row: &rusqlite::Row) -> rusqlite::Result<StepSpruePart> {
         sprue_label: row.get(2)?,
         part_number: row.get(3)?,
         ai_detected: row.get(4)?,
-        created_at: row.get(5)?,
+        is_ticked: row.get(5)?,
+        created_at: row.get(6)?,
     })
 }
 
-const SELECT_COLS: &str = "id, step_id, sprue_label, part_number, ai_detected, created_at";
+const SELECT_COLS: &str = "id, step_id, sprue_label, part_number, ai_detected, is_ticked, created_at";
 
 pub fn list_for_step(conn: &Connection, step_id: &str) -> Result<Vec<StepSpruePart>, String> {
     let mut stmt = conn
@@ -35,7 +36,7 @@ pub fn list_for_step(conn: &Connection, step_id: &str) -> Result<Vec<StepSpruePa
 pub fn list_for_project(conn: &Connection, project_id: &str) -> Result<Vec<StepSpruePart>, String> {
     let mut stmt = conn
         .prepare(
-            "SELECT ssp.id, ssp.step_id, ssp.sprue_label, ssp.part_number, ssp.ai_detected, ssp.created_at
+            "SELECT ssp.id, ssp.step_id, ssp.sprue_label, ssp.part_number, ssp.ai_detected, ssp.is_ticked, ssp.created_at
              FROM step_sprue_parts ssp
              JOIN steps s ON s.id = ssp.step_id
              JOIN tracks t ON t.id = s.track_id
@@ -83,6 +84,15 @@ pub fn add_part(
 pub fn remove_part(conn: &Connection, id: &str) -> Result<(), String> {
     conn.execute("DELETE FROM step_sprue_parts WHERE id = ?1", params![id])
         .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+pub fn set_ticked(conn: &Connection, id: &str, is_ticked: bool) -> Result<(), String> {
+    conn.execute(
+        "UPDATE step_sprue_parts SET is_ticked = ?1 WHERE id = ?2",
+        params![is_ticked as i32, id],
+    )
+    .map_err(|e| e.to_string())?;
     Ok(())
 }
 

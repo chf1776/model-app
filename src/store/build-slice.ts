@@ -144,6 +144,7 @@ export interface BuildSlice {
   loadProjectSprueParts: (projectId: string) => Promise<void>;
   addStepSpruePartStore: (part: StepSpruePart) => void;
   removeStepSpruePartStore: (stepId: string, id: string) => void;
+  setSpruePartTicked: (stepId: string, partId: string, isTicked: boolean) => void;
 
   // Reference images
   stepReferenceImages: Record<string, ReferenceImage[]>;
@@ -770,6 +771,33 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       },
       projectSprueParts: s.projectSprueParts.filter((p) => p.id !== id),
     }));
+  },
+
+  setSpruePartTicked: (stepId, partId, isTicked) => {
+    set((s) => ({
+      stepSprueParts: {
+        ...s.stepSprueParts,
+        [stepId]: (s.stepSprueParts[stepId] ?? []).map((p) =>
+          p.id === partId ? { ...p, is_ticked: isTicked } : p,
+        ),
+      },
+      projectSprueParts: s.projectSprueParts.map((p) =>
+        p.id === partId ? { ...p, is_ticked: isTicked } : p,
+      ),
+    }));
+    api.setSpruePartTicked(partId, isTicked).catch(() => {
+      set((s) => ({
+        stepSprueParts: {
+          ...s.stepSprueParts,
+          [stepId]: (s.stepSprueParts[stepId] ?? []).map((p) =>
+            p.id === partId ? { ...p, is_ticked: !isTicked } : p,
+          ),
+        },
+        projectSprueParts: s.projectSprueParts.map((p) =>
+          p.id === partId ? { ...p, is_ticked: !isTicked } : p,
+        ),
+      }));
+    });
   },
 
   loadStepRelations: async (stepId) => {

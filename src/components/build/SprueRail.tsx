@@ -148,7 +148,7 @@ export function SprueRail() {
       </div>
 
       {/* List */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="min-h-0 flex-1">
         {sortedRefs.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
             <p className="mb-1 text-[11px] text-text-tertiary">

@@ -1,0 +1,1 @@
+ALTER TABLE step_sprue_parts ADD COLUMN is_ticked INTEGER NOT NULL DEFAULT 0;

@@ -1,5 +1,5 @@
 import { useRef, useEffect, useMemo, useState, useCallback } from "react";
-import { X } from "lucide-react";
+import { X, Check, Circle } from "lucide-react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import {
   Dialog,
@@ -108,9 +108,15 @@ export function SprueLightbox({ sprueLabel, onClose }: SprueLightboxProps) {
                           onClick={() => handlePartClick(part.step_id)}
                           className="flex items-center gap-2 px-3 py-1 text-left hover:bg-sidebar"
                         >
-                          <span className="text-[10px] text-success">&#10003;</span>
+                          {part.is_ticked ? (
+                            <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-success">
+                              <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />
+                            </span>
+                          ) : (
+                            <Circle className="h-3.5 w-3.5 shrink-0 text-text-quaternary" />
+                          )}
                           <div className="min-w-0 flex-1">
-                            <span className="text-xs font-medium text-text-primary">
+                            <span className={`text-xs font-medium ${part.is_ticked ? "text-text-tertiary line-through" : "text-text-primary"}`}>
                               {label}
                             </span>
                             <p className="truncate text-[10px] text-text-tertiary">

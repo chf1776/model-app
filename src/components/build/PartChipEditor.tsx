@@ -1,14 +1,18 @@
 import { useState, useMemo, useCallback, useRef } from "react";
-import { X, RotateCw, Sparkles } from "lucide-react";
+import { X, RotateCw, Sparkles, Check, Grid3X3 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useAppStore } from "@/store";
 import * as api from "@/api";
 import { toast } from "sonner";
+import { comparePartNumbers } from "@/shared/utils";
 import type { StepSpruePart, SprueRef } from "@/shared/types";
+import { SprueCropThumb } from "./SprueCropThumb";
+import { SprueLightbox } from "./SprueLightbox";
 
 interface PartChipEditorProps {
   stepId: string;
   readOnly?: boolean;
+  buildMode?: boolean;
 }
 
 /**
@@ -49,11 +53,12 @@ function parsePartInput(
   };
 }
 
-export function PartChipEditor({ stepId, readOnly = false }: PartChipEditorProps) {
+export function PartChipEditor({ stepId, readOnly = false, buildMode = false }: PartChipEditorProps) {
   const sprueRefs = useAppStore((s) => s.sprueRefs);
   const stepSprueParts = useAppStore((s) => s.stepSprueParts);
   const addStepSpruePartStore = useAppStore((s) => s.addStepSpruePartStore);
   const removeStepSpruePartStore = useAppStore((s) => s.removeStepSpruePartStore);
+  const setSpruePartTicked = useAppStore((s) => s.setSpruePartTicked);
   const activeProjectId = useAppStore((s) => s.activeProjectId);
   const addSprueRefStore = useAppStore((s) => s.addSprueRefStore);
   const redetectStepSprues = useAppStore((s) => s.redetectStepSprues);
@@ -61,6 +66,7 @@ export function PartChipEditor({ stepId, readOnly = false }: PartChipEditorProps
   const hasApiKey = !!useAppStore((s) => s.settings.ai_api_key);
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const [lightboxLabel, setLightboxLabel] = useState<string | null>(null);
 
   const currentParts = stepSprueParts[stepId] ?? [];
 
@@ -73,15 +79,7 @@ export function PartChipEditor({ stepId, readOnly = false }: PartChipEditorProps
     }
     const entries = [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
     for (const [, parts] of entries) {
-      parts.sort((a, b) => {
-        if (!a.part_number && !b.part_number) return 0;
-        if (!a.part_number) return -1;
-        if (!b.part_number) return 1;
-        const numA = parseInt(a.part_number, 10);
-        const numB = parseInt(b.part_number, 10);
-        if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-        return a.part_number.localeCompare(b.part_number);
-      });
+      parts.sort((a, b) => comparePartNumbers(a.part_number, b.part_number));
     }
     return entries;
   }, [currentParts]);
@@ -90,6 +88,14 @@ export function PartChipEditor({ stepId, readOnly = false }: PartChipEditorProps
     const m = new Map<string, string>();
     for (const ref of sprueRefs) {
       m.set(ref.label, ref.color);
+    }
+    return m;
+  }, [sprueRefs]);
+
+  const refMap = useMemo(() => {
+    const m = new Map<string, SprueRef>();
+    for (const ref of sprueRefs) {
+      m.set(ref.label, ref);
     }
     return m;
   }, [sprueRefs]);
@@ -159,34 +165,108 @@ export function PartChipEditor({ stepId, readOnly = false }: PartChipEditorProps
 
   return (
     <div className="space-y-2">
-      {/* Grouped chips */}
-      {grouped.map(([label, parts]) => {
-        const color = colorMap.get(label) ?? "#888";
-        return (
-          <div key={label} className="space-y-1">
-            <div className="flex items-center gap-1.5">
-              <span
-                className="h-2.5 w-2.5 shrink-0 rounded-sm"
-                style={{ backgroundColor: color }}
-              />
-              <span className="text-[10px] font-medium text-text-secondary">
-                Sprue {label}
-              </span>
+      {/* Grouped parts — card layout in build mode, chip layout in setup */}
+      {buildMode ? (
+        grouped.map(([label, parts]) => {
+          const color = colorMap.get(label) ?? "#888";
+          const ref = refMap.get(label);
+          const ticked = parts.filter((p) => p.is_ticked).length;
+          const allTicked = parts.length > 0 && ticked === parts.length;
+          return (
+            <div
+              key={label}
+              className={`flex flex-col rounded border p-1.5 ${allTicked ? "border-success" : "border-border"}`}
+              style={{ borderLeftWidth: 3, borderLeftColor: allTicked ? undefined : color }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-semibold text-text-primary">
+                    Sprue {label}
+                  </span>
+                </div>
+                <span className={`text-[9px] ${allTicked ? "text-success" : "text-text-tertiary"}`}>
+                  {ticked}/{parts.length}
+                </span>
+              </div>
+              <div className="mt-1 flex gap-2">
+                {/* Thumbnail */}
+                {ref && (
+                  <button
+                    onClick={() => setLightboxLabel(label)}
+                    className="flex shrink-0 items-center justify-center overflow-hidden rounded bg-black/[0.03] hover:bg-black/[0.06]"
+                    style={{ width: 72, minHeight: 50 }}
+                  >
+                    <SprueCropThumb
+                      sprueRef={ref}
+                      width={90}
+                      height={70}
+                      className="max-h-[70px]"
+                      fallback={<Grid3X3 className="h-3.5 w-3.5 text-text-quaternary" />}
+                    />
+                  </button>
+                )}
+                {/* Tickable pills */}
+                <div className="flex min-w-0 flex-1 flex-wrap content-start gap-1">
+                  {parts.map((part) => {
+                    const chipLabel = `${label}${part.part_number ?? ""}`;
+                    return (
+                      <button
+                        key={part.id}
+                        onClick={() => setSpruePartTicked(stepId, part.id, !part.is_ticked)}
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium transition-colors ${
+                          part.is_ticked
+                            ? "bg-success/15 text-success"
+                            : "hover:opacity-80"
+                        }`}
+                        style={part.is_ticked ? undefined : {
+                          backgroundColor: `${color}15`,
+                          color,
+                          border: `1px solid ${color}30`,
+                        }}
+                      >
+                        {part.is_ticked && (
+                          <Check className="h-3 w-3" strokeWidth={3} />
+                        )}
+                        <span className={part.is_ticked ? "line-through" : ""}>
+                          {chipLabel}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-1 pl-4">
-              {parts.map((part) => (
-                <PartChip
-                  key={part.id}
-                  part={part}
-                  color={color}
-                  readOnly={readOnly}
-                  onRemove={() => handleRemove(part)}
+          );
+        })
+      ) : (
+        grouped.map(([label, parts]) => {
+          const color = colorMap.get(label) ?? "#888";
+          return (
+            <div key={label} className="space-y-1">
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-sm"
+                  style={{ backgroundColor: color }}
                 />
-              ))}
+                <span className="text-[10px] font-medium text-text-secondary">
+                  Sprue {label}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1 pl-4">
+                {parts.map((part) => (
+                  <PartChip
+                    key={part.id}
+                    part={part}
+                    color={color}
+                    readOnly={readOnly}
+                    onRemove={() => handleRemove(part)}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })
+      )}
 
       {/* Re-detect / Detect button */}
       {!readOnly && hasApiKey && step?.crop_x != null && (
@@ -213,6 +293,14 @@ export function PartChipEditor({ stepId, readOnly = false }: PartChipEditorProps
           onKeyDown={handleKeyDown}
           placeholder="Type part e.g. A15, B7..."
           className="h-7 text-[11px]"
+        />
+      )}
+
+      {/* Lightbox */}
+      {lightboxLabel && (
+        <SprueLightbox
+          sprueLabel={lightboxLabel}
+          onClose={() => setLightboxLabel(null)}
         />
       )}
     </div>
