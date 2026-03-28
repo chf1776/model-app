@@ -1,12 +1,11 @@
 use crate::db::AppDb;
-use crate::models::{SprueRef, StepSpruePart};
+use crate::models::StepSpruePart;
 use crate::services::ai_detection;
 use tauri::State;
 
 #[derive(serde::Serialize)]
 pub struct DetectionResponse {
     pub parts: Vec<StepSpruePart>,
-    pub new_sprue_refs: Vec<SprueRef>,
 }
 
 #[tauri::command]
@@ -14,8 +13,8 @@ pub fn detect_step_sprues(
     db: State<'_, AppDb>,
     step_id: String,
 ) -> Result<DetectionResponse, String> {
-    // Phase 1: Read from DB (hold lock briefly)
-    let (page_path, crop_x, crop_y, crop_w, crop_h, api_key, model, project_id) = {
+    // Phase 1: Read from DB (single lock)
+    let (page_path, crop_x, crop_y, crop_w, crop_h, api_key, model, known_labels) = {
         let conn = db.conn()?;
 
         let step = crate::db::queries::steps::get_by_id(&conn, &step_id)?;
@@ -38,22 +37,26 @@ pub fn detect_step_sprues(
         let model = crate::db::queries::settings::get(&conn, "ai_model")
             .unwrap_or_else(|_| "claude-haiku-4-5-20251001".to_string());
 
-        // Get project_id via track
         let track = crate::db::queries::tracks::get_by_id(&conn, &step.track_id)?;
 
-        // Mark as detected immediately to prevent duplicate triggers
+        let refs = crate::db::queries::sprue_refs::list_for_project(&conn, &track.project_id)?;
+        let known_labels: Vec<String> = refs.into_iter().map(|r| r.label).collect();
+        if known_labels.is_empty() {
+            return Err("No sprues defined. Set up sprue references first.".to_string());
+        }
+
+        // Mark as detected after all validation passes
         crate::db::queries::steps::set_sprues_detected(&conn, &step_id, true)?;
 
-        (page.file_path, crop_x, crop_y, crop_w, crop_h, api_key, model, track.project_id)
+        (page.file_path, crop_x, crop_y, crop_w, crop_h, api_key, model, known_labels)
     };
-    // Lock is released here
 
     // Phase 2: Crop image and call API (no DB lock held)
     let image_base64 = ai_detection::crop_and_encode(
         &page_path, crop_x, crop_y, crop_w, crop_h,
     )?;
 
-    let detected_parts = match ai_detection::detect_parts(&api_key, &model, &image_base64) {
+    let detected_parts = match ai_detection::detect_parts(&api_key, &model, &image_base64, &known_labels) {
         Ok(parts) => parts,
         Err(e) => {
             // Reset sprues_detected on failure so user can retry
@@ -70,34 +73,15 @@ pub fn detect_step_sprues(
     if detected_parts.is_empty() {
         return Ok(DetectionResponse {
             parts: Vec::new(),
-            new_sprue_refs: Vec::new(),
         });
     }
 
     // Phase 3: Insert results into DB (re-acquire lock)
     let conn = db.conn()?;
 
-    let existing_refs = crate::db::queries::sprue_refs::list_for_project(&conn, &project_id)?;
-    let mut existing_labels: std::collections::HashSet<String> =
-        existing_refs.iter().map(|r| r.label.clone()).collect();
-
     let mut inserted_parts = Vec::new();
-    let mut new_sprue_refs = Vec::new();
 
     for part in &detected_parts {
-        if !existing_labels.contains(&part.sprue) {
-            let color = crate::db::queries::sprue_refs::get_next_color(&conn, &project_id)?;
-            let new_ref = crate::db::queries::sprue_refs::insert(
-                &conn,
-                &project_id,
-                None, None, None, None, None, None,
-                &part.sprue,
-                &color,
-            )?;
-            existing_labels.insert(part.sprue.clone());
-            new_sprue_refs.push(new_ref);
-        }
-
         // INSERT OR IGNORE handles duplicates
         let sprue_part = crate::db::queries::step_sprue_parts::add_part(
             &conn,
@@ -111,7 +95,6 @@ pub fn detect_step_sprues(
 
     Ok(DetectionResponse {
         parts: inserted_parts,
-        new_sprue_refs,
     })
 }
 

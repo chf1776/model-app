@@ -856,7 +856,6 @@ export interface SprueDepletionSummary {
 
 export interface DetectionResponse {
   parts: StepSpruePart[];
-  new_sprue_refs: SprueRef[];
 }
 
 export const SPRUE_COLORS = [

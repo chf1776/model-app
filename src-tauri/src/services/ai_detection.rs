@@ -74,32 +74,51 @@ pub fn crop_and_encode(
     Ok(b64)
 }
 
-const PROMPT: &str = r#"You are analyzing a scale model instruction manual step image.
+fn build_prompt(known_sprues: &[String]) -> String {
+    format!(
+        r#"You are analyzing a scale model instruction manual step image.
 Identify all part callouts visible — these are alphanumeric labels like A14, B7, C3
 that reference specific plastic parts on lettered sprues (runners).
 
+The sprues for this project are: {}
+ONLY identify parts from these sprues. Any label that does not start with one of these exact sprue letters/names is NOT a part callout.
+
+Do NOT include:
+- Paint/color codes (Tamiya, Gunze, Humbrol, Vallejo, FS, RAL references)
+- Step numbers, sub-step letters, or diagram sequence labels
+- Adhesive, cement, or tool references
+- Measurement or scale annotations
+- Decal sheet references
+
 Return a JSON object with this exact structure:
-{
+{{
   "parts": [
-    {"sprue": "A", "number": "14"},
-    {"sprue": "B", "number": "7"}
+    {{"sprue": "A", "number": "14"}},
+    {{"sprue": "B", "number": "7"}}
   ]
-}
+}}
 
 Rules:
-- "sprue" is the letter prefix (A, B, C, etc.)
+- "sprue" must exactly match one of the known sprue labels listed above
 - "number" is the numeric suffix (14, 7, 3, etc.)
-- If a callout is just a letter with no number, set "number" to null
+- If a callout is just a sprue letter with no number, set "number" to null
 - Only include parts that are clearly labeled in the image
 - Do not guess or infer parts that aren't visible
-- If no part callouts are visible, return {"parts": []}"#;
+- If no part callouts are visible, return {{"parts": []}}"#,
+        known_sprues.join(", "),
+    )
+}
 
 /// Call the Claude Messages API with a base64-encoded image and return detected parts.
+/// Detection is constrained to `known_sprues` labels only.
 pub fn detect_parts(
     api_key: &str,
     model: &str,
     image_base64: &str,
+    known_sprues: &[String],
 ) -> Result<Vec<DetectedPart>, String> {
+    let prompt = build_prompt(known_sprues);
+
     let body = serde_json::json!({
         "model": model,
         "max_tokens": 1024,
@@ -116,7 +135,7 @@ pub fn detect_parts(
                 },
                 {
                     "type": "text",
-                    "text": PROMPT,
+                    "text": prompt,
                 }
             ]
         }]
@@ -157,6 +176,10 @@ pub fn detect_parts(
     let result: DetectionResult =
         serde_json::from_str(&json_str).map_err(|e| format!("Failed to parse detection result: {e}"))?;
 
+    // Safety net: filter to known sprues in case the LLM returns unexpected labels
+    let known_set: std::collections::HashSet<String> =
+        known_sprues.iter().map(|s| s.to_uppercase()).collect();
+
     Ok(result
         .parts
         .into_iter()
@@ -164,6 +187,7 @@ pub fn detect_parts(
             sprue: p.sprue.to_uppercase(),
             number: p.number,
         })
+        .filter(|p| known_set.contains(&p.sprue))
         .collect())
 }
 

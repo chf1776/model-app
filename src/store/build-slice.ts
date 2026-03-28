@@ -36,9 +36,6 @@ function runDetection(
         },
         projectSprueParts: [...s.projectSprueParts, ...result.parts],
       } : {}),
-      ...(result.new_sprue_refs.length > 0 ? {
-        sprueRefs: [...s.sprueRefs, ...result.new_sprue_refs],
-      } : {}),
     }));
     if (result.parts.length > 0) {
       toast.success(`Detected ${result.parts.length} part${result.parts.length === 1 ? "" : "s"}`, { toasterId: "canvas" });

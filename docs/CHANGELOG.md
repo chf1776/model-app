@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Sprue & parts tracking**: Full sprue reference system — define lettered sprues (A, B, C...) per project with auto-assigned colors, draw crop regions on instruction pages, and track individual part usage per step
-- **AI part detection**: Claude Vision API integration auto-detects part callouts (e.g. A14, B7) from step crop images when creating steps; auto-creates placeholder sprue refs for unknown labels
+- **AI part detection**: Claude Vision API integration auto-detects part callouts (e.g. A14, B7) from step crop images; constrained to user-defined sprues only, with paint/tool code exclusion and server-side label filtering
 - **PartChipEditor**: Rapid manual part entry with "A15" syntax, color-tinted chips grouped by sprue, sparkle indicator for AI-detected parts, duplicate detection
 - **SprueRail**: Setup rail mode for managing sprue references with click-to-select, crop preview thumbnails, inline create/edit/delete dialogs
 - **Sprue overlay layer**: Visual crop regions for sprue refs on instruction canvas with drag-resize and label badges
