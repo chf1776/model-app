@@ -31,6 +31,8 @@ export function BuildingRail() {
   const loadTracks = useAppStore((s) => s.loadTracks);
   const activeProjectId = useAppStore((s) => s.activeProjectId);
   const currentSourcePages = useAppStore((s) => s.currentSourcePages);
+  const sprueRefs = useAppStore((s) => s.sprueRefs);
+  const projectSprueParts = useAppStore((s) => s.projectSprueParts);
 
   const activeTrack = tracks.find((t) => t.id === activeTrackId) ?? tracks[0] ?? null;
   const effectiveTrackId = activeTrack?.id ?? null;
@@ -94,6 +96,22 @@ export function BuildingRail() {
     for (const s of steps) map.set(s.id, s);
     return map;
   }, [steps]);
+
+  // Sprue color lookup and per-step sprue labels
+  const sprueColorMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const ref of sprueRefs) map.set(ref.label, ref.color);
+    return map;
+  }, [sprueRefs]);
+
+  const stepSprueLabels = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const part of projectSprueParts) {
+      if (!map.has(part.step_id)) map.set(part.step_id, new Set());
+      map.get(part.step_id)!.add(part.sprue_label);
+    }
+    return map;
+  }, [projectSprueParts]);
 
   // Overall project progress (from track counts which exclude replaced steps)
   const totalSteps = tracks.reduce((sum, t) => sum + t.step_count, 0);
@@ -269,6 +287,8 @@ export function BuildingRail() {
                     onToggleComplete={() => handleToggleComplete(step)}
                     isReplaced={isReplaced}
                     replacesName={replacesName}
+                    sprueLabels={stepSprueLabels.has(step.id) ? [...stepSprueLabels.get(step.id)!] : undefined}
+                    sprueColorMap={sprueColorMap}
                   />
 
                   {/* Sub-steps (visible when parent or any child is active) */}
@@ -283,6 +303,8 @@ export function BuildingRail() {
                           onClick={() => setActiveStep(child.id)}
                           onToggleComplete={() => handleToggleComplete(child)}
                           isSubStep
+                          sprueLabels={stepSprueLabels.has(child.id) ? [...stepSprueLabels.get(child.id)!] : undefined}
+                          sprueColorMap={sprueColorMap}
                         />
                       ))}
                     </div>
@@ -339,11 +361,13 @@ interface BuildingStepRowProps {
   isSubStep?: boolean;
   isReplaced?: boolean;
   replacesName?: string | null;
+  sprueLabels?: string[];
+  sprueColorMap?: Map<string, string>;
 }
 
 const BuildingStepRow = forwardRef<HTMLButtonElement, BuildingStepRowProps>(
   function BuildingStepRow(
-    { step, index, total, isActive, page, childProgress, onClick, onToggleComplete, isSubStep, isReplaced, replacesName },
+    { step, index, total, isActive, page, childProgress, onClick, onToggleComplete, isSubStep, isReplaced, replacesName, sprueLabels, sprueColorMap },
     ref,
   ) {
     const progress = childProgress
@@ -406,6 +430,27 @@ const BuildingStepRow = forwardRef<HTMLButtonElement, BuildingStepRowProps>(
             </div>
           )}
         </div>
+
+        {/* Sprue dots */}
+        {sprueLabels && sprueLabels.length > 0 && !isReplaced && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="flex shrink-0 items-center gap-px">
+                {sprueLabels.slice(0, 3).map((label) => (
+                  <span
+                    key={label}
+                    className="h-[5px] w-[5px] rounded-full"
+                    style={{ backgroundColor: sprueColorMap?.get(label) ?? "#888" }}
+                  />
+                ))}
+                {sprueLabels.length > 3 && (
+                  <span className="text-[7px] text-text-tertiary">+{sprueLabels.length - 3}</span>
+                )}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>{sprueLabels.join(", ")}</TooltipContent>
+          </Tooltip>
+        )}
 
         {/* Pre-paint dot */}
         {step.pre_paint && !isReplaced && (

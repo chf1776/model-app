@@ -13,6 +13,7 @@ import { EmptyInstructionsState } from "@/components/build/EmptyInstructionsStat
 import { ProcessingOverlay } from "@/components/build/ProcessingOverlay";
 import { SourceManagerPanel } from "@/components/build/SourceManagerPanel";
 import { TrackRail } from "@/components/build/TrackRail";
+import { SprueRail } from "@/components/build/SprueRail";
 import { StepEditorPanel } from "@/components/build/StepEditorPanel";
 import { KeyboardShortcutsDialog } from "@/components/build/KeyboardShortcutsDialog";
 import { NavigationBar } from "@/components/build/NavigationBar";
@@ -27,6 +28,7 @@ import { CompletionWarningDialog } from "@/components/build/CompletionWarningDia
 import { PolygonSwitchDialog } from "@/components/build/PolygonSwitchDialog";
 import { RelationPill } from "@/components/build/RelationPill";
 import { TimerBubble } from "@/components/build/TimerBubble";
+import { SpruePanel } from "@/components/build/SpruePanel";
 import { flattenTrackSteps, getReplacedStepIds } from "@/components/build/tree-utils";
 import { useUploadPdf } from "@/components/build/useUploadPdf";
 import { getEffectiveDryingMinutes } from "@/shared/types";
@@ -40,6 +42,7 @@ export default function BuildRoute() {
   const isProcessingPdf = useAppStore((s) => s.isProcessingPdf);
   const activeStepId = useAppStore((s) => s.activeStepId);
   const navMode = useAppStore((s) => s.navMode);
+  const setupRailMode = useAppStore((s) => s.setupRailMode);
   const loadTimers = useAppStore((s) => s.loadTimers);
   const activeProjectId = useAppStore((s) => s.activeProjectId);
   const refreshPaletteEntries = useAppStore((s) => s.refreshProjectPaletteEntries);
@@ -129,6 +132,11 @@ export default function BuildRoute() {
               toast.info("Use the Start Timer button to enter a duration");
             }
           }
+          return;
+        }
+        if (e.key === "s" || e.key === "S") {
+          e.preventDefault();
+          s.toggleSpruePanel();
           return;
         }
         if (e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "ArrowRight" || e.key === "ArrowDown") {
@@ -232,6 +240,7 @@ export default function BuildRoute() {
               fresh.addStep(step);
               fresh.pushUndo(step.id);
               fresh.setActiveStep(step.id);
+              fresh.triggerAutoDetect(step.id);
               if (fresh.activeProjectId) fresh.loadTracks(fresh.activeProjectId);
               toast.success("Step created", { toasterId: "canvas" });
             })
@@ -301,7 +310,7 @@ export default function BuildRoute() {
       <div className="flex flex-1 overflow-hidden">
         {buildMode === "setup" ? (
           <>
-            <TrackRail />
+            {setupRailMode === "sprues" ? <SprueRail /> : <TrackRail />}
 
             <div className="relative flex min-w-0 flex-1 flex-col bg-[#E8E4DF]">
               <div className="relative min-h-0 flex-1">
@@ -340,6 +349,7 @@ export default function BuildRoute() {
                 {navMode === "track" ? <CropCanvas /> : <PageCanvas />}
                 {navMode === "track" && <AnnotationToolbar />}
                 <RelationPill />
+                <SpruePanel />
               </div>
               <NavigationBar />
             </div>

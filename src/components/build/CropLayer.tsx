@@ -41,7 +41,7 @@ export function imageToEffective(
  * Inverse of imageToEffective: convert effective (post-rotation) space
  * back to image-space crop coordinates for storage.
  */
-function effectiveToImage(
+export function effectiveToImage(
   effX: number,
   effY: number,
   effW: number,

@@ -22,6 +22,7 @@ import {
 import { ADHESIVE_TYPE_LABELS, IMAGE_FILE_FILTER, getEffectiveDryingMinutes, parsePositiveMinutes } from "@/shared/types";
 import type { Step } from "@/shared/types";
 import { PaintRefChips } from "./PaintRefChips";
+import { PartChipEditor } from "./PartChipEditor";
 import { StepCompletionMarker } from "./StepCompletionMarker";
 import { parseStepRelations, flattenTrackSteps } from "./tree-utils";
 
@@ -46,6 +47,9 @@ export function BuildingStepPanel() {
   const stepReferenceImages = useAppStore((s) => s.stepReferenceImages);
   const loadStepReferenceImages = useAppStore((s) => s.loadStepReferenceImages);
   const addReferenceImageStore = useAppStore((s) => s.addReferenceImageStore);
+  const sprueRefs = useAppStore((s) => s.sprueRefs);
+  const stepSprueParts = useAppStore((s) => s.stepSprueParts);
+  const loadStepSprueParts = useAppStore((s) => s.loadStepSprueParts);
 
   const step = activeStepId ? steps.find((s) => s.id === activeStepId) ?? null : null;
   const track = step ? tracks.find((t) => t.id === step.track_id) : null;
@@ -58,6 +62,7 @@ export function BuildingStepPanel() {
     if (!stepPaintRefs[step.id]) loads.push(loadStepPaintRefs(step.id));
     if (!stepRelations[step.id]) loads.push(loadStepRelations(step.id));
     if (!stepReferenceImages[step.id]) loads.push(loadStepReferenceImages(step.id));
+    if (!stepSprueParts[step.id]) loads.push(loadStepSprueParts(step.id));
     if (loads.length > 0) Promise.all(loads);
   }, [step?.id]);
 
@@ -80,6 +85,8 @@ export function BuildingStepPanel() {
 
   // Drag-drop for progress photos
   const [dragOver, setDragOver] = useState(false);
+  const [uncompleteOpen, setUncompleteOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (!step) return;
@@ -106,6 +113,11 @@ export function BuildingStepPanel() {
     return () => { unlisten.then((fn) => fn()); };
   }, [step?.id]);
 
+  // Reset lightbox when step changes
+  useEffect(() => {
+    setLightboxIndex(null);
+  }, [step?.id]);
+
   if (!step) return null;
 
   const currentTags = stepTags[step.id] ?? [];
@@ -124,14 +136,6 @@ export function BuildingStepPanel() {
     blocksAccessIds.length > 0 ||
     incomingBlockedBy.length > 0 ||
     incomingBlocksAccess.length > 0;
-
-  const [uncompleteOpen, setUncompleteOpen] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-
-  // Reset lightbox when step changes
-  useEffect(() => {
-    setLightboxIndex(null);
-  }, [step?.id]);
 
   const lightboxImages = useMemo(
     () =>
@@ -427,6 +431,17 @@ export function BuildingStepPanel() {
               <div className="space-y-1.5">
                 <SectionLabel>Paints</SectionLabel>
                 <PaintRefChips stepId={step.id} />
+              </div>
+            </>
+          )}
+
+          {/* Section 4.6: Sprues */}
+          {sprueRefs.length > 0 && (
+            <>
+              <Divider />
+              <div className="space-y-1.5">
+                <SectionLabel>Parts Used</SectionLabel>
+                <PartChipEditor stepId={step.id} />
               </div>
             </>
           )}

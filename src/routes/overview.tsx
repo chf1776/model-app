@@ -7,6 +7,7 @@ import { ProjectInfoCard } from "@/components/overview/ProjectInfoCard";
 import { GalleryCard } from "@/components/overview/GalleryCard";
 import { BuildLogCard } from "@/components/overview/BuildLogCard";
 import { MaterialsCard } from "@/components/overview/MaterialsCard";
+import { SprueCard } from "@/components/overview/SprueCard";
 
 export default function OverviewRoute() {
   const project = useAppStore((s) => s.project);
@@ -65,11 +66,12 @@ export default function OverviewRoute() {
     return (
       <div className="flex h-full flex-col gap-2.5 overflow-hidden p-3">
         <Skeleton className="h-20 rounded-lg" />
-        <div className="grid min-h-0 flex-1 grid-cols-2 gap-2.5">
-          <Skeleton className="rounded-lg" />
-          <Skeleton className="rounded-lg" />
-          <Skeleton className="rounded-lg" />
-          <Skeleton className="rounded-lg" />
+        <div className="grid min-h-0 flex-1 grid-cols-6 gap-2.5">
+          <Skeleton className="col-span-2 rounded-lg" />
+          <Skeleton className="col-span-2 rounded-lg" />
+          <Skeleton className="col-span-2 rounded-lg" />
+          <Skeleton className="col-span-3 rounded-lg" />
+          <Skeleton className="col-span-3 rounded-lg" />
         </div>
       </div>
     );
@@ -93,6 +95,9 @@ export default function OverviewRoute() {
         {focusedCard === "materials" && (
           <MaterialsCard expanded onCollapse={collapse} />
         )}
+        {focusedCard === "sprues" && (
+          <SprueCard expanded onCollapse={collapse} />
+        )}
       </div>
     );
   }
@@ -101,27 +106,42 @@ export default function OverviewRoute() {
   return (
     <div className="flex h-full flex-col gap-2.5 overflow-hidden p-3">
       <AssemblyMap />
-      <div className="grid min-h-0 flex-1 grid-cols-2 gap-2.5">
-        <ProjectInfoCard
-          expanded={false}
-          onExpand={() => setFocusedCard("project_info")}
-          onCollapse={collapse}
-        />
-        <GalleryCard
-          expanded={false}
-          onExpand={() => setFocusedCard("gallery")}
-          onCollapse={collapse}
-        />
-        <BuildLogCard
-          expanded={false}
-          onExpand={() => setFocusedCard("build_log")}
-          onCollapse={collapse}
-        />
-        <MaterialsCard
-          expanded={false}
-          onExpand={() => setFocusedCard("materials")}
-          onCollapse={collapse}
-        />
+      <div className="grid min-h-0 flex-1 grid-cols-6 gap-2.5">
+        <div className="col-span-2 min-h-0">
+          <ProjectInfoCard
+            expanded={false}
+            onExpand={() => setFocusedCard("project_info")}
+            onCollapse={collapse}
+          />
+        </div>
+        <div className="col-span-2 min-h-0">
+          <GalleryCard
+            expanded={false}
+            onExpand={() => setFocusedCard("gallery")}
+            onCollapse={collapse}
+          />
+        </div>
+        <div className="col-span-2 min-h-0">
+          <SprueCard
+            expanded={false}
+            onExpand={() => setFocusedCard("sprues")}
+            onCollapse={collapse}
+          />
+        </div>
+        <div className="col-span-3 min-h-0">
+          <BuildLogCard
+            expanded={false}
+            onExpand={() => setFocusedCard("build_log")}
+            onCollapse={collapse}
+          />
+        </div>
+        <div className="col-span-3 min-h-0">
+          <MaterialsCard
+            expanded={false}
+            onExpand={() => setFocusedCard("materials")}
+            onCollapse={collapse}
+          />
+        </div>
       </div>
     </div>
   );

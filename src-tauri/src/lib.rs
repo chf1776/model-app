@@ -107,6 +107,7 @@ pub fn run() {
             commands::instructions::save_build_mode,
             commands::instructions::save_nav_mode,
             commands::instructions::save_active_track,
+            commands::instructions::save_sprue_panel_open,
             commands::tracks::list_tracks,
             commands::tracks::create_track,
             commands::tracks::update_track,
@@ -156,6 +157,21 @@ pub fn run() {
             commands::scalemates::fetch_scalemates_data,
             commands::scalemates::download_scalemates_manual,
             commands::scalemates::download_scalemates_box_art,
+            commands::sprue_refs::list_sprue_refs,
+            commands::sprue_refs::create_sprue_ref,
+            commands::sprue_refs::update_sprue_ref,
+            commands::sprue_refs::delete_sprue_ref,
+            commands::sprue_refs::get_next_sprue_color,
+            commands::step_sprue_parts::list_step_sprue_parts,
+            commands::step_sprue_parts::list_project_sprue_parts,
+            commands::step_sprue_parts::add_step_sprue_part,
+            commands::step_sprue_parts::remove_step_sprue_part,
+            commands::step_sprue_parts::remove_ai_sprue_parts_for_step,
+            commands::step_sprue_parts::sprue_depletion_summary,
+            // AI detection
+            commands::ai_detection::detect_step_sprues,
+            commands::ai_detection::redetect_step_sprues,
+            commands::ai_detection::test_ai_connection,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

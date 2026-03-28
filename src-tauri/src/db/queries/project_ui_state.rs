@@ -14,7 +14,7 @@ pub fn get_or_create(conn: &Connection, project_id: &str) -> Result<ProjectUiSta
 
     conn.query_row(
         "SELECT project_id, active_step_id, active_track_id, build_mode, nav_mode,
-                image_zoom, image_pan_x, image_pan_y, updated_at
+                image_zoom, image_pan_x, image_pan_y, sprue_panel_open, updated_at
          FROM project_ui_state WHERE project_id = ?1",
         params![project_id],
         |row| {
@@ -27,7 +27,8 @@ pub fn get_or_create(conn: &Connection, project_id: &str) -> Result<ProjectUiSta
                 image_zoom: row.get(5)?,
                 image_pan_x: row.get(6)?,
                 image_pan_y: row.get(7)?,
-                updated_at: row.get(8)?,
+                sprue_panel_open: row.get(8)?,
+                updated_at: row.get(9)?,
             })
         },
     )
@@ -74,6 +75,21 @@ pub fn save_nav_mode(
         "UPDATE project_ui_state SET nav_mode = ?1, updated_at = ?2
          WHERE project_id = ?3",
         params![nav_mode, ts, project_id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+pub fn save_sprue_panel_open(
+    conn: &Connection,
+    project_id: &str,
+    open: bool,
+) -> Result<(), String> {
+    let ts = now();
+    conn.execute(
+        "UPDATE project_ui_state SET sprue_panel_open = ?1, updated_at = ?2
+         WHERE project_id = ?3",
+        params![open, ts, project_id],
     )
     .map_err(|e| e.to_string())?;
     Ok(())

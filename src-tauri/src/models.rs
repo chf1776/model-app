@@ -345,6 +345,7 @@ pub struct Step {
     pub replaces_step_id: Option<String>,
     pub clip_polygon: Option<String>,
     pub notes: Option<String>,
+    pub sprues_detected: bool,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -593,6 +594,70 @@ pub struct StepPaintRefInfo {
     pub step_title: String,
 }
 
+// ── Sprue Ref ───────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SprueRef {
+    pub id: String,
+    pub project_id: String,
+    pub source_page_id: Option<String>,
+    pub crop_x: Option<f64>,
+    pub crop_y: Option<f64>,
+    pub crop_w: Option<f64>,
+    pub crop_h: Option<f64>,
+    pub polygon_points: Option<String>,
+    pub label: String,
+    pub color: String,
+    pub display_order: i32,
+    pub created_at: i64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateSprueRefInput {
+    pub project_id: String,
+    pub source_page_id: Option<String>,
+    pub crop_x: Option<f64>,
+    pub crop_y: Option<f64>,
+    pub crop_w: Option<f64>,
+    pub crop_h: Option<f64>,
+    pub polygon_points: Option<String>,
+    pub label: String,
+    pub color: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateSprueRefInput {
+    pub id: String,
+    #[serde(default, deserialize_with = "deserialize_optional_nullable")]
+    pub source_page_id: Option<Option<String>>,
+    pub crop_x: Option<f64>,
+    pub crop_y: Option<f64>,
+    pub crop_w: Option<f64>,
+    pub crop_h: Option<f64>,
+    #[serde(default, deserialize_with = "deserialize_optional_nullable")]
+    pub polygon_points: Option<Option<String>>,
+    pub label: Option<String>,
+    pub color: Option<String>,
+}
+
+// ── Step Sprue Part ─────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StepSpruePart {
+    pub id: String,
+    pub step_id: String,
+    pub sprue_label: String,
+    pub part_number: Option<String>,
+    pub ai_detected: bool,
+    pub created_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SprueDepletionSummary {
+    pub sprue_label: String,
+    pub parts_used: i32,
+}
+
 // ── Project UI State ────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -605,6 +670,7 @@ pub struct ProjectUiState {
     pub image_zoom: f64,
     pub image_pan_x: f64,
     pub image_pan_y: f64,
+    pub sprue_panel_open: bool,
     pub updated_at: i64,
 }
 

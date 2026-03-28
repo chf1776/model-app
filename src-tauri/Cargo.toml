@@ -23,8 +23,10 @@ tauri-plugin-notification = "2"
 tauri-plugin-opener = "2.5.3"
 mupdf = { version = "0.6", default-features = false, features = ["js", "xps", "svg", "cbz", "img", "html", "epub", "system-fonts"] }
 zip = "2"
-reqwest = { version = "0.12", features = ["blocking"] }
+reqwest = { version = "0.12", features = ["blocking", "json"] }
 scraper = "0.22"
+image = { version = "0.25", default-features = false, features = ["png"] }
+base64 = "0.22"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.26"

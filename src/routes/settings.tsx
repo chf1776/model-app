@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { ArrowLeft, FolderOpen, Plus, X, Download, Upload, RotateCcw, Check, Trash2 } from "lucide-react";
+import { ArrowLeft, FolderOpen, Plus, X, Download, Upload, RotateCcw, Check, Trash2, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { appDataDir } from "@tauri-apps/api/path";
 import { getVersion } from "@tauri-apps/api/app";
@@ -66,6 +66,7 @@ const SECTIONS = [
   { id: "defaults", label: "Defaults" },
   { id: "wishlist", label: "Wishlist" },
   { id: "pdf-import", label: "PDF Import" },
+  { id: "ai-features", label: "AI Features" },
   { id: "data", label: "Data" },
   { id: "about", label: "About" },
 ];
@@ -402,6 +403,39 @@ export default function SettingsRoute() {
 
   const pdfDpi = getSettingString(settings, "pdf_dpi") as PdfDpi;
 
+  // AI settings
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<"idle" | "success" | "error">("idle");
+
+  const aiApiKey = getSettingString(settings, "ai_api_key");
+  const aiModel = getSettingString(settings, "ai_model");
+  const aiAutoDetect = getSettingBool(settings, "ai_auto_detect");
+
+  const handleTestConnection = useCallback(async () => {
+    if (!aiApiKey) {
+      toast.error("Enter an API key first");
+      return;
+    }
+    setTestingConnection(true);
+    setConnectionStatus("idle");
+    try {
+      await api.testAiConnection();
+      setConnectionStatus("success");
+      toast.success("API key is valid");
+    } catch (err) {
+      setConnectionStatus("error");
+      const msg = String(err);
+      if (msg.includes("invalid_api_key")) {
+        toast.error("Invalid API key");
+      } else {
+        toast.error(`Connection test failed: ${msg.slice(0, 100)}`);
+      }
+    } finally {
+      setTestingConnection(false);
+    }
+  }, [aiApiKey]);
+
   return (
     <div className="flex h-full">
       {/* Sidebar */}
@@ -729,6 +763,111 @@ export default function SettingsRoute() {
               Higher DPI = sharper pages but larger files and slower import.
               Applies to new imports only.
             </p>
+          </div>
+
+          {/* ── AI Features ──────────────────────────────────────────── */}
+          <div
+            id="ai-features"
+            ref={(el) => { sectionRefs.current["ai-features"] = el; }}
+            className="scroll-mt-6"
+          >
+            <h2 className="mb-3 text-sm font-semibold text-text-primary">AI Features</h2>
+            <Separator className="mb-4" />
+            <div className="space-y-5">
+              {/* API Key */}
+              <div className="space-y-2">
+                <Label className="text-[11px] text-text-secondary">Anthropic API Key</Label>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      type={showApiKey ? "text" : "password"}
+                      value={aiApiKey}
+                      onChange={(e) => updateSetting("ai_api_key", e.target.value)}
+                      placeholder="sk-ant-..."
+                      className="h-8 pr-8 font-mono text-[11px]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-secondary"
+                    >
+                      {showApiKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 shrink-0 gap-1.5 text-[10px]"
+                    onClick={handleTestConnection}
+                    disabled={testingConnection || !aiApiKey}
+                  >
+                    {testingConnection ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : connectionStatus === "success" ? (
+                      <Check className="h-3 w-3 text-success" />
+                    ) : (
+                      connectionStatus === "error" ? <X className="h-3 w-3 text-destructive" /> : null
+                    )}
+                    Test
+                  </Button>
+                </div>
+                <p className="text-[10px] text-text-tertiary">
+                  Required for AI part detection. Get a key at{" "}
+                  <button
+                    type="button"
+                    className="text-accent underline"
+                    onClick={() => {
+                      import("@tauri-apps/plugin-opener").then(({ openUrl }) =>
+                        openUrl("https://console.anthropic.com/settings/keys")
+                      );
+                    }}
+                  >
+                    console.anthropic.com
+                  </button>
+                </p>
+              </div>
+
+              {/* Model */}
+              <div className="space-y-2">
+                <Label className="text-[11px] text-text-secondary">Detection Model</Label>
+                <div className="flex gap-1 rounded-md bg-muted p-[3px]">
+                  {[
+                    { value: "claude-haiku-4-5-20251001", label: "Haiku 4.5" },
+                    { value: "claude-sonnet-4-5-20250514", label: "Sonnet 4.5" },
+                  ].map((m) => (
+                    <button
+                      key={m.value}
+                      onClick={() => updateSetting("ai_model", m.value)}
+                      className={cn(
+                        "rounded-[5px] px-3 py-[3px] text-[10px] transition-colors",
+                        aiModel === m.value
+                          ? "bg-card font-semibold text-accent shadow-sm"
+                          : "text-text-tertiary",
+                      )}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-text-tertiary">
+                  Haiku is faster and cheaper. Sonnet is more accurate for complex diagrams.
+                </p>
+              </div>
+
+              {/* Auto-detect toggle */}
+              <div className="space-y-2">
+                <Label className="text-[11px] text-text-secondary">Automatic Detection</Label>
+                <SettingToggle
+                  label="Auto-detect parts when creating steps"
+                  checked={aiAutoDetect}
+                  onChange={handleSwitchSetting("ai_auto_detect")}
+                />
+                <p className="text-[10px] text-text-tertiary">
+                  When enabled, part callouts are automatically detected from step crop images.
+                  You can always re-detect or manually add parts.
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* ── Data & Storage ─────────────────────────────────────────── */}

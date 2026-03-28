@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import type { Project, UpdateProjectInput, UpdateStepInput, InstructionSource, InstructionPage, Track, Step, Tag, StepRelation, ReferenceImage, Annotation, AnnotationTool, PaletteEntry } from "@/shared/types";
+import type { Project, UpdateProjectInput, UpdateStepInput, InstructionSource, InstructionPage, Track, Step, Tag, StepRelation, ReferenceImage, Annotation, AnnotationTool, PaletteEntry, SprueRef, StepSpruePart } from "@/shared/types";
 import { getEffectiveDryingMinutes, ANNOTATION_TOOL_LABELS, getSettingBool } from "@/shared/types";
 import type { AppStore } from "./index";
 import * as api from "@/api";
@@ -21,6 +21,38 @@ function polygonBoundingBox(points: { x: number; y: number }[]) {
   };
 }
 
+/** Fire-and-forget AI part detection for a step. Updates store on completion. */
+function runDetection(
+  set: (partial: Partial<AppStore> | ((s: AppStore) => Partial<AppStore>)) => void,
+  stepId: string,
+) {
+  api.detectStepSprues(stepId).then((result) => {
+    set((s) => ({
+      steps: s.steps.map((st) => st.id === stepId ? { ...st, sprues_detected: true } : st),
+      ...(result.parts.length > 0 ? {
+        stepSprueParts: {
+          ...s.stepSprueParts,
+          [stepId]: [...(s.stepSprueParts[stepId] ?? []), ...result.parts],
+        },
+        projectSprueParts: [...s.projectSprueParts, ...result.parts],
+      } : {}),
+      ...(result.new_sprue_refs.length > 0 ? {
+        sprueRefs: [...s.sprueRefs, ...result.new_sprue_refs],
+      } : {}),
+    }));
+    if (result.parts.length > 0) {
+      toast.success(`Detected ${result.parts.length} part${result.parts.length === 1 ? "" : "s"}`, { toasterId: "canvas" });
+    }
+  }).catch((err) => {
+    const msg = String(err);
+    if (msg.includes("invalid_api_key")) {
+      toast.error("Invalid API key — check Settings → AI Features");
+    } else {
+      toast.error(`Part detection failed: ${msg.slice(0, 80)}`);
+    }
+  });
+}
+
 const MAX_ANNOTATION_UNDO = 50;
 
 /** Push current annotations to undo stack and clear redo. Returns partial state for set(). */
@@ -38,6 +70,7 @@ function annotationUndoSnapshot(
   };
 }
 export type NavMode = "track" | "page";
+export type SetupRailMode = "steps" | "sprues";
 
 export interface BuildSlice {
   activeProjectId: string | null;
@@ -98,6 +131,23 @@ export interface BuildSlice {
   setStepPaintRefs: (stepId: string, entryIds: string[]) => Promise<void>;
   refreshProjectPaletteEntries: () => Promise<void>;
 
+  // Sprue refs (project-level)
+  sprueRefs: SprueRef[];
+  activeSprueRefId: string | null;
+  loadSprueRefs: (projectId: string) => Promise<void>;
+  setActiveSprueRef: (id: string | null) => void;
+  addSprueRefStore: (ref: SprueRef) => void;
+  updateSprueRefStore: (ref: SprueRef) => void;
+  removeSprueRefStore: (id: string) => void;
+
+  // Step sprue parts (per-step + project-wide for badges)
+  stepSprueParts: Record<string, StepSpruePart[]>;
+  projectSprueParts: StepSpruePart[];
+  loadStepSprueParts: (stepId: string) => Promise<void>;
+  loadProjectSprueParts: (projectId: string) => Promise<void>;
+  addStepSpruePartStore: (part: StepSpruePart) => void;
+  removeStepSpruePartStore: (stepId: string, id: string) => void;
+
   // Reference images
   stepReferenceImages: Record<string, ReferenceImage[]>;
   loadStepReferenceImages: (stepId: string) => Promise<void>;
@@ -131,6 +181,7 @@ export interface BuildSlice {
 
   // Instruction sources
   instructionSources: InstructionSource[];
+  allPages: Record<string, InstructionPage>;
   loadInstructionSources: (projectId: string) => Promise<void>;
   addInstructionSource: (source: InstructionSource) => void;
   removeInstructionSource: (id: string) => void;
@@ -161,9 +212,17 @@ export interface BuildSlice {
   setBuildMode: (mode: BuildMode) => void;
   completeActiveStep: () => Promise<void>;
 
+  // Setup rail mode
+  setupRailMode: SetupRailMode;
+  setSetupRailMode: (mode: SetupRailMode) => void;
+
   // Nav mode
   navMode: NavMode;
   setNavMode: (mode: NavMode) => void;
+
+  // Sprue panel
+  spruePanelOpen: boolean;
+  toggleSpruePanel: () => void;
 
   // Milestone
   pendingMilestone: { trackId: string; trackName: string; trackColor: string } | null;
@@ -193,6 +252,10 @@ export interface BuildSlice {
   dismissPolygonSwitch: () => void;
   clearClipPolygon: (stepId: string) => Promise<void>;
 
+  // AI detection
+  triggerAutoDetect: (stepId: string) => void;
+  redetectStepSprues: (stepId: string) => Promise<void>;
+
   // Processing state
   isProcessingPdf: boolean;
   setIsProcessingPdf: (processing: boolean) => void;
@@ -216,6 +279,10 @@ const DEFAULT_BUILD_STATE = {
   stepTags: {} as Record<string, Tag[]>,
   stepPaintRefs: {} as Record<string, string[]>,
   projectPaletteEntries: [] as PaletteEntry[],
+  sprueRefs: [] as SprueRef[],
+  activeSprueRefId: null as string | null,
+  stepSprueParts: {} as Record<string, StepSpruePart[]>,
+  projectSprueParts: [] as StepSpruePart[],
   stepRelations: {} as Record<string, StepRelation[]>,
   stepReferenceImages: {} as Record<string, ReferenceImage[]>,
   stepAnnotations: {} as Record<string, Annotation[]>,
@@ -225,12 +292,14 @@ const DEFAULT_BUILD_STATE = {
   annotationUndoStacks: {} as Record<string, Annotation[][]>,
   annotationRedoStacks: {} as Record<string, Annotation[][]>,
   buildMode: "setup" as BuildMode,
+  setupRailMode: "steps" as SetupRailMode,
   navMode: "track" as NavMode,
   pendingMilestone: null as { trackId: string; trackName: string; trackColor: string } | null,
   pendingCompletion: null as { stepId: string } | null,
   polygonDraftPoints: [] as { x: number; y: number }[],
   polygonDraftStepId: null as string | null,
   pendingPolygonSwitch: null as { targetStepId: string | null } | null,
+  spruePanelOpen: false,
 };
 
 const DEFAULT_VIEWER_STATE = {
@@ -266,6 +335,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
 
   // Instruction sources
   instructionSources: [],
+  allPages: {} as Record<string, InstructionPage>,
   ...DEFAULT_PAGE_STATE,
 
   // Viewer state
@@ -302,6 +372,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         project: null,
         ...DEFAULT_BUILD_STATE,
         instructionSources: [],
+        allPages: {},
         ...DEFAULT_PAGE_STATE,
       });
     }
@@ -323,16 +394,19 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       buildMode: uiState.build_mode === "building" ? "building" : "setup",
       navMode: uiState.nav_mode === "page" ? "page" : "track",
       activeTrackId: uiState.active_track_id ?? null,
+      spruePanelOpen: uiState.sprue_panel_open,
       canvasMode: "view" as CanvasMode,
       ...DEFAULT_PAGE_STATE,
       ...DEFAULT_VIEWER_STATE,
     });
-    // Load instruction sources, tracks, steps, and palette entries for the new project
+    // Load instruction sources, tracks, steps, palette entries, sprue refs, and project sprue parts
     const [,,,paletteEntries] = await Promise.all([
       get().loadInstructionSources(id),
       get().loadTracks(id),
       get().loadSteps(id),
       api.listPaletteEntries(id),
+      get().loadSprueRefs(id),
+      get().loadProjectSprueParts(id),
     ]);
     set({ projectPaletteEntries: paletteEntries });
   },
@@ -343,6 +417,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       project: null,
       ...DEFAULT_BUILD_STATE,
       instructionSources: [],
+      allPages: {},
       ...DEFAULT_PAGE_STATE,
     }),
 
@@ -356,6 +431,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         buildMode: uiState.build_mode === "building" ? "building" : "setup",
         navMode: uiState.nav_mode === "page" ? "page" : "track",
         activeTrackId: uiState.active_track_id ?? null,
+        spruePanelOpen: uiState.sprue_panel_open,
       });
       // Fire all loads in parallel
       const [,,,paletteEntries] = await Promise.all([
@@ -363,6 +439,8 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         get().loadTracks(project.id),
         get().loadSteps(project.id),
         api.listPaletteEntries(project.id),
+        get().loadSprueRefs(project.id),
+        get().loadProjectSprueParts(project.id),
       ]);
       set({ projectPaletteEntries: paletteEntries });
     }
@@ -463,6 +541,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       const { [id]: _anns, ...restAnnotations } = s.stepAnnotations;
       const { [id]: _undo, ...restUndoStacks } = s.annotationUndoStacks;
       const { [id]: _redo, ...restRedoStacks } = s.annotationRedoStacks;
+      const { [id]: _sprueParts, ...restSprueParts } = s.stepSprueParts;
       return {
         steps: s.steps.filter((st) => st.id !== id),
         activeStepId: s.activeStepId === id ? null : s.activeStepId,
@@ -475,6 +554,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         stepAnnotations: restAnnotations,
         annotationUndoStacks: restUndoStacks,
         annotationRedoStacks: restRedoStacks,
+        stepSprueParts: restSprueParts,
       };
     });
   },
@@ -636,6 +716,63 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   setStepPaintRefs: async (stepId, entryIds) => {
     const refs = await api.setStepPaintRefs(stepId, entryIds);
     set((s) => ({ stepPaintRefs: { ...s.stepPaintRefs, [stepId]: refs } }));
+  },
+
+  // ── Sprue Refs ──────────────────────────────────────────────────────────
+
+  loadSprueRefs: async (projectId) => {
+    const refs = await api.listSprueRefs(projectId);
+    set({ sprueRefs: refs });
+  },
+
+  setActiveSprueRef: (id) => {
+    set({ activeSprueRefId: id });
+  },
+
+  addSprueRefStore: (ref) => {
+    set((s) => ({ sprueRefs: [...s.sprueRefs, ref] }));
+  },
+
+  updateSprueRefStore: (ref) => {
+    set((s) => ({
+      sprueRefs: s.sprueRefs.map((r) => (r.id === ref.id ? ref : r)),
+    }));
+  },
+
+  removeSprueRefStore: (id) => {
+    set((s) => ({ sprueRefs: s.sprueRefs.filter((r) => r.id !== id) }));
+  },
+
+  // ── Step Sprue Parts ──────────────────────────────────────────────────
+
+  loadStepSprueParts: async (stepId) => {
+    const parts = await api.listStepSprueParts(stepId);
+    set((s) => ({ stepSprueParts: { ...s.stepSprueParts, [stepId]: parts } }));
+  },
+
+  loadProjectSprueParts: async (projectId) => {
+    const parts = await api.listProjectSprueParts(projectId);
+    set({ projectSprueParts: parts });
+  },
+
+  addStepSpruePartStore: (part) => {
+    set((s) => ({
+      stepSprueParts: {
+        ...s.stepSprueParts,
+        [part.step_id]: [...(s.stepSprueParts[part.step_id] ?? []), part],
+      },
+      projectSprueParts: [...s.projectSprueParts, part],
+    }));
+  },
+
+  removeStepSpruePartStore: (stepId, id) => {
+    set((s) => ({
+      stepSprueParts: {
+        ...s.stepSprueParts,
+        [stepId]: (s.stepSprueParts[stepId] ?? []).filter((p) => p.id !== id),
+      },
+      projectSprueParts: s.projectSprueParts.filter((p) => p.id !== id),
+    }));
   },
 
   loadStepRelations: async (stepId) => {
@@ -800,6 +937,13 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   loadInstructionSources: async (projectId) => {
     const sources = await api.listInstructionSources(projectId);
     set({ instructionSources: sources });
+    // Build allPages lookup from all sources
+    const pageArrays = await Promise.all(sources.map((s) => api.listInstructionPages(s.id)));
+    const allPages: Record<string, InstructionPage> = {};
+    for (const pages of pageArrays) {
+      for (const p of pages) allPages[p.id] = p;
+    }
+    set({ allPages });
     // Auto-select first source if none selected
     const state = get();
     if (!state.currentSourceId && sources.length > 0) {
@@ -1074,6 +1218,10 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     }
   },
 
+  setSetupRailMode: (mode) => {
+    set({ setupRailMode: mode });
+  },
+
   setNavMode: async (mode) => {
     const projectId = get().activeProjectId;
     set({ navMode: mode });
@@ -1086,10 +1234,20 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     }
   },
 
+  toggleSpruePanel: () => {
+    const open = !get().spruePanelOpen;
+    set({ spruePanelOpen: open });
+    const projectId = get().activeProjectId;
+    if (projectId) {
+      api.saveSpruePanel(projectId, open).catch(() => {});
+    }
+  },
+
   setCanvasMode: (mode) => {
     // Block crop/polygon mode in building mode
     if ((mode === "crop" || mode === "polygon") && get().buildMode === "building") return;
-    if (mode === "crop" && !get().activeTrackId) {
+    // In sprues mode, crop doesn't need a track (we're drawing sprue crops)
+    if (mode === "crop" && get().setupRailMode !== "sprues" && !get().activeTrackId) {
       toast.info("Select a track first");
       return;
     }
@@ -1157,11 +1315,13 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         const step = get().steps.find((s) => s.id === polygonDraftStepId);
         const updateInput: UpdateStepInput = { id: polygonDraftStepId, clip_polygon: json };
         // If the step has no crop rect, auto-derive from polygon bounding box
-        if (step && step.crop_x == null) {
+        const hadNoCrop = step && step.crop_x == null;
+        if (hadNoCrop) {
           Object.assign(updateInput, bbox);
         }
         const updated = await api.updateStep(updateInput);
         get().updateStepStore(updated);
+        if (hadNoCrop) get().triggerAutoDetect(polygonDraftStepId);
         set({ polygonDraftPoints: [], polygonDraftStepId: null, canvasMode: "view" as CanvasMode });
       } else {
         // Create new step — stay in polygon mode so user can draw the next one
@@ -1191,6 +1351,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         // Clear draft and deselect BEFORE re-entering idle polygon state
         set({ polygonDraftPoints: [], polygonDraftStepId: null });
         get().setActiveStep(updated.id);
+        get().triggerAutoDetect(updated.id);
         if (activeProjectId) get().loadTracks(activeProjectId);
       }
       toast.success("Polygon saved", { toasterId: "canvas" });
@@ -1238,6 +1399,43 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
 
   dismissPolygonSwitch: () => {
     set({ pendingPolygonSwitch: null });
+  },
+
+  triggerAutoDetect: (stepId) => {
+    const { settings } = get();
+    const autoDetect = getSettingBool(settings, "ai_auto_detect");
+    const apiKey = settings.ai_api_key ?? "";
+    if (!autoDetect || !apiKey) return;
+
+    runDetection(set, stepId);
+  },
+
+  redetectStepSprues: async (stepId) => {
+    const apiKey = get().settings.ai_api_key ?? "";
+    if (!apiKey) {
+      toast.error("No API key configured — check Settings → AI Features");
+      return;
+    }
+
+    try {
+      await api.redetectStepSprues(stepId);
+      set((s) => {
+        const stepParts = s.stepSprueParts[stepId] ?? [];
+        const aiPartIds = new Set(stepParts.filter((p) => p.ai_detected).map((p) => p.id));
+        return {
+          stepSprueParts: {
+            ...s.stepSprueParts,
+            [stepId]: stepParts.filter((p) => !p.ai_detected),
+          },
+          projectSprueParts: s.projectSprueParts.filter((p) => !aiPartIds.has(p.id)),
+          steps: s.steps.map((st) => st.id === stepId ? { ...st, sprues_detected: false } : st),
+        };
+      });
+      // Force re-run detection (bypass auto-detect setting)
+      runDetection(set, stepId);
+    } catch (err) {
+      toast.error(`Re-detect failed: ${err}`);
+    }
   },
 
   setIsProcessingPdf: (processing) => {

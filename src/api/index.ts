@@ -44,6 +44,12 @@ import type {
   InstructionPage,
   ProjectUiState,
   ScalematesKitData,
+  SprueRef,
+  CreateSprueRefInput,
+  UpdateSprueRefInput,
+  StepSpruePart,
+  SprueDepletionSummary,
+  DetectionResponse,
 } from "@/shared/types";
 
 // ── Kits ────────────────────────────────────────────────────────────────────
@@ -643,6 +649,13 @@ export async function saveActiveTrack(
   return invoke<void>("save_active_track", { projectId, activeTrackId });
 }
 
+export async function saveSpruePanel(
+  projectId: string,
+  open: boolean,
+): Promise<void> {
+  return invoke<void>("save_sprue_panel_open", { projectId, open });
+}
+
 export async function saveNavMode(
   projectId: string,
   navMode: string,
@@ -688,4 +701,76 @@ export async function downloadScalematesBoxArt(
   imageUrl: string,
 ): Promise<string> {
   return invoke<string>("download_scalemates_box_art", { kitId, imageUrl });
+}
+
+// ── Sprue Refs ──────────────────────────────────────────────────────────────
+
+export async function listSprueRefs(projectId: string): Promise<SprueRef[]> {
+  return invoke<SprueRef[]>("list_sprue_refs", { projectId });
+}
+
+export async function createSprueRef(input: CreateSprueRefInput): Promise<SprueRef> {
+  return invoke<SprueRef>("create_sprue_ref", { input });
+}
+
+export async function updateSprueRef(input: UpdateSprueRefInput): Promise<SprueRef> {
+  return invoke<SprueRef>("update_sprue_ref", { input });
+}
+
+export async function deleteSprueRef(id: string): Promise<void> {
+  return invoke<void>("delete_sprue_ref", { id });
+}
+
+export async function getNextSprueColor(projectId: string): Promise<string> {
+  return invoke<string>("get_next_sprue_color", { projectId });
+}
+
+// ── Step Sprue Parts ────────────────────────────────────────────────────────
+
+export async function listStepSprueParts(stepId: string): Promise<StepSpruePart[]> {
+  return invoke<StepSpruePart[]>("list_step_sprue_parts", { stepId });
+}
+
+export async function listProjectSprueParts(projectId: string): Promise<StepSpruePart[]> {
+  return invoke<StepSpruePart[]>("list_project_sprue_parts", { projectId });
+}
+
+export async function addStepSpruePart(
+  stepId: string,
+  sprueLabel: string,
+  partNumber?: string | null,
+  aiDetected?: boolean,
+): Promise<StepSpruePart> {
+  return invoke<StepSpruePart>("add_step_sprue_part", {
+    stepId,
+    sprueLabel,
+    partNumber: partNumber ?? null,
+    aiDetected: aiDetected ?? false,
+  });
+}
+
+export async function removeStepSpruePart(id: string): Promise<void> {
+  return invoke<void>("remove_step_sprue_part", { id });
+}
+
+export async function removeAiSpruePartsForStep(stepId: string): Promise<void> {
+  return invoke<void>("remove_ai_sprue_parts_for_step", { stepId });
+}
+
+export async function sprueDepletionSummary(projectId: string): Promise<SprueDepletionSummary[]> {
+  return invoke<SprueDepletionSummary[]>("sprue_depletion_summary", { projectId });
+}
+
+// ── AI Detection ────────────────────────────────────────────────────────────
+
+export async function detectStepSprues(stepId: string): Promise<DetectionResponse> {
+  return invoke<DetectionResponse>("detect_step_sprues", { stepId });
+}
+
+export async function redetectStepSprues(stepId: string): Promise<void> {
+  return invoke<void>("redetect_step_sprues", { stepId });
+}
+
+export async function testAiConnection(): Promise<void> {
+  return invoke<void>("test_ai_connection");
 }

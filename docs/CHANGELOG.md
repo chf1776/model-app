@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Sprue & parts tracking**: Full sprue reference system — define lettered sprues (A, B, C...) per project with auto-assigned colors, draw crop regions on instruction pages, and track individual part usage per step
+- **AI part detection**: Claude Vision API integration auto-detects part callouts (e.g. A14, B7) from step crop images when creating steps; auto-creates placeholder sprue refs for unknown labels
+- **PartChipEditor**: Rapid manual part entry with "A15" syntax, color-tinted chips grouped by sprue, sparkle indicator for AI-detected parts, duplicate detection
+- **SprueRail**: Setup rail mode for managing sprue references with click-to-select, crop preview thumbnails, inline create/edit/delete dialogs
+- **Sprue overlay layer**: Visual crop regions for sprue refs on instruction canvas with drag-resize and label badges
+- **AI Features settings**: API key input with show/hide toggle, model picker (Haiku 4.5 / Sonnet 4.5), auto-detect toggle, connection test via backend
+- **Re-detect button**: Per-step re-detect/detect button in PartChipEditor, bypasses auto-detect setting for manual triggers
+- **Sprue depletion summary**: Backend query for tracking part usage across completed steps
+- **Step sprue badges**: Part count badges on step items in BuildingRail
+- **V11 migration**: `sprue_refs`, `step_sprue_parts` tables, `sprues_detected` column on steps
+- **Floating sprue panel**: Building mode overlay (S key toggle) showing crop thumbnails for sprues relevant to the active step, with dynamic grid layout (1–2 stacked, 3+ in 2-column grid)
+- **Sprue lightbox**: Full-screen dialog with zoomable/pannable crop image and parts checklist sidebar; click a part to navigate to its step
+- **Overview sprue card**: 5th card in overview zone showing per-sprue part counts with expandable rows, crop thumbnails, and clickable parts list
+- **Overview grid layout**: Changed from 2×2 to 3+2 layout (three cards top row, two bottom row) to accommodate sprue card
+- **SprueCropThumb**: Shared DPR-aware canvas component for rendering sprue crop thumbnails, used by SpruePanel, SprueLightbox, and SprueCard
+- **comparePartNumbers utility**: Shared numeric-then-lexicographic part number sort extracted to `src/shared/utils.ts`
+- **V12 migration**: `sprue_panel_open` column on `project_ui_state` for panel state persistence
+
 ## [1.0.0] — 2026-03-23 — v1.0 Release
 
 ### Added

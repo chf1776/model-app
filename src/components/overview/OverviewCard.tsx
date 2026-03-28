@@ -22,7 +22,7 @@ export function OverviewCard({
 }: OverviewCardProps) {
   return (
     <div
-      className={`flex min-h-0 flex-col rounded-lg border border-border bg-card p-2.5${expanded ? " flex-1" : ""}`}
+      className={`flex min-h-0 flex-col rounded-lg border border-border bg-card p-2.5${expanded ? " flex-1" : " h-full"}`}
     >
       <div className="mb-1.5 flex items-center gap-1.5">
         <Icon className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />

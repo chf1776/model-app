@@ -14,7 +14,7 @@ import type {
 import type { AppStore } from "./index";
 import * as api from "@/api";
 
-export type OverviewCardName = "project_info" | "gallery" | "build_log" | "materials";
+export type OverviewCardName = "project_info" | "gallery" | "build_log" | "materials" | "sprues";
 
 export interface OverviewSlice {
   overviewBuildLog: BuildLogEntry[];

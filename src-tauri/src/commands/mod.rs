@@ -1,4 +1,5 @@
 pub mod accessories;
+pub mod ai_detection;
 pub mod annotations;
 pub mod build_log;
 pub mod collection;
@@ -14,8 +15,10 @@ pub mod projects;
 pub mod reference_images;
 pub mod scalemates;
 pub mod settings;
+pub mod sprue_refs;
 pub mod step_paint_refs;
 pub mod step_relations;
+pub mod step_sprue_parts;
 pub mod steps;
 pub mod tags;
 pub mod tracks;

@@ -34,6 +34,7 @@ import {
 } from "@/shared/types";
 import { CropPreview } from "./CropPreview";
 import { PaintRefChips } from "./PaintRefChips";
+import { PartChipEditor } from "./PartChipEditor";
 import { parseStepRelations } from "./tree-utils";
 
 export function StepEditorPanel() {
@@ -61,6 +62,9 @@ export function StepEditorPanel() {
   const addReferenceImageStore = useAppStore((s) => s.addReferenceImageStore);
   const updateReferenceImageStore = useAppStore((s) => s.updateReferenceImageStore);
   const removeReferenceImageStore = useAppStore((s) => s.removeReferenceImageStore);
+  const sprueRefs = useAppStore((s) => s.sprueRefs);
+  const stepSprueParts = useAppStore((s) => s.stepSprueParts);
+  const loadStepSprueParts = useAppStore((s) => s.loadStepSprueParts);
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
@@ -82,6 +86,7 @@ export function StepEditorPanel() {
       // Always reload relations (no cache check) because they can change from either side
       loadStepRelations(step.id);
       if (!stepReferenceImages[step.id]) loadStepReferenceImages(step.id);
+      if (!stepSprueParts[step.id]) loadStepSprueParts(step.id);
     }
     setExpandedImageId(null);
     setEditingCaptionId(null);
@@ -492,6 +497,14 @@ export function StepEditorPanel() {
             <div className="space-y-1">
               <Label className="text-[10px] text-text-tertiary">Paints</Label>
               <PaintRefChips stepId={step.id} showLabel />
+            </div>
+          )}
+
+          {/* Parts Used */}
+          {sprueRefs.length > 0 && (
+            <div className="space-y-1">
+              <Label className="text-[10px] text-text-tertiary">Parts Used</Label>
+              <PartChipEditor stepId={step.id} />
             </div>
           )}
 

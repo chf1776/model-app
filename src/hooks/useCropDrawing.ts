@@ -22,7 +22,7 @@ const MIN_CROP_SIZE = 5;
  *  2. Apply inverse rotation
  *  3. Clamp to image bounds
  */
-function stageToImage(
+export function stageToImage(
   sx: number,
   sy: number,
   stageX: number,
@@ -93,6 +93,7 @@ export function useCropDrawing(stageRef: React.RefObject<Konva.Stage | null>) {
   const activeProjectId = useAppStore((s) => s.activeProjectId);
   const loadTracks = useAppStore((s) => s.loadTracks);
   const pushUndo = useAppStore((s) => s.pushUndo);
+  const triggerAutoDetect = useAppStore((s) => s.triggerAutoDetect);
   const viewerZoom = useAppStore((s) => s.viewerZoom);
   const viewerPanX = useAppStore((s) => s.viewerPanX);
   const viewerPanY = useAppStore((s) => s.viewerPanY);
@@ -212,6 +213,7 @@ export function useCropDrawing(stageRef: React.RefObject<Konva.Stage | null>) {
             ...cropData,
           });
           updateStepStore(updated);
+          triggerAutoDetect(activeStep.id);
         } else {
           const trackSteps = steps.filter((s) => s.track_id === activeTrackId);
           const rootCount = trackSteps.filter((s) => !s.parent_step_id).length;
@@ -223,6 +225,7 @@ export function useCropDrawing(stageRef: React.RefObject<Konva.Stage | null>) {
           addStep(step);
           pushUndo(step.id);
           setActiveStep(step.id);
+          triggerAutoDetect(step.id);
           toast.success("Step created", { toasterId: "canvas" });
         }
         if (activeProjectId) loadTracks(activeProjectId);
@@ -235,7 +238,7 @@ export function useCropDrawing(stageRef: React.RefObject<Konva.Stage | null>) {
     [
       canvasMode, currentPage, activeTrackId, activeStepId, stageRef, steps,
       addStep, updateStepStore, pushUndo, setActiveStep, activeProjectId, loadTracks,
-      viewerZoom, viewerPanX, viewerPanY,
+      triggerAutoDetect, viewerZoom, viewerPanX, viewerPanY,
     ],
   );
 

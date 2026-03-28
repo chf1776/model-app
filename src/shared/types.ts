@@ -475,6 +475,7 @@ export interface Step {
   replaces_step_id: string | null;
   clip_polygon: string | null;
   notes: string | null;
+  sprues_detected: boolean;
   created_at: number;
   updated_at: number;
 }
@@ -710,6 +711,7 @@ export interface ProjectUiState {
   image_zoom: number;
   image_pan_x: number;
   image_pan_y: number;
+  sprue_panel_open: boolean;
   updated_at: number;
 }
 
@@ -795,6 +797,73 @@ export function formatProvenanceLabel(
   return `Scalemates \u00b7 From: ${sourceKitName}${sourceKitYear ? ` (${sourceKitYear})` : ""}`;
 }
 
+// ── Sprue Refs ──────────────────────────────────────────────────────────────
+
+export interface SprueRef {
+  id: string;
+  project_id: string;
+  source_page_id: string | null;
+  crop_x: number | null;
+  crop_y: number | null;
+  crop_w: number | null;
+  crop_h: number | null;
+  polygon_points: string | null;
+  label: string;
+  color: string;
+  display_order: number;
+  created_at: number;
+}
+
+export interface CreateSprueRefInput {
+  project_id: string;
+  source_page_id?: string | null;
+  crop_x?: number | null;
+  crop_y?: number | null;
+  crop_w?: number | null;
+  crop_h?: number | null;
+  polygon_points?: string | null;
+  label: string;
+  color?: string | null;
+}
+
+export interface UpdateSprueRefInput {
+  id: string;
+  source_page_id?: string | null;
+  crop_x?: number | null;
+  crop_y?: number | null;
+  crop_w?: number | null;
+  crop_h?: number | null;
+  polygon_points?: string | null;
+  label?: string | null;
+  color?: string | null;
+}
+
+// ── Step Sprue Parts ────────────────────────────────────────────────────────
+
+export interface StepSpruePart {
+  id: string;
+  step_id: string;
+  sprue_label: string;
+  part_number: string | null;
+  ai_detected: boolean;
+  created_at: number;
+}
+
+export interface SprueDepletionSummary {
+  sprue_label: string;
+  parts_used: number;
+}
+
+export interface DetectionResponse {
+  parts: StepSpruePart[];
+  new_sprue_refs: SprueRef[];
+}
+
+export const SPRUE_COLORS = [
+  "#3A7CA5", "#C47A2A", "#5B8A3C", "#7B5EA7",
+  "#C2553A", "#2A8A7A", "#C49A2A", "#8B5E6B",
+] as const;
+
 // ── Storage Stats ───────────────────────────────────────────────────────
 export interface StorageStats {
   db_size_bytes: number;
@@ -832,6 +901,9 @@ export const SETTINGS_DEFAULTS: Record<string, string> = {
   annotation_color: "#ef4444",
   annotation_stroke_width: "0.003",
   pdf_dpi: "150",
+  ai_api_key: "",
+  ai_model: "claude-haiku-4-5-20251001",
+  ai_auto_detect: "true",
 };
 
 export function parseTrackColors(settings: Record<string, string>): { value: string; label: string }[] {

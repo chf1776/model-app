@@ -78,6 +78,26 @@ pub fn insert_batch(
     }
 }
 
+pub fn get_by_id(conn: &Connection, id: &str) -> Result<InstructionPage, String> {
+    conn.query_row(
+        "SELECT id, source_id, page_index, file_path, width, height, rotation
+         FROM instruction_pages WHERE id = ?1",
+        params![id],
+        |row| {
+            Ok(InstructionPage {
+                id: row.get(0)?,
+                source_id: row.get(1)?,
+                page_index: row.get(2)?,
+                file_path: row.get(3)?,
+                width: row.get(4)?,
+                height: row.get(5)?,
+                rotation: row.get(6)?,
+            })
+        },
+    )
+    .map_err(|e| e.to_string())
+}
+
 pub fn set_rotation(conn: &Connection, page_id: &str, rotation: i32) -> Result<(), String> {
     conn.execute(
         "UPDATE instruction_pages SET rotation = ?1 WHERE id = ?2",

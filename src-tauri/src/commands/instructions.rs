@@ -175,6 +175,16 @@ pub fn save_nav_mode(
 }
 
 #[tauri::command]
+pub fn save_sprue_panel_open(
+    db: State<'_, AppDb>,
+    project_id: String,
+    open: bool,
+) -> Result<(), String> {
+    let conn = db.conn()?;
+    crate::db::queries::project_ui_state::save_sprue_panel_open(&conn, &project_id, open)
+}
+
+#[tauri::command]
 pub fn set_page_rotation(
     db: State<'_, AppDb>,
     page_id: String,

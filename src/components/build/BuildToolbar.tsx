@@ -1,11 +1,11 @@
-import { Upload, ZoomIn, ZoomOut, Maximize2, FileStack, RotateCw, MousePointer, Crop, Pentagon, RectangleHorizontal, Keyboard, Settings2, Hammer, List, FileText, Eraser } from "lucide-react";
+import { Upload, ZoomIn, ZoomOut, Maximize2, FileStack, RotateCw, MousePointer, Crop, Pentagon, RectangleHorizontal, Keyboard, Settings2, Hammer, List, FileText, Eraser, Box } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { SegmentedPill } from "@/components/shared/SegmentedPill";
 import { useAppStore } from "@/store";
-import type { BuildMode, NavMode } from "@/store/build-slice";
+import type { BuildMode, NavMode, SetupRailMode } from "@/store/build-slice";
 import * as api from "@/api";
 import { useUploadPdf } from "./useUploadPdf";
 import { zoomIn, zoomOut } from "./zoom-utils";
@@ -31,6 +31,9 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
   const clearClipPolygon = useAppStore((s) => s.clearClipPolygon);
   const navMode = useAppStore((s) => s.navMode);
   const setNavMode = useAppStore((s) => s.setNavMode);
+  const setupRailMode = useAppStore((s) => s.setupRailMode);
+  const setSetupRailMode = useAppStore((s) => s.setSetupRailMode);
+  const sprueRefs = useAppStore((s) => s.sprueRefs);
   const currentSourcePages = useAppStore((s) => s.currentSourcePages);
   const currentPageIndex = useAppStore((s) => s.currentPageIndex);
   const steps = useAppStore((s) => s.steps);
@@ -39,6 +42,7 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
   const activeProjectId = useAppStore((s) => s.activeProjectId);
   const loadTracks = useAppStore((s) => s.loadTracks);
   const pushUndo = useAppStore((s) => s.pushUndo);
+  const triggerAutoDetect = useAppStore((s) => s.triggerAutoDetect);
 
   const activeTrack = activeTrackId
     ? tracks.find((t) => t.id === activeTrackId) ?? null
@@ -85,6 +89,7 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
       addStep(step);
       pushUndo(step.id);
       setActiveStep(step.id);
+      triggerAutoDetect(step.id);
       if (activeProjectId) loadTracks(activeProjectId);
       toast.success("Step created", { toasterId: "canvas" });
     } catch (e) {
@@ -104,6 +109,21 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
         value={buildMode}
         onChange={setBuildMode}
       />
+
+      {buildMode === "setup" && (
+        <>
+          <Separator orientation="vertical" className="h-[14px]" />
+          <SegmentedPill
+            size="sm"
+            items={[
+              { value: "steps" as SetupRailMode, label: "Steps", icon: <List className="h-3 w-3" /> },
+              { value: "sprues" as SetupRailMode, label: "Sprues", icon: <Box className="h-3 w-3" />, count: sprueRefs.length || undefined },
+            ]}
+            value={setupRailMode}
+            onChange={setSetupRailMode}
+          />
+        </>
+      )}
 
       {buildMode === "building" && instructionSources.length > 0 && (
         <>

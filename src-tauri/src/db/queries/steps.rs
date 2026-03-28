@@ -28,8 +28,9 @@ fn map_step(row: &rusqlite::Row) -> rusqlite::Result<Step> {
         replaces_step_id: row.get(20)?,
         clip_polygon: row.get(21)?,
         notes: row.get(22)?,
-        created_at: row.get(23)?,
-        updated_at: row.get(24)?,
+        sprues_detected: row.get(23)?,
+        created_at: row.get(24)?,
+        updated_at: row.get(25)?,
     })
 }
 
@@ -37,7 +38,8 @@ const SELECT_COLS: &str =
     "id, track_id, parent_step_id, title, display_order, source_page_id,
      crop_x, crop_y, crop_w, crop_h, is_full_page, source_type, source_name,
      adhesive_type, drying_time_min, pre_paint, quantity, is_completed,
-     completed_at, quantity_current, replaces_step_id, clip_polygon, notes, created_at, updated_at";
+     completed_at, quantity_current, replaces_step_id, clip_polygon, notes,
+     sprues_detected, created_at, updated_at";
 
 pub fn list_by_track(conn: &Connection, track_id: &str) -> Result<Vec<Step>, String> {
     let mut stmt = conn
@@ -61,7 +63,8 @@ pub fn list_by_project(conn: &Connection, project_id: &str) -> Result<Vec<Step>,
             "SELECT s.id, s.track_id, s.parent_step_id, s.title, s.display_order, s.source_page_id,
                     s.crop_x, s.crop_y, s.crop_w, s.crop_h, s.is_full_page, s.source_type, s.source_name,
                     s.adhesive_type, s.drying_time_min, s.pre_paint, s.quantity, s.is_completed,
-                    s.completed_at, s.quantity_current, s.replaces_step_id, s.clip_polygon, s.notes, s.created_at, s.updated_at
+                    s.completed_at, s.quantity_current, s.replaces_step_id, s.clip_polygon, s.notes,
+                    s.sprues_detected, s.created_at, s.updated_at
              FROM steps s
              JOIN tracks t ON s.track_id = t.id
              WHERE t.project_id = ?1
@@ -365,6 +368,16 @@ pub fn reorder_children(conn: &Connection, track_id: &str, parent_step_id: &str,
         "UPDATE steps SET title = 'Step ' || ?1 || '.' || (display_order + 1), updated_at = ?2
          WHERE track_id = ?3 AND parent_step_id = ?4 AND title GLOB 'Step [0-9]*'",
         params![parent_num, ts, track_id, parent_step_id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+pub fn set_sprues_detected(conn: &Connection, step_id: &str, detected: bool) -> Result<(), String> {
+    let ts = now();
+    conn.execute(
+        "UPDATE steps SET sprues_detected = ?1, updated_at = ?2 WHERE id = ?3",
+        params![detected as i32, ts, step_id],
     )
     .map_err(|e| e.to_string())?;
     Ok(())

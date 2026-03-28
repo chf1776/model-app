@@ -5,7 +5,9 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { useAppStore } from "@/store";
 import * as api from "@/api";
 import { useCropDrawing } from "@/hooks/useCropDrawing";
+import { useSprueDrawing } from "@/hooks/useSprueDrawing";
 import { CropLayer, imageToEffective } from "./CropLayer";
+import { SprueOverlayLayer } from "./SprueOverlayLayer";
 import { PolygonLayer } from "./PolygonLayer";
 import type Konva from "konva";
 import { MIN_ZOOM, MAX_ZOOM, ZOOM_STEP } from "./zoom-utils";
@@ -83,8 +85,12 @@ export function InstructionCanvas() {
       : currentPage.height
     : 0;
 
-  // Crop drawing
+  // Crop drawing (steps)
   const { drawingRect, onMouseDown, onMouseMove, onMouseUp } = useCropDrawing(stageRef);
+  // Crop drawing (sprues)
+  const setupRailMode = useAppStore((s) => s.setupRailMode);
+  const sprueDrawing = useSprueDrawing(stageRef);
+  const isSprueMode = setupRailMode === "sprues";
 
   const isViewMode = canvasMode === "view";
 
@@ -273,9 +279,9 @@ export function InstructionCanvas() {
           draggable={isViewMode}
           onWheel={handleWheel}
           onDragEnd={handleDragEnd}
-          onMouseDown={isPolygonMode ? undefined : onMouseDown}
-          onMouseMove={isPolygonMode ? undefined : onMouseMove}
-          onMouseUp={isPolygonMode ? undefined : onMouseUp}
+          onMouseDown={isPolygonMode ? undefined : isSprueMode ? sprueDrawing.onMouseDown : onMouseDown}
+          onMouseMove={isPolygonMode ? undefined : isSprueMode ? sprueDrawing.onMouseMove : onMouseMove}
+          onMouseUp={isPolygonMode ? undefined : isSprueMode ? sprueDrawing.onMouseUp : onMouseUp}
           style={{ cursor }}
         >
           <Layer>
@@ -291,7 +297,8 @@ export function InstructionCanvas() {
               height={currentPage.height}
             />
           </Layer>
-          <CropLayer drawingRect={drawingRect} zoom={viewerZoom} />
+          <CropLayer drawingRect={isSprueMode ? null : drawingRect} zoom={viewerZoom} />
+          <SprueOverlayLayer drawingRect={isSprueMode ? sprueDrawing.drawingRect : null} zoom={viewerZoom} />
           <PolygonLayer zoom={viewerZoom} stageRef={stageRef} />
         </Stage>
       )}

@@ -21,13 +21,21 @@ export function StepCompletionMarker({
   const isFull = progress !== undefined && progress >= 1;
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
       }}
-      className={`relative flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full transition-colors ${
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.stopPropagation();
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className={`relative flex h-[18px] w-[18px] shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors ${
         completed
           ? "bg-accent"
           : hasProgress
@@ -70,6 +78,6 @@ export function StepCompletionMarker({
         </svg>
       )}
       {completed && <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />}
-    </button>
+    </div>
   );
 }
