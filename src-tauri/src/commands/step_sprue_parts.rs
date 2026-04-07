@@ -35,6 +35,7 @@ pub fn add_step_sprue_part(
         &sprue_label,
         part_number.as_deref(),
         ai_detected.unwrap_or(false),
+        None,
     )
 }
 
@@ -48,10 +49,10 @@ pub fn remove_step_sprue_part(db: State<'_, AppDb>, id: String) -> Result<(), St
 pub fn set_sprue_part_ticked(
     db: State<'_, AppDb>,
     id: String,
-    is_ticked: bool,
+    ticked_count: i32,
 ) -> Result<(), String> {
     let conn = db.conn()?;
-    crate::db::queries::step_sprue_parts::set_ticked(&conn, &id, is_ticked)
+    crate::db::queries::step_sprue_parts::set_ticked_count(&conn, &id, ticked_count)
 }
 
 #[tauri::command]

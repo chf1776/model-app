@@ -3,6 +3,7 @@ import { Layer, Line, Circle, Group, Rect } from "react-konva";
 import { useAppStore } from "@/store";
 import { imagePointToEffective, effectivePointToImage } from "./CropLayer";
 import { useTheme } from "@/hooks/useTheme";
+import type { Step } from "@/shared/types";
 import type Konva from "konva";
 
 interface PolygonLayerProps {
@@ -34,6 +35,17 @@ export function PolygonLayer({ zoom, stageRef }: PolygonLayerProps) {
 
   const lastClickTime = useRef(0);
   const [cursorEffPos, setCursorEffPos] = useState<{ x: number; y: number } | null>(null);
+
+  // Click on a saved polygon outline to load it for editing
+  const handlePolygonClick = useCallback(
+    (step: Step, points: { x: number; y: number }[]) => {
+      if (canvasMode === "polygon" && polygonDraftPoints.length === 0 && points.length >= 3) {
+        useAppStore.setState({ polygonDraftPoints: points, polygonDraftStepId: step.id });
+      }
+      setActiveStep(step.id);
+    },
+    [canvasMode, polygonDraftPoints.length, setActiveStep],
+  );
 
   const currentPage = currentSourcePages[currentPageIndex];
   const rotation = currentPage?.rotation ?? 0;
@@ -166,7 +178,7 @@ export function PolygonLayer({ zoom, stageRef }: PolygonLayerProps) {
             fill={isActive ? `${color}22` : undefined}
             listening
             hitStrokeWidth={10 * strokeScale}
-            onClick={() => setActiveStep(step.id)}
+            onClick={() => handlePolygonClick(step, points)}
           />
         );
       })}

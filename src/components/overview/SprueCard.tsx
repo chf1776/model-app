@@ -1,11 +1,11 @@
 import { useMemo, useState, useCallback } from "react";
 import { Grid3X3, ChevronRight, Check, Circle } from "lucide-react";
 import { useAppStore } from "@/store";
-import { comparePartNumbers } from "@/shared/utils";
+import { comparePartNumbers, isPartFullyTicked, formatPartProgress } from "@/shared/utils";
 import { OverviewCard } from "./OverviewCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SprueCropThumb } from "@/components/build/SprueCropThumb";
-import type { SprueRef } from "@/shared/types";
+import type { SprueRef, StepSpruePart } from "@/shared/types";
 
 interface SprueCardProps {
   expanded: boolean;
@@ -157,7 +157,7 @@ export function SprueCard({ expanded, onExpand, onCollapse }: SprueCardProps) {
 
 interface ExpandableSprueProps {
   sprueRef: SprueRef;
-  parts: { id: string; step_id: string; sprue_label: string; part_number: string | null; is_ticked: boolean }[];
+  parts: StepSpruePart[];
   stepMap: Map<string, string>;
   onGoToStep: (stepId: string) => void;
 }
@@ -217,14 +217,14 @@ function ExpandableSprue({ sprueRef, parts, stepMap, onGoToStep }: ExpandableSpr
                     onClick={() => onGoToStep(part.step_id)}
                     className="flex items-center gap-1.5 px-2 py-1 text-left hover:bg-sidebar"
                   >
-                    {part.is_ticked ? (
+                    {isPartFullyTicked(part) ? (
                       <span className="flex h-3 w-3 shrink-0 items-center justify-center rounded-full bg-success">
                         <Check className="h-2 w-2 text-white" strokeWidth={3} />
                       </span>
                     ) : (
                       <Circle className="h-3 w-3 shrink-0 text-text-quaternary" />
                     )}
-                    <span className={`text-[10px] font-medium ${part.is_ticked ? "text-text-tertiary line-through" : "text-text-primary"}`}>{label}</span>
+                    <span className={`text-[10px] font-medium ${isPartFullyTicked(part) ? "text-text-tertiary line-through" : "text-text-primary"}`}>{label}{formatPartProgress(part)}</span>
                     <span className="min-w-0 flex-1 truncate text-[10px] text-text-tertiary">
                       {stepTitle}
                     </span>

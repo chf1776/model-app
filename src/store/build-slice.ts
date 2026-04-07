@@ -144,7 +144,7 @@ export interface BuildSlice {
   loadProjectSprueParts: (projectId: string) => Promise<void>;
   addStepSpruePartStore: (part: StepSpruePart) => void;
   removeStepSpruePartStore: (stepId: string, id: string) => void;
-  setSpruePartTicked: (stepId: string, partId: string, isTicked: boolean) => void;
+  setSpruePartTicked: (stepId: string, partId: string, tickedCount: number) => void;
 
   // Reference images
   stepReferenceImages: Record<string, ReferenceImage[]>;
@@ -540,6 +540,10 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       const { [id]: _undo, ...restUndoStacks } = s.annotationUndoStacks;
       const { [id]: _redo, ...restRedoStacks } = s.annotationRedoStacks;
       const { [id]: _sprueParts, ...restSprueParts } = s.stepSprueParts;
+      // Clear polygon draft and exit polygon mode if it references the deleted step
+      const polygonCleanup = s.polygonDraftStepId === id
+        ? { polygonDraftStepId: null, polygonDraftPoints: [] as { x: number; y: number }[], canvasMode: "view" as const }
+        : {};
       return {
         steps: s.steps.filter((st) => st.id !== id),
         activeStepId: s.activeStepId === id ? null : s.activeStepId,
@@ -553,6 +557,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         annotationUndoStacks: restUndoStacks,
         annotationRedoStacks: restRedoStacks,
         stepSprueParts: restSprueParts,
+        ...polygonCleanup,
       };
     });
   },
@@ -595,10 +600,6 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
           if (state.annotationMode && state.activeStepId && state.activeStepId !== id) {
             toast.info(`${ANNOTATION_TOOL_LABELS[state.annotationMode]} tool active`, { duration: 1500 });
           }
-        }
-        // In setup mode, trigger canvas to center on the crop region
-        if (state.buildMode === "setup" && step.crop_x != null) {
-          update.focusCropTrigger = state.focusCropTrigger + 1;
         }
         set(update);
         // Persist track change to DB
@@ -773,28 +774,30 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     }));
   },
 
-  setSpruePartTicked: (stepId, partId, isTicked) => {
+  setSpruePartTicked: (stepId, partId, tickedCount) => {
+    const prev = get().stepSprueParts[stepId]?.find((p) => p.id === partId)?.ticked_count ?? 0;
+    if (tickedCount === prev) return;
     set((s) => ({
       stepSprueParts: {
         ...s.stepSprueParts,
         [stepId]: (s.stepSprueParts[stepId] ?? []).map((p) =>
-          p.id === partId ? { ...p, is_ticked: isTicked } : p,
+          p.id === partId ? { ...p, ticked_count: tickedCount } : p,
         ),
       },
       projectSprueParts: s.projectSprueParts.map((p) =>
-        p.id === partId ? { ...p, is_ticked: isTicked } : p,
+        p.id === partId ? { ...p, ticked_count: tickedCount } : p,
       ),
     }));
-    api.setSpruePartTicked(partId, isTicked).catch(() => {
+    api.setSpruePartTicked(partId, tickedCount).catch(() => {
       set((s) => ({
         stepSprueParts: {
           ...s.stepSprueParts,
           [stepId]: (s.stepSprueParts[stepId] ?? []).map((p) =>
-            p.id === partId ? { ...p, is_ticked: !isTicked } : p,
+            p.id === partId ? { ...p, ticked_count: prev } : p,
           ),
         },
         projectSprueParts: s.projectSprueParts.map((p) =>
-          p.id === partId ? { ...p, is_ticked: !isTicked } : p,
+          p.id === partId ? { ...p, ticked_count: prev } : p,
         ),
       }));
     });

@@ -1,10 +1,11 @@
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import { Stage, Layer, Rect, Image as KonvaImage } from "react-konva";
 import useImage from "use-image";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useAppStore } from "@/store";
 import type Konva from "konva";
 import { MIN_ZOOM, MAX_ZOOM, ZOOM_STEP } from "./zoom-utils";
+import { imageToEffective } from "./CropLayer";
 
 const PADDING = 40;
 
@@ -52,6 +53,13 @@ export function PageCanvas() {
   const setViewerZoom = useAppStore((s) => s.setViewerZoom);
   const setViewerPan = useAppStore((s) => s.setViewerPan);
   const fitToViewTrigger = useAppStore((s) => s.fitToViewTrigger);
+  const steps = useAppStore((s) => s.steps);
+  const tracks = useAppStore((s) => s.tracks);
+  const activeStepId = useAppStore((s) => s.activeStepId);
+  const setActiveStep = useAppStore((s) => s.setActiveStep);
+
+  const [hoveredStepId, setHoveredStepId] = useState<string | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
 
   const currentPage = currentSourcePages[currentPageIndex];
   const imageSrc = currentPage ? convertFileSrc(currentPage.file_path) : null;
@@ -102,6 +110,23 @@ export function PageCanvas() {
     if (fitToViewTrigger > 0) fitToViewRef.current();
   }, [fitToViewTrigger]);
 
+  // Center on active step when it changes
+  useEffect(() => {
+    if (!activeStepId || !currentPage || stageSize.width === 0) return;
+    const step = steps.find((s) => s.id === activeStepId);
+    if (!step || step.source_page_id !== currentPage.id || step.crop_x == null) return;
+    const eff = imageToEffective(
+      step.crop_x!, step.crop_y!, step.crop_w!, step.crop_h!,
+      rotation, currentPage.width, currentPage.height,
+    );
+    const centerX = eff.x + eff.width / 2;
+    const centerY = eff.y + eff.height / 2;
+    setViewerPan(
+      stageSize.width / 2 - centerX * viewerZoom,
+      stageSize.height / 2 - centerY * viewerZoom,
+    );
+  }, [activeStepId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Re-fit on rotation
   useEffect(() => {
     if (currentPage) fitToViewRef.current();
@@ -151,6 +176,38 @@ export function PageCanvas() {
     [setViewerPan],
   );
 
+  const updateTooltipPos = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
+    const container = containerRef.current;
+    if (container) {
+      const rect = container.getBoundingClientRect();
+      setTooltipPos({
+        x: e.evt.clientX - rect.left + 12,
+        y: e.evt.clientY - rect.top - 8,
+      });
+    }
+  }, []);
+
+  // Steps with crop regions on this page
+  const pageSteps = useMemo(
+    () =>
+      currentPage
+        ? steps.filter(
+            (s) =>
+              s.source_page_id === currentPage.id &&
+              s.crop_x != null &&
+              s.crop_y != null &&
+              s.crop_w != null &&
+              s.crop_h != null,
+          )
+        : [],
+    [steps, currentPage?.id], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  const trackMap = useMemo(
+    () => new Map(tracks.map((t) => [t.id, t])),
+    [tracks],
+  );
+
   if (!currentPage || !imageSrc) {
     return (
       <div className="flex h-full items-center justify-center text-xs text-text-tertiary">
@@ -160,7 +217,7 @@ export function PageCanvas() {
   }
 
   return (
-    <div ref={containerRef} className="h-full w-full">
+    <div ref={containerRef} className="relative h-full w-full">
       {stageSize.width > 0 && (
         <Stage
           ref={stageRef}
@@ -184,8 +241,64 @@ export function PageCanvas() {
               height={currentPage.height}
             />
           </Layer>
+          {/* Step crop region overlays */}
+          <Layer>
+            {pageSteps.map((step) => {
+              const track = trackMap.get(step.track_id);
+              const color = track?.color ?? "#888";
+              const eff = imageToEffective(
+                step.crop_x!, step.crop_y!, step.crop_w!, step.crop_h!,
+                rotation, currentPage.width, currentPage.height,
+              );
+              const isActive = step.id === activeStepId;
+              const isCompleted = step.is_completed;
+
+              const strokeWidth = isActive ? 2 : 1;
+              const opacity = isActive ? 0.7 : isCompleted ? 0.25 : 0.35;
+              const dash = isCompleted && !isActive ? [6, 4] : undefined;
+
+              return (
+                <Rect
+                  key={step.id}
+                  x={eff.x}
+                  y={eff.y}
+                  width={eff.width}
+                  height={eff.height}
+                  stroke={color}
+                  strokeWidth={strokeWidth / viewerZoom}
+                  opacity={opacity}
+                  dash={dash?.map((d) => d / viewerZoom)}
+                  onMouseEnter={(e) => {
+                    setHoveredStepId(step.id);
+                    updateTooltipPos(e);
+                  }}
+                  onMouseMove={updateTooltipPos}
+                  onMouseLeave={() => {
+                    setHoveredStepId(null);
+                    setTooltipPos(null);
+                  }}
+                  onClick={() => setActiveStep(step.id)}
+                  onTap={() => setActiveStep(step.id)}
+                />
+              );
+            })}
+          </Layer>
         </Stage>
       )}
+
+      {/* Tooltip for hovered step */}
+      {hoveredStepId && tooltipPos && (() => {
+        const step = steps.find((s) => s.id === hoveredStepId);
+        if (!step) return null;
+        return (
+          <div
+            className="pointer-events-none absolute z-50 max-w-[200px] truncate rounded bg-gray-900 px-2 py-1 text-[11px] text-white shadow-lg"
+            style={{ left: tooltipPos.x, top: tooltipPos.y }}
+          >
+            {step.title}
+          </div>
+        );
+      })()}
     </div>
   );
 }

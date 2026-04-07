@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAppStore } from "@/store";
-import { comparePartNumbers } from "@/shared/utils";
+import { comparePartNumbers, isPartFullyTicked, formatPartProgress } from "@/shared/utils";
 import type { SprueRef } from "@/shared/types";
 
 interface SprueLightboxProps {
@@ -108,7 +108,7 @@ export function SprueLightbox({ sprueLabel, onClose }: SprueLightboxProps) {
                           onClick={() => handlePartClick(part.step_id)}
                           className="flex items-center gap-2 px-3 py-1 text-left hover:bg-sidebar"
                         >
-                          {part.is_ticked ? (
+                          {isPartFullyTicked(part) ? (
                             <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-success">
                               <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />
                             </span>
@@ -116,8 +116,8 @@ export function SprueLightbox({ sprueLabel, onClose }: SprueLightboxProps) {
                             <Circle className="h-3.5 w-3.5 shrink-0 text-text-quaternary" />
                           )}
                           <div className="min-w-0 flex-1">
-                            <span className={`text-xs font-medium ${part.is_ticked ? "text-text-tertiary line-through" : "text-text-primary"}`}>
-                              {label}
+                            <span className={`text-xs font-medium ${isPartFullyTicked(part) ? "text-text-tertiary line-through" : "text-text-primary"}`}>
+                              {label}{formatPartProgress(part)}
                             </span>
                             <p className="truncate text-[10px] text-text-tertiary">
                               {stepTitle}

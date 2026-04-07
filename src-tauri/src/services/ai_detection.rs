@@ -32,12 +32,19 @@ fn anthropic_post(
 pub struct DetectedPart {
     pub sprue: String,
     pub number: Option<String>,
+    pub quantity: i32,
 }
 
 #[derive(Debug, Deserialize)]
 struct PartEntry {
     sprue: String,
     number: Option<String>,
+    #[serde(default = "default_one")]
+    quantity: i32,
+}
+
+fn default_one() -> i32 {
+    1
 }
 
 #[derive(Debug, Deserialize)]
@@ -90,18 +97,27 @@ Do NOT include:
 - Measurement or scale annotations
 - Decal sheet references
 
+IMPORTANT — Quantity detection:
+Pay close attention to quantity indicators next to each part callout. Scale model instructions show quantity in several ways:
+- A multiplication symbol: "×2", "x2", "X2", "× 2"
+- Parenthesized number: "(2)", "(x2)"
+- The same part callout label appearing multiple times in the diagram (e.g. two separate "B7" labels pointing to different locations means quantity 2)
+Always set "quantity" to the correct count. Default is 1 if no indicator is present.
+
 Return a JSON object with this exact structure:
 {{
   "parts": [
-    {{"sprue": "A", "number": "14"}},
-    {{"sprue": "B", "number": "7"}}
+    {{"sprue": "A", "number": "14", "quantity": 1}},
+    {{"sprue": "B", "number": "7", "quantity": 2}}
   ]
 }}
 
 Rules:
 - "sprue" must exactly match one of the known sprue labels listed above
 - "number" is the numeric suffix (14, 7, 3, etc.)
+- "quantity" is required — count how many of each part are used in this step (default 1)
 - If a callout is just a sprue letter with no number, set "number" to null
+- Only include each unique part ONCE — use "quantity" for duplicates instead of repeating entries
 - Only include parts that are clearly labeled in the image
 - Do not guess or infer parts that aren't visible
 - If no part callouts are visible, return {{"parts": []}}"#,
@@ -186,6 +202,7 @@ pub fn detect_parts(
         .map(|p| DetectedPart {
             sprue: p.sprue.to_uppercase(),
             number: p.number,
+            quantity: p.quantity.max(1),
         })
         .filter(|p| known_set.contains(&p.sprue))
         .collect())

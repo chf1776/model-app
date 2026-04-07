@@ -846,7 +846,8 @@ export interface StepSpruePart {
   sprue_label: string;
   part_number: string | null;
   ai_detected: boolean;
-  is_ticked: boolean;
+  ticked_count: number;
+  quantity: number;
   created_at: number;
 }
 

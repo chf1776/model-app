@@ -94,6 +94,26 @@ export function StepEditorPanel() {
     setRelationSearch("");
   }, [step?.id]);
 
+  // Steps that replace this one (from their replaces_step_id)
+  const replacedBySteps = useMemo(
+    () => (step ? steps.filter((s) => s.replaces_step_id === step.id) : []),
+    [steps, step?.id],
+  );
+
+  // Steps available for relation pickers (all project steps except this one)
+  const otherSteps = useMemo(() => (step ? steps.filter((s) => s.id !== step.id) : []), [steps, step?.id]);
+
+  // Group steps by track for picker display
+  const stepsByTrackForPicker = useMemo(() => {
+    const grouped = new Map<string, typeof steps>();
+    for (const s of otherSteps) {
+      const list = grouped.get(s.track_id) ?? [];
+      list.push(s);
+      grouped.set(s.track_id, list);
+    }
+    return grouped;
+  }, [otherSteps]);
+
   if (!step) return null;
 
   const referenceImages = stepReferenceImages[step.id] ?? [];
@@ -106,26 +126,6 @@ export function StepEditorPanel() {
   const currentRelations = stepRelations[step.id] ?? [];
   const { blockedByIds, blocksAccessIds, incomingBlockedBy, incomingBlocksAccess } =
     parseStepRelations(currentRelations, step.id);
-
-  // Steps that replace this one (from their replaces_step_id)
-  const replacedBySteps = useMemo(
-    () => steps.filter((s) => s.replaces_step_id === step.id),
-    [steps, step.id],
-  );
-
-  // Steps available for relation pickers (all project steps except this one)
-  const otherSteps = useMemo(() => steps.filter((s) => s.id !== step.id), [steps, step.id]);
-
-  // Group steps by track for picker display
-  const stepsByTrackForPicker = useMemo(() => {
-    const grouped = new Map<string, typeof steps>();
-    for (const s of otherSteps) {
-      const list = grouped.get(s.track_id) ?? [];
-      list.push(s);
-      grouped.set(s.track_id, list);
-    }
-    return grouped;
-  }, [otherSteps]);
 
   const currentTrack = tracks.find((t) => t.id === step.track_id);
   const parentStep = step.parent_step_id

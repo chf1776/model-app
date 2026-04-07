@@ -1,0 +1,1 @@
+ALTER TABLE step_sprue_parts ADD COLUMN quantity INTEGER NOT NULL DEFAULT 1;

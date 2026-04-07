@@ -89,6 +89,7 @@ pub fn detect_step_sprues(
             &part.sprue,
             part.number.as_deref(),
             true, // ai_detected
+            Some(part.quantity),
         )?;
         inserted_parts.push(sprue_part);
     }

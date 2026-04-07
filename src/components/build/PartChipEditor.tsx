@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { useAppStore } from "@/store";
 import * as api from "@/api";
 import { toast } from "sonner";
-import { comparePartNumbers } from "@/shared/utils";
+import { comparePartNumbers, isPartFullyTicked, formatPartProgress } from "@/shared/utils";
 import type { StepSpruePart, SprueRef } from "@/shared/types";
 import { SprueCropThumb } from "./SprueCropThumb";
 import { SprueLightbox } from "./SprueLightbox";
@@ -84,14 +84,6 @@ export function PartChipEditor({ stepId, readOnly = false, buildMode = false }: 
     return entries;
   }, [currentParts]);
 
-  const colorMap = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const ref of sprueRefs) {
-      m.set(ref.label, ref.color);
-    }
-    return m;
-  }, [sprueRefs]);
-
   const refMap = useMemo(() => {
     const m = new Map<string, SprueRef>();
     for (const ref of sprueRefs) {
@@ -168,10 +160,11 @@ export function PartChipEditor({ stepId, readOnly = false, buildMode = false }: 
       {/* Grouped parts — card layout in build mode, chip layout in setup */}
       {buildMode ? (
         grouped.map(([label, parts]) => {
-          const color = colorMap.get(label) ?? "#888";
+          const color = refMap.get(label)?.color ?? "#888";
           const ref = refMap.get(label);
-          const ticked = parts.filter((p) => p.is_ticked).length;
-          const allTicked = parts.length > 0 && ticked === parts.length;
+          const tickedTotal = parts.reduce((sum, p) => sum + p.ticked_count, 0);
+          const qtyTotal = parts.reduce((sum, p) => sum + p.quantity, 0);
+          const allTicked = qtyTotal > 0 && tickedTotal === qtyTotal;
           return (
             <div
               key={label}
@@ -185,7 +178,7 @@ export function PartChipEditor({ stepId, readOnly = false, buildMode = false }: 
                   </span>
                 </div>
                 <span className={`text-[9px] ${allTicked ? "text-success" : "text-text-tertiary"}`}>
-                  {ticked}/{parts.length}
+                  {tickedTotal}/{qtyTotal}
                 </span>
               </div>
               <div className="mt-1 flex gap-2">
@@ -209,26 +202,32 @@ export function PartChipEditor({ stepId, readOnly = false, buildMode = false }: 
                 <div className="flex min-w-0 flex-1 flex-wrap content-start gap-1">
                   {parts.map((part) => {
                     const chipLabel = `${label}${part.part_number ?? ""}`;
+                    const fullyTicked = isPartFullyTicked(part);
+                    const partial = part.ticked_count > 0 && !fullyTicked;
+                    const nextCount = fullyTicked ? 0 : part.ticked_count + 1;
                     return (
                       <button
                         key={part.id}
-                        onClick={() => setSpruePartTicked(stepId, part.id, !part.is_ticked)}
+                        onClick={() => setSpruePartTicked(stepId, part.id, nextCount)}
                         className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium transition-colors ${
-                          part.is_ticked
+                          fullyTicked
                             ? "bg-success/15 text-success"
-                            : "hover:opacity-80"
+                            : partial
+                              ? "bg-warning/12 text-warning"
+                              : "hover:opacity-80"
                         }`}
-                        style={part.is_ticked ? undefined : {
+                        style={fullyTicked || partial ? undefined : {
                           backgroundColor: `${color}15`,
                           color,
                           border: `1px solid ${color}30`,
                         }}
                       >
-                        {part.is_ticked && (
+                        {fullyTicked && (
                           <Check className="h-3 w-3" strokeWidth={3} />
                         )}
-                        <span className={part.is_ticked ? "line-through" : ""}>
+                        <span className={fullyTicked ? "line-through" : ""}>
                           {chipLabel}
+                          {formatPartProgress(part)}
                         </span>
                       </button>
                     );
@@ -240,7 +239,7 @@ export function PartChipEditor({ stepId, readOnly = false, buildMode = false }: 
         })
       ) : (
         grouped.map(([label, parts]) => {
-          const color = colorMap.get(label) ?? "#888";
+          const color = refMap.get(label)?.color ?? "#888";
           return (
             <div key={label} className="space-y-1">
               <div className="flex items-center gap-1.5">
@@ -338,7 +337,7 @@ function PartChip({
           &#10024;
         </span>
       )}
-      {chipLabel}
+      {chipLabel}{part.quantity > 1 ? ` ×${part.quantity}` : ""}
       {!readOnly && (
         <button
           onClick={onRemove}

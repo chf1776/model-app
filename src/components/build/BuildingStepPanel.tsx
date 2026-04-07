@@ -441,7 +441,7 @@ export function BuildingStepPanel() {
               <Divider />
               <div className="space-y-1.5">
                 <SectionLabel>Parts Used</SectionLabel>
-                <PartChipEditor stepId={step.id} />
+                <PartChipEditor stepId={step.id} buildMode />
               </div>
             </>
           )}
@@ -589,7 +589,7 @@ export function BuildingStepPanel() {
 
 // ── Start Timer Button ───────────────────────────────────────────────────────
 
-function StartTimerButton({ step }: { step: Step }) {
+export function StartTimerButton({ step }: { step: Step }) {
   const activeTimers = useAppStore((s) => s.activeTimers);
   const addTimer = useAppStore((s) => s.addTimer);
   const [showInput, setShowInput] = useState(false);
@@ -675,11 +675,11 @@ function StartTimerButton({ step }: { step: Step }) {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+export function SectionLabel({ children }: { children: React.ReactNode }) {
   return <h4 className="text-[10px] font-semibold text-text-tertiary">{children}</h4>;
 }
 
-function Divider() {
+export function Divider() {
   return <div className="my-3 h-px bg-border" />;
 }
 

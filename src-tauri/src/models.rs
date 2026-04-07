@@ -649,7 +649,8 @@ pub struct StepSpruePart {
     pub sprue_label: String,
     pub part_number: Option<String>,
     pub ai_detected: bool,
-    pub is_ticked: bool,
+    pub ticked_count: i32,
+    pub quantity: i32,
     pub created_at: i64,
 }
 

@@ -1,3 +1,11 @@
+export function isPartFullyTicked(part: { ticked_count: number; quantity: number }): boolean {
+  return part.ticked_count >= part.quantity;
+}
+
+export function formatPartProgress(part: { ticked_count: number; quantity: number }): string {
+  return part.quantity > 1 ? ` ${part.ticked_count}/${part.quantity}` : "";
+}
+
 /**
  * Compare two part numbers numerically when possible, falling back to
  * lexicographic order. Nulls sort before non-null values.

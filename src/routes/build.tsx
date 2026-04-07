@@ -19,6 +19,7 @@ import { KeyboardShortcutsDialog } from "@/components/build/KeyboardShortcutsDia
 import { NavigationBar } from "@/components/build/NavigationBar";
 import { BuildingRail } from "@/components/build/BuildingRail";
 import { BuildingStepPanel } from "@/components/build/BuildingStepPanel";
+import { PageInfoPanel } from "@/components/build/PageInfoPanel";
 import { CropCanvas } from "@/components/build/CropCanvas";
 import { AnnotationToolbar } from "@/components/build/AnnotationToolbar";
 import { PageRail } from "@/components/build/PageRail";
@@ -135,13 +136,18 @@ export default function BuildRoute() {
         }
         if (e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "ArrowRight" || e.key === "ArrowDown") {
           e.preventDefault();
-          const replacedIds = getReplacedStepIds(s.steps);
-          const ordered = flattenTrackSteps(s.steps, s.activeTrackId, { excludeReplacedIds: replacedIds });
-          const idx = ordered.findIndex((st) => st.id === s.activeStepId);
-          if ((e.key === "ArrowLeft" || e.key === "ArrowUp") && idx > 0) {
-            s.setActiveStep(ordered[idx - 1].id);
-          } else if ((e.key === "ArrowRight" || e.key === "ArrowDown") && idx >= 0 && idx < ordered.length - 1) {
-            s.setActiveStep(ordered[idx + 1].id);
+          if (s.navMode === "page" && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+            if (e.key === "ArrowLeft") s.prevPage();
+            else s.nextPage();
+          } else {
+            const replacedIds = getReplacedStepIds(s.steps);
+            const ordered = flattenTrackSteps(s.steps, s.activeTrackId, { excludeReplacedIds: replacedIds });
+            const idx = ordered.findIndex((st) => st.id === s.activeStepId);
+            if ((e.key === "ArrowLeft" || e.key === "ArrowUp") && idx > 0) {
+              s.setActiveStep(ordered[idx - 1].id);
+            } else if ((e.key === "ArrowRight" || e.key === "ArrowDown") && idx >= 0 && idx < ordered.length - 1) {
+              s.setActiveStep(ordered[idx + 1].id);
+            }
           }
           return;
         }
@@ -347,7 +353,7 @@ export default function BuildRoute() {
               <NavigationBar />
             </div>
 
-            {activeStepId && <BuildingStepPanel />}
+            {navMode === "page" ? <PageInfoPanel /> : activeStepId && <BuildingStepPanel />}
             <MilestoneDialog />
             <CompletionWarningDialog />
             <PolygonSwitchDialog />

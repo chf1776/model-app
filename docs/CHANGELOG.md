@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-04-06 — Page Info Panel & Part Quantities
+
+### Added
+- **Part quantities**: Sprue parts now track a `quantity` field — AI detection extracts quantity from instruction callouts (`×2`, `(2)`, repeated labels), and manual entry defaults to 1; chips show progress (e.g. `B7 1/3`) for parts with quantity > 1
+- **Multi-tick parts**: Parts with quantity > 1 require multiple clicks to fully tick — partially-ticked parts show in warning color, fully-ticked in success color; per-sprue progress counter (e.g. `3/5`) sums across quantities
+- **AI quantity prompt**: Detection prompt instructs Claude to recognize `×2`, `x2`, `X2`, `(2)`, and duplicate callout labels as quantity indicators, returning a single entry per part with the correct count
+- **PageInfoPanel**: New 280px right-hand panel in page mode showing per-page progress (steps + parts), expandable track→step list with inline sub-step toggles, timers, notes, relations, and per-sprue parts cards mirroring the building panel
+- **Page canvas crop overlays**: Step crop regions are now drawn on `PageCanvas` with track-colored outlines, hover tooltips, click-to-select, and automatic centering on the active step
+- **Polygon click-to-edit**: Clicking a saved polygon outline while in polygon mode loads its vertices into the draft for editing
+- **Arrow key page navigation**: Left/Right arrow keys navigate between pages while in page mode (instead of stepping through steps)
+- **V14 migration**: `quantity` column on `step_sprue_parts` (default 1)
+- **V15 migration**: rename `is_ticked` (boolean) → `ticked_count` (integer) on `step_sprue_parts`
+- **V16/V17 migrations**: short-lived `page_sprue_parts` table — added in V16, dropped in V17 (page-level parts are aggregated from step-level data instead)
+- **`isPartFullyTicked` / `formatPartProgress` utilities**: Shared part progress helpers in `src/shared/utils.ts`
+
+### Changed
+- **`set_sprue_part_ticked` API**: Takes `tickedCount: number` instead of `isTicked: boolean`; backend column updated accordingly
+- **`addStepSpruePart` upserts quantity**: When AI re-detects an existing part with a higher quantity, the row is updated rather than ignored
+- **Hooks order in StepEditorPanel**: `useMemo` blocks moved above the early-return guard to satisfy React rules-of-hooks
+- **`setSpruePartTicked` no-op guard**: Skips state update and API call when the new count equals the previous count
+- **`setActiveStep` in setup mode**: Removed redundant `focusCropTrigger` increment
+
+### Fixed
+- **Polygon draft on step deletion**: Deleting a step that owns the active polygon draft now clears the draft and exits polygon mode
+
 ## [1.1.1] — 2026-03-28 — Part Tick-Off
 
 ### Added
