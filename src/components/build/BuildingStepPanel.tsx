@@ -23,11 +23,11 @@ import { ADHESIVE_TYPE_LABELS, IMAGE_FILE_FILTER } from "@/shared/types";
 import type { Step } from "@/shared/types";
 import { PaintRefChips } from "./PaintRefChips";
 import { PartChipEditor } from "./PartChipEditor";
-import { StepCompletionMarker } from "./StepCompletionMarker";
 import { parseStepRelations, flattenTrackSteps } from "./tree-utils";
 import { SectionLabel, Divider, DetailRow } from "./panel/primitives";
 import { StartTimerButton } from "./panel/TimerSection";
 import { QuantityCounter } from "./panel/QuantityCounter";
+import { SubStepsList } from "./panel/SubStepsList";
 
 export function BuildingStepPanel() {
   const steps = useAppStore((s) => s.steps);
@@ -306,39 +306,13 @@ export function BuildingStepPanel() {
           {children.length > 0 && (
             <>
               <Divider />
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <SectionLabel>Sub-steps</SectionLabel>
-                  <span className="text-[10px] text-text-tertiary">
-                    {children.filter((c) => c.is_completed).length}/{children.length}
-                  </span>
-                </div>
-                <div className="space-y-0.5">
-                  {children.map((child) => (
-                    <button
-                      key={child.id}
-                      onClick={() => setActiveStep(child.id)}
-                      className="flex w-full items-center gap-2 rounded px-1 py-1 text-left hover:bg-muted/50"
-                    >
-                      <StepCompletionMarker
-                        completed={child.is_completed}
-                        onClick={() => handleToggleSubStep(child)}
-                      />
-                      <span
-                        className={`text-[11px] ${
-                          child.is_completed
-                            ? "text-text-tertiary line-through"
-                            : child.id === activeStepId
-                              ? "font-medium text-accent"
-                              : "text-text-primary"
-                        }`}
-                      >
-                        {child.title}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <SubStepsList
+                variant="navigable"
+                subSteps={children}
+                onToggle={handleToggleSubStep}
+                onNavigate={setActiveStep}
+                activeStepId={activeStepId}
+              />
             </>
           )}
 

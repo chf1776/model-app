@@ -9,6 +9,7 @@ import { StepCompletionMarker } from "./StepCompletionMarker";
 import { StartTimerButton } from "./panel/TimerSection";
 import { SectionLabel, Divider } from "./panel/primitives";
 import { SpruePartsGrid } from "./panel/SpruePartsGrid";
+import { SubStepsList } from "./panel/SubStepsList";
 import { parseStepRelations } from "./tree-utils";
 import { isPartFullyTicked, groupPartsBySprue } from "@/shared/utils";
 import { getSwatchStyle } from "@/lib/utils";
@@ -315,28 +316,11 @@ export function PageInfoPanel() {
                                     )}
 
                                     {/* Sub-steps */}
-                                    {children.length > 0 && (
-                                      <div className="space-y-0.5">
-                                        <span className="text-[9px] font-semibold text-text-tertiary">
-                                          Sub-steps ({children.filter((c) => c.is_completed).length}/{children.length})
-                                        </span>
-                                        {children.map((child) => (
-                                          <div key={child.id} className="flex items-center gap-1.5 py-0.5">
-                                            <StepCompletionMarker
-                                              completed={child.is_completed}
-                                              onClick={() => handleToggleSubStep(child)}
-                                            />
-                                            <span
-                                              className={`text-[10px] ${
-                                                child.is_completed ? "text-text-tertiary line-through" : "text-text-primary"
-                                              }`}
-                                            >
-                                              {child.title}
-                                            </span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
+                                    <SubStepsList
+                                      variant="inline"
+                                      subSteps={children}
+                                      onToggle={handleToggleSubStep}
+                                    />
 
                                     {/* Relations */}
                                     {rels && (
