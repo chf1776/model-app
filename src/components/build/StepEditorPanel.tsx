@@ -36,6 +36,7 @@ import { CropPreview } from "./CropPreview";
 import { PaintRefChips } from "./PaintRefChips";
 import { PartChipEditor } from "./PartChipEditor";
 import { parseStepRelations } from "./tree-utils";
+import { QuantityCounter } from "./panel/QuantityCounter";
 
 export function StepEditorPanel() {
   const steps = useAppStore((s) => s.steps);
@@ -324,42 +325,15 @@ export function StepEditorPanel() {
 
           {/* Quantity counter (visible when quantity > 1) */}
           {step.quantity != null && step.quantity > 1 && (
-            <div className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-1.5">
-              <span className="text-[10px] text-text-secondary">
-                Progress
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    const next = Math.max(0, step.quantity_current - 1);
-                    updateStepStore({ ...step, quantity_current: next });
-                    handleUpdate({ quantity_current: next });
-                  }}
-                  disabled={step.quantity_current <= 0}
-                  className="flex h-5 w-5 items-center justify-center rounded-full border border-border text-[11px] text-text-secondary hover:bg-white disabled:opacity-30"
-                >
-                  −
-                </button>
-                <span className={`min-w-[2.5rem] text-center text-xs font-semibold ${
-                  step.quantity_current >= step.quantity
-                    ? "text-success"
-                    : "text-text-primary"
-                }`}>
-                  {step.quantity_current} / {step.quantity}
-                </span>
-                <button
-                  onClick={() => {
-                    const next = Math.min(step.quantity!, step.quantity_current + 1);
-                    updateStepStore({ ...step, quantity_current: next });
-                    handleUpdate({ quantity_current: next });
-                  }}
-                  disabled={step.quantity_current >= step.quantity}
-                  className="flex h-5 w-5 items-center justify-center rounded-full border border-border text-[11px] text-text-secondary hover:bg-white disabled:opacity-30"
-                >
-                  +
-                </button>
-              </div>
-            </div>
+            <QuantityCounter
+              variant="compact"
+              current={step.quantity_current}
+              total={step.quantity}
+              onChange={(next) => {
+                updateStepStore({ ...step, quantity_current: next });
+                handleUpdate({ quantity_current: next });
+              }}
+            />
           )}
 
           {/* Track + Adhesive row */}

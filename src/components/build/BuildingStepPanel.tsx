@@ -27,6 +27,7 @@ import { StepCompletionMarker } from "./StepCompletionMarker";
 import { parseStepRelations, flattenTrackSteps } from "./tree-utils";
 import { SectionLabel, Divider, DetailRow } from "./panel/primitives";
 import { StartTimerButton } from "./panel/TimerSection";
+import { QuantityCounter } from "./panel/QuantityCounter";
 
 export function BuildingStepPanel() {
   const steps = useAppStore((s) => s.steps);
@@ -203,8 +204,7 @@ export function BuildingStepPanel() {
     }
   };
 
-  const handleQuantityChange = async (delta: number) => {
-    const next = Math.max(0, Math.min(step.quantity!, step.quantity_current + delta));
+  const handleQuantityChange = async (next: number) => {
     updateStepStore({ ...step, quantity_current: next });
     try {
       const updated = await api.updateStep({ id: step.id, quantity_current: next });
@@ -293,48 +293,12 @@ export function BuildingStepPanel() {
           {step.quantity != null && step.quantity > 1 && (
             <>
               <Divider />
-              <div className="space-y-1.5">
-                <SectionLabel>Quantity</SectionLabel>
-                <div className="flex items-center gap-2">
-                  <div className="flex flex-1 gap-1">
-                    {Array.from({ length: step.quantity }, (_, i) => (
-                      <span
-                        key={i}
-                        className={`h-2.5 w-2.5 rounded-full ${
-                          i < step.quantity_current
-                            ? "bg-accent"
-                            : "border border-border bg-transparent"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <span
-                    className={`font-mono text-xs font-semibold ${
-                      step.quantity_current >= step.quantity
-                        ? "text-success"
-                        : "text-text-primary"
-                    }`}
-                  >
-                    {step.quantity_current}/{step.quantity}
-                  </span>
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => handleQuantityChange(-1)}
-                      disabled={step.quantity_current <= 0}
-                      className="flex h-5 w-5 items-center justify-center rounded-full border border-border text-[11px] text-text-secondary hover:bg-white disabled:opacity-30"
-                    >
-                      −
-                    </button>
-                    <button
-                      onClick={() => handleQuantityChange(1)}
-                      disabled={step.quantity_current >= step.quantity}
-                      className="flex h-5 w-5 items-center justify-center rounded-full border border-border text-[11px] text-text-secondary hover:bg-white disabled:opacity-30"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <QuantityCounter
+                variant="dots"
+                current={step.quantity_current}
+                total={step.quantity}
+                onChange={handleQuantityChange}
+              />
             </>
           )}
 
