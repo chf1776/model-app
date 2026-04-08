@@ -65,7 +65,9 @@ export function BuildingStepPanel() {
     if (!stepRelations[step.id]) loads.push(loadStepRelations(step.id));
     if (!stepReferenceImages[step.id]) loads.push(loadStepReferenceImages(step.id));
     if (!stepSprueParts[step.id]) loads.push(loadStepSprueParts(step.id));
-    if (loads.length > 0) Promise.all(loads);
+    if (loads.length > 0) {
+      Promise.all(loads).catch((e) => toast.error(`Failed to load step data: ${e}`));
+    }
   }, [step?.id]);
 
   // Children of the active step only
