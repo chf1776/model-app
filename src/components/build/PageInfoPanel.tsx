@@ -10,6 +10,7 @@ import { StartTimerButton } from "./panel/TimerSection";
 import { SectionLabel, Divider } from "./panel/primitives";
 import { SpruePartsGrid } from "./panel/SpruePartsGrid";
 import { SubStepsList } from "./panel/SubStepsList";
+import { InlineRelationPills } from "./panel/InlineRelationPills";
 import { parseStepRelations } from "./tree-utils";
 import { isPartFullyTicked, groupPartsBySprue } from "@/shared/utils";
 import { getSwatchStyle } from "@/lib/utils";
@@ -325,24 +326,18 @@ export function PageInfoPanel() {
                                     {/* Relations */}
                                     {rels && (
                                       <>
-                                        {rels.blockedByIds.length > 0 && (
-                                          <div className="flex flex-wrap gap-1">
-                                            {rels.blockedByIds.map((id) => (
-                                              <span key={id} className="rounded bg-destructive/10 px-1.5 py-0.5 text-[9px] text-destructive">
-                                                Blocked by: {steps.find((s) => s.id === id)?.title ?? "?"}
-                                              </span>
-                                            ))}
-                                          </div>
-                                        )}
-                                        {rels.incomingBlockedBy.length > 0 && (
-                                          <div className="flex flex-wrap gap-1">
-                                            {rels.incomingBlockedBy.map((id) => (
-                                              <span key={id} className="rounded bg-warning/10 px-1.5 py-0.5 text-[9px] text-warning">
-                                                Blocks: {steps.find((s) => s.id === id)?.title ?? "?"}
-                                              </span>
-                                            ))}
-                                          </div>
-                                        )}
+                                        <InlineRelationPills
+                                          label="Blocked by"
+                                          ids={rels.blockedByIds}
+                                          steps={steps}
+                                          tone="destructive"
+                                        />
+                                        <InlineRelationPills
+                                          label="Blocks"
+                                          ids={rels.incomingBlockedBy}
+                                          steps={steps}
+                                          tone="warning"
+                                        />
                                       </>
                                     )}
                                   </div>
