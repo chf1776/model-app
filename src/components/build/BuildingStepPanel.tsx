@@ -25,6 +25,7 @@ import { PaintRefChips } from "./PaintRefChips";
 import { PartChipEditor } from "./PartChipEditor";
 import { StepCompletionMarker } from "./StepCompletionMarker";
 import { parseStepRelations, flattenTrackSteps } from "./tree-utils";
+import { SectionLabel, Divider, DetailRow } from "./panel/primitives";
 
 export function BuildingStepPanel() {
   const steps = useAppStore((s) => s.steps);
@@ -674,23 +675,6 @@ export function StartTimerButton({ step }: { step: Step }) {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-export function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <h4 className="text-[10px] font-semibold text-text-tertiary">{children}</h4>;
-}
-
-export function Divider() {
-  return <div className="my-3 h-px bg-border" />;
-}
-
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-baseline justify-between text-[10px]">
-      <span className="text-text-tertiary">{label}</span>
-      <span className="text-text-primary">{value}</span>
-    </div>
-  );
-}
 
 function RelationGroup({
   label,
