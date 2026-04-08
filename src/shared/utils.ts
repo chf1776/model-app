@@ -19,3 +19,23 @@ export function comparePartNumbers(
   if (isNaN(na) || isNaN(nb)) return (a ?? "").localeCompare(b ?? "");
   return na - nb;
 }
+
+/**
+ * Group parts by sprue label, sorted alphabetically by label and
+ * numerically by part number within each group.
+ */
+export function groupPartsBySprue<T extends { sprue_label: string; part_number: string | null }>(
+  parts: T[],
+): Array<readonly [string, T[]]> {
+  const map = new Map<string, T[]>();
+  for (const part of parts) {
+    const arr = map.get(part.sprue_label) ?? [];
+    arr.push(part);
+    map.set(part.sprue_label, arr);
+  }
+  return [...map.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([label, group]) =>
+      [label, group.sort((a, b) => comparePartNumbers(a.part_number, b.part_number))] as const,
+    );
+}

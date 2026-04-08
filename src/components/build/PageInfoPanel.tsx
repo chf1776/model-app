@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, ChevronDown, ChevronRight, Grid3X3 } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { useAppStore } from "@/store";
 import * as api from "@/api";
@@ -8,10 +8,10 @@ import type { Step, StepSpruePart } from "@/shared/types";
 import { StepCompletionMarker } from "./StepCompletionMarker";
 import { StartTimerButton } from "./panel/TimerSection";
 import { SectionLabel, Divider } from "./panel/primitives";
+import { SpruePartsGrid } from "./panel/SpruePartsGrid";
 import { parseStepRelations } from "./tree-utils";
-import { isPartFullyTicked, formatPartProgress, comparePartNumbers } from "@/shared/utils";
+import { isPartFullyTicked, groupPartsBySprue } from "@/shared/utils";
 import { getSwatchStyle } from "@/lib/utils";
-import { SprueCropThumb } from "./SprueCropThumb";
 
 // ── Component ───────────────────────────────────────────────────────────────
 
@@ -123,17 +123,7 @@ export function PageInfoPanel() {
   type PartWithStep = StepSpruePart & { _stepId: string };
 
   // Group parts by sprue for rendering
-  const groupedParts = useMemo(() => {
-    const map = new Map<string, PartWithStep[]>();
-    for (const p of allParts) {
-      const arr = map.get(p.sprue_label) ?? [];
-      arr.push(p);
-      map.set(p.sprue_label, arr);
-    }
-    return Array.from(map.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([label, parts]) => [label, parts.sort((a, b) => comparePartNumbers(a.part_number, b.part_number))] as const);
-  }, [allParts]);
+  const groupedParts = useMemo(() => groupPartsBySprue<PartWithStep>(allParts), [allParts]);
 
   // Unique paint entries on this page
   const pagePaints = useMemo(() => {
@@ -399,79 +389,11 @@ export function PageInfoPanel() {
 
               {groupedParts.length > 0 ? (
                 <div className="mt-1.5 space-y-1.5">
-                  {groupedParts.map(([label, parts]) => {
-                    const color = refMap.get(label)?.color ?? "#888";
-                    const ref = refMap.get(label);
-                    const tickedTotal = parts.reduce((sum, p) => sum + Math.min(p.ticked_count, p.quantity), 0);
-                    const qtyTotal = parts.reduce((sum, p) => sum + p.quantity, 0);
-                    const allTicked = qtyTotal > 0 && tickedTotal === qtyTotal;
-
-                    return (
-                      <div
-                        key={label}
-                        className={`flex flex-col rounded border p-1.5 ${allTicked ? "border-success" : "border-border"}`}
-                        style={{ borderLeftWidth: 3, borderLeftColor: allTicked ? undefined : color }}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-semibold text-text-primary">
-                            Sprue {label}
-                          </span>
-                          <span className={`text-[9px] ${allTicked ? "text-success" : "text-text-tertiary"}`}>
-                            {tickedTotal}/{qtyTotal}
-                          </span>
-                        </div>
-                        <div className="mt-1 flex gap-2">
-                          {ref && (
-                            <div
-                              className="flex shrink-0 items-center justify-center overflow-hidden rounded bg-black/[0.03]"
-                              style={{ width: 72, minHeight: 50 }}
-                            >
-                              <SprueCropThumb
-                                sprueRef={ref}
-                                width={90}
-                                height={70}
-                                className="max-h-[70px]"
-                                fallback={<Grid3X3 className="h-3.5 w-3.5 text-text-quaternary" />}
-                              />
-                            </div>
-                          )}
-                          <div className="flex min-w-0 flex-1 flex-wrap content-start gap-1">
-                            {parts.map((part) => {
-                              const chipLabel = `${label}${part.part_number ?? ""}`;
-                              const fullyTicked = isPartFullyTicked(part);
-                              const partial = part.ticked_count > 0 && !fullyTicked;
-                              return (
-                                <button
-                                  key={part.id}
-                                  onClick={() => handleTickPart(part)}
-                                  className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium transition-colors ${
-                                    fullyTicked
-                                      ? "bg-success/15 text-success"
-                                      : partial
-                                        ? "bg-warning/12 text-warning"
-                                        : "hover:opacity-80"
-                                  }`}
-                                  style={fullyTicked || partial ? undefined : {
-                                    backgroundColor: `${color}15`,
-                                    color,
-                                    border: `1px solid ${color}30`,
-                                  }}
-                                >
-                                  {fullyTicked && (
-                                    <Check className="h-3 w-3" strokeWidth={3} />
-                                  )}
-                                  <span className={fullyTicked ? "line-through" : ""}>
-                                    {chipLabel}
-                                    {formatPartProgress(part)}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  <SpruePartsGrid
+                    groups={groupedParts}
+                    refMap={refMap}
+                    onTickPart={handleTickPart}
+                  />
                   <p className="text-[9px] text-text-tertiary">
                     {allParts.length} part{allParts.length === 1 ? "" : "s"} · {partStats.ticked}/{partStats.total} ticked
                   </p>
