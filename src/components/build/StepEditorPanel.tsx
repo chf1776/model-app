@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { X, ChevronRight, Plus, ImageIcon, ListTree, Search } from "lucide-react";
+import { X, ChevronRight, Plus, ImageIcon, ListTree } from "lucide-react";
 import { toast } from "sonner";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
@@ -37,6 +37,8 @@ import { PaintRefChips } from "./PaintRefChips";
 import { PartChipEditor } from "./PartChipEditor";
 import { parseStepRelations } from "./tree-utils";
 import { QuantityCounter } from "./panel/QuantityCounter";
+import { StepPickerPopover } from "./panel/StepPickerPopover";
+import { RemovableRelationChip } from "./panel/RemovableRelationChip";
 
 export function StepEditorPanel() {
   const steps = useAppStore((s) => s.steps);
@@ -492,40 +494,36 @@ export function StepEditorPanel() {
                 key: "blocked_by",
                 label: "Blocked by",
                 ids: blockedByIds,
-                chipBg: "bg-red-500/10",
-                chipText: "text-red-700",
-                chipHover: "hover:text-red-900",
-                activeBg: "bg-red-500/10 font-medium text-red-700",
+                toneClass: "bg-red-500/10 text-red-700",
+                hoverClass: "hover:text-red-900",
+                selectedClass: "bg-red-500/10 font-medium text-red-700",
                 onToggle: (id: string) => handleToggleRelation(id, "blocked_by"),
               },
               {
                 key: "blocks",
                 label: "Blocks",
                 ids: incomingBlockedBy,
-                chipBg: "bg-red-500/10",
-                chipText: "text-red-700",
-                chipHover: "hover:text-red-900",
-                activeBg: "bg-red-500/10 font-medium text-red-700",
+                toneClass: "bg-red-500/10 text-red-700",
+                hoverClass: "hover:text-red-900",
+                selectedClass: "bg-red-500/10 font-medium text-red-700",
                 onToggle: (id: string) => handleToggleIncomingRelation(id, "blocked_by"),
               },
               {
                 key: "blocks_access_to",
                 label: "Blocks access to",
                 ids: blocksAccessIds,
-                chipBg: "bg-amber-500/10",
-                chipText: "text-amber-700",
-                chipHover: "hover:text-amber-900",
-                activeBg: "bg-amber-500/10 font-medium text-amber-700",
+                toneClass: "bg-amber-500/10 text-amber-700",
+                hoverClass: "hover:text-amber-900",
+                selectedClass: "bg-amber-500/10 font-medium text-amber-700",
                 onToggle: (id: string) => handleToggleRelation(id, "blocks_access_to"),
               },
               {
                 key: "access_blocked_by",
                 label: "Access blocked by",
                 ids: incomingBlocksAccess,
-                chipBg: "bg-amber-500/10",
-                chipText: "text-amber-700",
-                chipHover: "hover:text-amber-900",
-                activeBg: "bg-amber-500/10 font-medium text-amber-700",
+                toneClass: "bg-amber-500/10 text-amber-700",
+                hoverClass: "hover:text-amber-900",
+                selectedClass: "bg-amber-500/10 font-medium text-amber-700",
                 onToggle: (id: string) => handleToggleIncomingRelation(id, "blocks_access_to"),
               },
             ] as const).map((row) => (
@@ -535,66 +533,28 @@ export function StepEditorPanel() {
                   const s = steps.find((st) => st.id === id);
                   const t = s ? tracks.find((tr) => tr.id === s.track_id) : null;
                   return (
-                    <span key={id} className={`inline-flex items-center rounded-full ${row.chipBg} text-[10px] font-medium ${row.chipText}`}>
-                      <button onClick={() => setActiveStep(id)} className="inline-flex items-center gap-0.5 pl-2 py-0.5 hover:underline">
-                        {t && <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: t.color }} />}
-                        {s?.title ?? id.slice(0, 6)}
-                      </button>
-                      <button onClick={() => row.onToggle(id)} className={`pl-0.5 pr-1.5 py-0.5 ${row.chipHover}`}>
-                        <X className="h-2.5 w-2.5" />
-                      </button>
-                    </span>
+                    <RemovableRelationChip
+                      key={id}
+                      title={s?.title ?? id.slice(0, 6)}
+                      trackColor={t?.color}
+                      toneClass={row.toneClass}
+                      hoverClass={row.hoverClass}
+                      onNavigate={() => setActiveStep(id)}
+                      onRemove={() => row.onToggle(id)}
+                    />
                   );
                 })}
-                <Popover open={relationPopoverOpen === row.key} onOpenChange={(open) => { setRelationPopoverOpen(open ? row.key : null); setRelationSearch(""); }}>
-                  <PopoverTrigger asChild>
-                    <button className="inline-flex items-center rounded-full border border-dashed border-border px-1.5 py-0.5 text-[10px] text-text-tertiary hover:border-text-secondary hover:text-text-secondary">
-                      <Plus className="h-2.5 w-2.5" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent align="start" className="w-52 p-1.5">
-                    <div className="mb-1 flex items-center gap-1 rounded border border-border px-1.5 py-1">
-                      <Search className="h-3 w-3 text-text-tertiary" />
-                      <input
-                        value={relationSearch}
-                        onChange={(e) => setRelationSearch(e.target.value)}
-                        placeholder="Search steps or tracks..."
-                        className="flex-1 bg-transparent text-[11px] outline-none"
-                      />
-                    </div>
-                    <div className="max-h-[240px] overflow-y-auto">
-                      {tracks.map((t) => {
-                        const q = relationSearch.toLowerCase();
-                        const trackMatch = q && t.name.toLowerCase().includes(q);
-                        const trackSteps = (stepsByTrackForPicker.get(t.id) ?? []).filter(
-                          (s) => !q || trackMatch || s.title.toLowerCase().includes(q),
-                        );
-                        if (trackSteps.length === 0) return null;
-                        return (
-                          <div key={t.id} className="mb-1">
-                            <div className="flex items-center gap-1 px-1 py-0.5 text-[9px] font-semibold text-text-tertiary">
-                              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: t.color }} />
-                              {t.name}
-                            </div>
-                            {trackSteps.map((s) => (
-                              <button
-                                key={s.id}
-                                onClick={() => row.onToggle(s.id)}
-                                className={`flex w-full items-center rounded px-2 py-1 text-[11px] ${
-                                  row.ids.includes(s.id)
-                                    ? row.activeBg
-                                    : "text-text-secondary hover:bg-black/[0.03]"
-                                }`}
-                              >
-                                {s.title}
-                              </button>
-                            ))}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <StepPickerPopover
+                  open={relationPopoverOpen === row.key}
+                  onOpenChange={(open) => { setRelationPopoverOpen(open ? row.key : null); setRelationSearch(""); }}
+                  search={relationSearch}
+                  onSearchChange={setRelationSearch}
+                  tracks={tracks}
+                  stepsByTrack={stepsByTrackForPicker}
+                  onSelect={row.onToggle}
+                  isSelected={(id) => row.ids.includes(id)}
+                  selectedClass={row.selectedClass}
+                />
               </div>
             ))}
 
@@ -605,63 +565,26 @@ export function StepEditorPanel() {
                 const s = steps.find((st) => st.id === step.replaces_step_id);
                 const t = s ? tracks.find((tr) => tr.id === s.track_id) : null;
                 return (
-                  <span className="inline-flex items-center rounded-full bg-accent/10 text-[10px] font-medium text-accent">
-                    <button onClick={() => setActiveStep(step.replaces_step_id!)} className="inline-flex items-center gap-0.5 pl-2 py-0.5 hover:underline">
-                      {t && <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: t.color }} />}
-                      {s?.title ?? step.replaces_step_id!.slice(0, 6)}
-                    </button>
-                    <button onClick={() => handleSetReplaces(null)} className="pl-0.5 pr-1.5 py-0.5 hover:text-accent-hover">
-                      <X className="h-2.5 w-2.5" />
-                    </button>
-                  </span>
+                  <RemovableRelationChip
+                    title={s?.title ?? step.replaces_step_id!.slice(0, 6)}
+                    trackColor={t?.color}
+                    toneClass="bg-accent/10 text-accent"
+                    hoverClass="hover:text-accent-hover"
+                    onNavigate={() => setActiveStep(step.replaces_step_id!)}
+                    onRemove={() => handleSetReplaces(null)}
+                  />
                 );
               })()}
               {!step.replaces_step_id && (
-                <Popover open={relationPopoverOpen === "replaces"} onOpenChange={(open) => { setRelationPopoverOpen(open ? "replaces" : null); setRelationSearch(""); }}>
-                  <PopoverTrigger asChild>
-                    <button className="inline-flex items-center rounded-full border border-dashed border-border px-1.5 py-0.5 text-[10px] text-text-tertiary hover:border-text-secondary hover:text-text-secondary">
-                      <Plus className="h-2.5 w-2.5" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent align="start" className="w-52 p-1.5">
-                    <div className="mb-1 flex items-center gap-1 rounded border border-border px-1.5 py-1">
-                      <Search className="h-3 w-3 text-text-tertiary" />
-                      <input
-                        value={relationSearch}
-                        onChange={(e) => setRelationSearch(e.target.value)}
-                        placeholder="Search steps or tracks..."
-                        className="flex-1 bg-transparent text-[11px] outline-none"
-                      />
-                    </div>
-                    <div className="max-h-[240px] overflow-y-auto">
-                      {tracks.map((t) => {
-                        const q = relationSearch.toLowerCase();
-                        const trackMatch = q && t.name.toLowerCase().includes(q);
-                        const trackSteps = (stepsByTrackForPicker.get(t.id) ?? []).filter(
-                          (s) => !q || trackMatch || s.title.toLowerCase().includes(q),
-                        );
-                        if (trackSteps.length === 0) return null;
-                        return (
-                          <div key={t.id} className="mb-1">
-                            <div className="flex items-center gap-1 px-1 py-0.5 text-[9px] font-semibold text-text-tertiary">
-                              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: t.color }} />
-                              {t.name}
-                            </div>
-                            {trackSteps.map((s) => (
-                              <button
-                                key={s.id}
-                                onClick={() => handleSetReplaces(s.id)}
-                                className="flex w-full items-center rounded px-2 py-1 text-[11px] text-text-secondary hover:bg-black/[0.03]"
-                              >
-                                {s.title}
-                              </button>
-                            ))}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <StepPickerPopover
+                  open={relationPopoverOpen === "replaces"}
+                  onOpenChange={(open) => { setRelationPopoverOpen(open ? "replaces" : null); setRelationSearch(""); }}
+                  search={relationSearch}
+                  onSearchChange={setRelationSearch}
+                  tracks={tracks}
+                  stepsByTrack={stepsByTrackForPicker}
+                  onSelect={handleSetReplaces}
+                />
               )}
             </div>
 
@@ -672,21 +595,18 @@ export function StepEditorPanel() {
                 {replacedBySteps.map((rs) => {
                   const t = tracks.find((tr) => tr.id === rs.track_id);
                   return (
-                    <span key={rs.id} className="inline-flex items-center rounded-full bg-accent/10 text-[10px] font-medium text-accent">
-                      <button onClick={() => setActiveStep(rs.id)} className="inline-flex items-center gap-0.5 pl-2 py-0.5 hover:underline">
-                        {t && <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: t.color }} />}
-                        {rs.title}
-                      </button>
-                      <button
-                        onClick={async () => {
-                          await api.updateStep({ id: rs.id, replaces_step_id: null });
-                          if (activeProjectId) loadSteps(activeProjectId);
-                        }}
-                        className="pl-0.5 pr-1.5 py-0.5 hover:text-accent-hover"
-                      >
-                        <X className="h-2.5 w-2.5" />
-                      </button>
-                    </span>
+                    <RemovableRelationChip
+                      key={rs.id}
+                      title={rs.title}
+                      trackColor={t?.color}
+                      toneClass="bg-accent/10 text-accent"
+                      hoverClass="hover:text-accent-hover"
+                      onNavigate={() => setActiveStep(rs.id)}
+                      onRemove={async () => {
+                        await api.updateStep({ id: rs.id, replaces_step_id: null });
+                        if (activeProjectId) loadSteps(activeProjectId);
+                      }}
+                    />
                   );
                 })}
               </div>
