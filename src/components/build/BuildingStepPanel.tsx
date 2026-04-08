@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, Camera, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { open } from "@tauri-apps/plugin-dialog";
 import { toast } from "sonner";
 import { useAppStore } from "@/store";
@@ -29,6 +28,7 @@ import { StartTimerButton } from "./panel/TimerSection";
 import { QuantityCounter } from "./panel/QuantityCounter";
 import { SubStepsList } from "./panel/SubStepsList";
 import { RelationGroup } from "./panel/RelationGroup";
+import { DragDropPhotoZone } from "./panel/DragDropPhotoZone";
 
 export function BuildingStepPanel() {
   const steps = useAppStore((s) => s.steps);
@@ -89,35 +89,8 @@ export function BuildingStepPanel() {
   const goPrev = () => { if (canGoPrev) setActiveStep(flatSteps[currentIndex - 1].id); };
   const goNext = () => { if (canGoNext) setActiveStep(flatSteps[currentIndex + 1].id); };
 
-  // Drag-drop for progress photos
-  const [dragOver, setDragOver] = useState(false);
   const [uncompleteOpen, setUncompleteOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (!step) return;
-    const unlisten = getCurrentWebview().onDragDropEvent((event) => {
-      if (event.payload.type === "enter" || event.payload.type === "over") {
-        setDragOver(true);
-      } else if (event.payload.type === "drop") {
-        setDragOver(false);
-        const paths = event.payload.paths;
-        const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "webp"];
-        const imagePath = paths.find((p) => {
-          const ext = p.split(".").pop()?.toLowerCase() ?? "";
-          return IMAGE_EXTENSIONS.includes(ext);
-        });
-        if (imagePath) {
-          api.addProgressPhoto(step.id, imagePath)
-            .then(() => toast.success("Progress photo saved"))
-            .catch((e) => toast.error(`Failed to save photo: ${e}`));
-        }
-      } else if (event.payload.type === "leave") {
-        setDragOver(false);
-      }
-    });
-    return () => { unlisten.then((fn) => fn()); };
-  }, [step?.id]);
 
   // Reset lightbox when step changes
   useEffect(() => {
@@ -158,21 +131,6 @@ export function BuildingStepPanel() {
       setUncompleteOpen(true);
     } else {
       requestStepCompletion(step.id);
-    }
-  };
-
-  const handleAddProgressPhoto = async () => {
-    const path = await open({
-      multiple: false,
-      filters: [IMAGE_FILE_FILTER],
-    });
-    if (path) {
-      try {
-        await api.addProgressPhoto(step.id, path);
-        toast.success("Progress photo saved");
-      } catch (e) {
-        toast.error(`Failed to save photo: ${e}`);
-      }
     }
   };
 
@@ -277,17 +235,7 @@ export function BuildingStepPanel() {
             <StartTimerButton step={step} />
 
             {/* Progress photo drop zone */}
-            <button
-              onClick={handleAddProgressPhoto}
-              className={`flex w-full items-center justify-center gap-2 rounded-md border border-dashed px-3 py-2.5 text-[11px] transition-colors ${
-                dragOver
-                  ? "border-accent bg-accent/5 text-accent"
-                  : "border-border text-text-tertiary hover:border-accent hover:text-accent"
-              }`}
-            >
-              <Camera className="h-3.5 w-3.5" />
-              {dragOver ? "Drop image here" : "Click or drag a progress photo"}
-            </button>
+            <DragDropPhotoZone stepId={step.id} />
           </div>
 
           {/* Section 2: Quantity Tracker */}
