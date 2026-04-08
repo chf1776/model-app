@@ -6,7 +6,7 @@ import * as api from "@/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Step, StepSpruePart } from "@/shared/types";
 import { StepCompletionMarker } from "./StepCompletionMarker";
-import { StartTimerButton } from "./BuildingStepPanel";
+import { StartTimerButton } from "./panel/TimerSection";
 import { SectionLabel, Divider } from "./panel/primitives";
 import { parseStepRelations } from "./tree-utils";
 import { isPartFullyTicked, formatPartProgress, comparePartNumbers } from "@/shared/utils";
