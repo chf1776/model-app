@@ -735,12 +735,8 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   addStepSpruePartStore: (part) => {
     set((s) => {
       const ctx = s.stepContexts[part.step_id];
-      return {
-        stepContexts: ctx ? {
-          ...s.stepContexts,
-          [part.step_id]: { ...ctx, sprue_parts: [...ctx.sprue_parts, part] },
-        } : s.stepContexts,
-      };
+      if (!ctx) return {};
+      return { stepContexts: { ...s.stepContexts, [part.step_id]: { ...ctx, sprue_parts: [...ctx.sprue_parts, part] } } };
     });
     // Refresh project-level cache
     const projectId = get().activeProjectId;
@@ -750,12 +746,8 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   removeStepSpruePartStore: (stepId, id) => {
     set((s) => {
       const ctx = s.stepContexts[stepId];
-      return {
-        stepContexts: ctx ? {
-          ...s.stepContexts,
-          [stepId]: { ...ctx, sprue_parts: ctx.sprue_parts.filter((p) => p.id !== id) },
-        } : s.stepContexts,
-      };
+      if (!ctx) return {};
+      return { stepContexts: { ...s.stepContexts, [stepId]: { ...ctx, sprue_parts: ctx.sprue_parts.filter((p) => p.id !== id) } } };
     });
     const projectId = get().activeProjectId;
     if (projectId) get().loadProjectSprueParts(projectId);
@@ -771,26 +763,19 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       p.id === partId ? { ...p, ticked_count: prev } : p;
     set((s) => {
       const c = s.stepContexts[stepId];
-      return {
-        stepContexts: c ? {
-          ...s.stepContexts,
-          [stepId]: { ...c, sprue_parts: c.sprue_parts.map(mapPart) },
-        } : s.stepContexts,
-      };
+      if (!c) return {};
+      return { stepContexts: { ...s.stepContexts, [stepId]: { ...c, sprue_parts: c.sprue_parts.map(mapPart) } } };
     });
     api.setSpruePartTicked(partId, tickedCount).then(() => {
       // Refresh project-level cache after successful persist
       const projectId = get().activeProjectId;
       if (projectId) get().loadProjectSprueParts(projectId);
-    }).catch(() => {
+    }).catch((e) => {
+      toast.error(`Failed to update part: ${e}`);
       set((s) => {
         const c = s.stepContexts[stepId];
-        return {
-          stepContexts: c ? {
-            ...s.stepContexts,
-            [stepId]: { ...c, sprue_parts: c.sprue_parts.map(rollbackPart) },
-          } : s.stepContexts,
-        };
+        if (!c) return {};
+        return { stepContexts: { ...s.stepContexts, [stepId]: { ...c, sprue_parts: c.sprue_parts.map(rollbackPart) } } };
       });
     });
   },
@@ -1434,13 +1419,11 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       await api.redetectStepSprues(stepId);
       set((s) => {
         const ctx = s.stepContexts[stepId];
-        const stepParts = ctx?.sprue_parts ?? [];
         return {
-          stepContexts: ctx ? {
-            ...s.stepContexts,
-            [stepId]: { ...ctx, sprue_parts: stepParts.filter((p) => !p.ai_detected) },
-          } : s.stepContexts,
           steps: s.steps.map((st) => st.id === stepId ? { ...st, sprues_detected: false } : st),
+          ...(ctx ? {
+            stepContexts: { ...s.stepContexts, [stepId]: { ...ctx, sprue_parts: ctx.sprue_parts.filter((p) => !p.ai_detected) } },
+          } : {}),
         };
       });
       const projectId = get().activeProjectId;
