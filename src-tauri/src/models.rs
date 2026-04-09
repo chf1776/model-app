@@ -693,3 +693,14 @@ pub struct BackupDiff {
     pub accessories: u64,
     pub photos: u64,
 }
+
+// ── Step Context (bundled per-step data) ────────────────────────────────
+#[derive(Debug, Clone, Serialize)]
+pub struct StepContext {
+    pub tags: Vec<Tag>,
+    pub relations: Vec<StepRelation>,
+    pub paint_refs: Vec<String>,
+    pub sprue_parts: Vec<StepSpruePart>,
+    pub reference_images: Vec<ReferenceImage>,
+    pub annotations: Option<StepAnnotations>,
+}

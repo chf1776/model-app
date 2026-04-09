@@ -16,6 +16,7 @@ pub mod reference_images;
 pub mod scalemates;
 pub mod settings;
 pub mod sprue_refs;
+pub mod step_context;
 pub mod step_paint_refs;
 pub mod step_relations;
 pub mod step_sprue_parts;
