@@ -146,6 +146,7 @@ pub fn run() {
             commands::drying_timers::delete_drying_timer,
             commands::annotations::get_annotations,
             commands::annotations::save_annotations,
+            commands::step_context::get_step_context,
             commands::step_paint_refs::list_step_paint_refs,
             commands::step_paint_refs::set_step_paint_refs,
             commands::step_paint_refs::list_project_step_paint_refs,
