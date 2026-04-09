@@ -5,12 +5,12 @@ import { parseStepRelations } from "./tree-utils";
 export function RelationPill() {
   const activeStepId = useAppStore((s) => s.activeStepId);
   const steps = useAppStore((s) => s.steps);
-  const stepRelations = useAppStore((s) => s.stepRelations);
+  const stepContexts = useAppStore((s) => s.stepContexts);
   const setActiveStep = useAppStore((s) => s.setActiveStep);
 
   const [visible, setVisible] = useState(false);
 
-  const relations = activeStepId ? stepRelations[activeStepId] ?? [] : [];
+  const relations = activeStepId ? stepContexts[activeStepId]?.relations ?? [] : [];
   const blockedByIds = useMemo(
     () => activeStepId ? parseStepRelations(relations, activeStepId).blockedByIds : [],
     [relations, activeStepId],

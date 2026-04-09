@@ -55,7 +55,7 @@ function parsePartInput(
 
 export function PartChipEditor({ stepId, readOnly = false, buildMode = false }: PartChipEditorProps) {
   const sprueRefs = useAppStore((s) => s.sprueRefs);
-  const stepSprueParts = useAppStore((s) => s.stepSprueParts);
+  const stepContexts = useAppStore((s) => s.stepContexts);
   const addStepSpruePartStore = useAppStore((s) => s.addStepSpruePartStore);
   const removeStepSpruePartStore = useAppStore((s) => s.removeStepSpruePartStore);
   const setSpruePartTicked = useAppStore((s) => s.setSpruePartTicked);
@@ -68,7 +68,7 @@ export function PartChipEditor({ stepId, readOnly = false, buildMode = false }: 
   const inputRef = useRef<HTMLInputElement>(null);
   const [lightboxLabel, setLightboxLabel] = useState<string | null>(null);
 
-  const currentParts = stepSprueParts[stepId] ?? [];
+  const currentParts = stepContexts[stepId]?.sprue_parts ?? [];
 
   const grouped = useMemo(() => groupPartsBySprue(currentParts), [currentParts]);
 

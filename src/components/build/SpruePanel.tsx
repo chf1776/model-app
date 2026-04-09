@@ -15,7 +15,7 @@ export function SpruePanel() {
   const spruePanelOpen = useAppStore((s) => s.spruePanelOpen);
   const toggleSpruePanel = useAppStore((s) => s.toggleSpruePanel);
   const activeStepId = useAppStore((s) => s.activeStepId);
-  const activeStepParts = useAppStore((s) => s.activeStepId ? s.stepSprueParts[s.activeStepId] ?? EMPTY_PARTS : EMPTY_PARTS);
+  const activeStepParts = useAppStore((s) => s.activeStepId ? s.stepContexts[s.activeStepId]?.sprue_parts ?? EMPTY_PARTS : EMPTY_PARTS);
 
   const [lightboxLabel, setLightboxLabel] = useState<string | null>(null);
 

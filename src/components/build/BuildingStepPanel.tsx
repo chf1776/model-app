@@ -41,34 +41,21 @@ export function BuildingStepPanel() {
   const requestStepCompletion = useAppStore((s) => s.requestStepCompletion);
   const loadTracks = useAppStore((s) => s.loadTracks);
   const activeProjectId = useAppStore((s) => s.activeProjectId);
-  const stepTags = useAppStore((s) => s.stepTags);
-  const loadStepTags = useAppStore((s) => s.loadStepTags);
-  const stepRelations = useAppStore((s) => s.stepRelations);
-  const loadStepRelations = useAppStore((s) => s.loadStepRelations);
+  const stepContexts = useAppStore((s) => s.stepContexts);
+  const loadStepContext = useAppStore((s) => s.loadStepContext);
   const projectPaletteEntries = useAppStore((s) => s.projectPaletteEntries);
-  const stepPaintRefs = useAppStore((s) => s.stepPaintRefs);
-  const loadStepPaintRefs = useAppStore((s) => s.loadStepPaintRefs);
-  const stepReferenceImages = useAppStore((s) => s.stepReferenceImages);
-  const loadStepReferenceImages = useAppStore((s) => s.loadStepReferenceImages);
   const addReferenceImageStore = useAppStore((s) => s.addReferenceImageStore);
   const sprueRefs = useAppStore((s) => s.sprueRefs);
-  const stepSprueParts = useAppStore((s) => s.stepSprueParts);
-  const loadStepSprueParts = useAppStore((s) => s.loadStepSprueParts);
 
   const step = activeStepId ? steps.find((s) => s.id === activeStepId) ?? null : null;
   const track = step ? tracks.find((t) => t.id === step.track_id) : null;
+  const ctx = step ? stepContexts[step.id] : undefined;
 
-  // Load tags, relations, reference images when step changes
+  // Load step context when step changes
   useEffect(() => {
     if (!step) return;
-    const loads: Promise<void>[] = [];
-    if (!stepTags[step.id]) loads.push(loadStepTags(step.id));
-    if (!stepPaintRefs[step.id]) loads.push(loadStepPaintRefs(step.id));
-    if (!stepRelations[step.id]) loads.push(loadStepRelations(step.id));
-    if (!stepReferenceImages[step.id]) loads.push(loadStepReferenceImages(step.id));
-    if (!stepSprueParts[step.id]) loads.push(loadStepSprueParts(step.id));
-    if (loads.length > 0) {
-      Promise.all(loads).catch((e) => toast.error(`Failed to load step data: ${e}`));
+    if (!stepContexts[step.id]) {
+      loadStepContext(step.id).catch((e) => toast.error(`Failed to load step data: ${e}`));
     }
   }, [step?.id]);
 
@@ -99,9 +86,9 @@ export function BuildingStepPanel() {
 
   if (!step) return null;
 
-  const currentTags = stepTags[step.id] ?? [];
-  const currentRelations = stepRelations[step.id] ?? [];
-  const referenceImages = stepReferenceImages[step.id] ?? [];
+  const currentTags = ctx?.tags ?? [];
+  const currentRelations = ctx?.relations ?? [];
+  const referenceImages = ctx?.reference_images ?? [];
 
   const { blockedByIds, blocksAccessIds, incomingBlockedBy, incomingBlocksAccess } =
     parseStepRelations(currentRelations, step.id);

@@ -15,12 +15,12 @@ interface PaintRefChipsProps {
 }
 
 export function PaintRefChips({ stepId, showLabel = false }: PaintRefChipsProps) {
-  const stepPaintRefs = useAppStore((s) => s.stepPaintRefs);
+  const stepContexts = useAppStore((s) => s.stepContexts);
   const setStepPaintRefsAction = useAppStore((s) => s.setStepPaintRefs);
   const projectPaletteEntries = useAppStore((s) => s.projectPaletteEntries);
   const [open, setOpen] = useState(false);
 
-  const currentIds = stepPaintRefs[stepId] ?? [];
+  const currentIds = stepContexts[stepId]?.paint_refs ?? [];
   const currentIdSet = useMemo(() => new Set(currentIds), [currentIds]);
 
   const currentEntries = useMemo(

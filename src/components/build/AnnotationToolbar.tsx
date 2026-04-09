@@ -43,7 +43,7 @@ export function AnnotationToolbar() {
   const annotationStrokeWidth = useAppStore((s) => s.annotationStrokeWidth);
   const setAnnotationStrokeWidth = useAppStore((s) => s.setAnnotationStrokeWidth);
   const activeStepId = useAppStore((s) => s.activeStepId);
-  const annotations = useAppStore((s) => s.activeStepId ? (s.stepAnnotations[s.activeStepId] ?? EMPTY_ANNOTATIONS) : EMPTY_ANNOTATIONS);
+  const annotations = useAppStore((s) => s.activeStepId ? (s.stepContexts[s.activeStepId]?.annotations ?? EMPTY_ANNOTATIONS) : EMPTY_ANNOTATIONS);
   const clearAnnotations = useAppStore((s) => s.clearAnnotations);
   const undoAnnotation = useAppStore((s) => s.undoAnnotation);
   const redoAnnotation = useAppStore((s) => s.redoAnnotation);

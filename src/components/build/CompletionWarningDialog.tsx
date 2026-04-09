@@ -11,14 +11,14 @@ export function CompletionWarningDialog() {
   const requestStepCompletion = useAppStore((s) => s.requestStepCompletion);
   const steps = useAppStore((s) => s.steps);
   const tracks = useAppStore((s) => s.tracks);
-  const stepRelations = useAppStore((s) => s.stepRelations);
+  const stepContexts = useAppStore((s) => s.stepContexts);
 
   // Re-derive warnings from current steps state so inline completions update the dialog
   const liveWarnings = useMemo(() => {
     if (!pendingCompletion) return null;
-    const relations = stepRelations[pendingCompletion.stepId] ?? [];
+    const relations = stepContexts[pendingCompletion.stepId]?.relations ?? [];
     return getCompletionWarnings(pendingCompletion.stepId, steps, relations);
-  }, [pendingCompletion, steps, stepRelations]);
+  }, [pendingCompletion, steps, stepContexts]);
 
   if (!pendingCompletion || !liveWarnings) return null;
 
