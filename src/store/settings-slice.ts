@@ -2,6 +2,7 @@ import type { StateCreator } from "zustand";
 import type { AppStore } from "./index";
 import { SETTINGS_DEFAULTS } from "@/shared/types";
 import * as api from "@/api";
+import { toast } from "sonner";
 
 export interface SettingsSlice {
   settings: Record<string, string>;
@@ -34,6 +35,6 @@ export const createSettingsSlice: StateCreator<AppStore, [], [], SettingsSlice> 
     set((s) => ({
       settings: { ...s.settings, [key]: value },
     }));
-    api.setSetting(key, value).catch(() => {});
+    api.setSetting(key, value).catch((e) => toast.error(`Failed to save setting: ${e}`));
   },
 });
