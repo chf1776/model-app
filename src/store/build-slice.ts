@@ -1,5 +1,5 @@
 import type { StateCreator } from "zustand";
-import type { Project, UpdateProjectInput, UpdateStepInput, InstructionSource, InstructionPage, Track, Step, Tag, StepRelation, ReferenceImage, Annotation, AnnotationTool, PaletteEntry, SprueRef, StepSpruePart } from "@/shared/types";
+import type { Project, UpdateProjectInput, UpdateStepInput, InstructionSource, InstructionPage, Track, Step, ReferenceImage, Annotation, AnnotationTool, PaletteEntry, SprueRef, StepSpruePart, StepContext } from "@/shared/types";
 import { getEffectiveDryingMinutes, ANNOTATION_TOOL_LABELS, getSettingBool } from "@/shared/types";
 import type { AppStore } from "./index";
 import * as api from "@/api";
@@ -27,16 +27,19 @@ function runDetection(
   stepId: string,
 ) {
   api.detectStepSprues(stepId).then((result) => {
-    set((s) => ({
-      steps: s.steps.map((st) => st.id === stepId ? { ...st, sprues_detected: true } : st),
-      ...(result.parts.length > 0 ? {
-        stepSprueParts: {
-          ...s.stepSprueParts,
-          [stepId]: [...(s.stepSprueParts[stepId] ?? []), ...result.parts],
-        },
-        projectSprueParts: [...s.projectSprueParts, ...result.parts],
-      } : {}),
-    }));
+    set((s) => {
+      const ctx = s.stepContexts[stepId];
+      return {
+        steps: s.steps.map((st) => st.id === stepId ? { ...st, sprues_detected: true } : st),
+        ...(result.parts.length > 0 ? {
+          stepContexts: ctx ? {
+            ...s.stepContexts,
+            [stepId]: { ...ctx, sprue_parts: [...ctx.sprue_parts, ...result.parts] },
+          } : s.stepContexts,
+          projectSprueParts: [...s.projectSprueParts, ...result.parts],
+        } : {}),
+      };
+    });
     if (result.parts.length > 0) {
       toast.success(`Detected ${result.parts.length} part${result.parts.length === 1 ? "" : "s"}`, { toasterId: "canvas" });
     }
@@ -111,21 +114,14 @@ export interface BuildSlice {
   shiftSelectSteps: (id: string) => void;
   clearSelectedSteps: () => void;
 
-  // Tags
-  stepTags: Record<string, Tag[]>;
-  loadStepTags: (stepId: string) => Promise<void>;
+  // Unified step context cache
+  stepContexts: Record<string, StepContext>;
+  loadStepContext: (stepId: string) => Promise<void>;
+  invalidateStepContext: (stepId: string) => void;
   setStepTags: (stepId: string, tagNames: string[]) => Promise<void>;
-
-  // Step relations
-  stepRelations: Record<string, StepRelation[]>;
-  loadStepRelations: (stepId: string) => Promise<void>;
   setStepRelations: (stepId: string, relations: { target_step_id: string; relation_type: string }[]) => Promise<void>;
-
-  // Step paint refs
-  stepPaintRefs: Record<string, string[]>;
-  projectPaletteEntries: PaletteEntry[];
-  loadStepPaintRefs: (stepId: string) => Promise<void>;
   setStepPaintRefs: (stepId: string, entryIds: string[]) => Promise<void>;
+  projectPaletteEntries: PaletteEntry[];
   refreshProjectPaletteEntries: () => Promise<void>;
 
   // Sprue refs (project-level)
@@ -137,18 +133,14 @@ export interface BuildSlice {
   updateSprueRefStore: (ref: SprueRef) => void;
   removeSprueRefStore: (id: string) => void;
 
-  // Step sprue parts (per-step + project-wide for badges)
-  stepSprueParts: Record<string, StepSpruePart[]>;
+  // Step sprue parts (project-wide for badges)
   projectSprueParts: StepSpruePart[];
-  loadStepSprueParts: (stepId: string) => Promise<void>;
   loadProjectSprueParts: (projectId: string) => Promise<void>;
   addStepSpruePartStore: (part: StepSpruePart) => void;
   removeStepSpruePartStore: (stepId: string, id: string) => void;
   setSpruePartTicked: (stepId: string, partId: string, tickedCount: number) => void;
 
   // Reference images
-  stepReferenceImages: Record<string, ReferenceImage[]>;
-  loadStepReferenceImages: (stepId: string) => Promise<void>;
   addReferenceImageStore: (img: ReferenceImage) => void;
   updateReferenceImageStore: (img: ReferenceImage) => void;
   removeReferenceImageStore: (stepId: string, id: string) => void;
@@ -157,8 +149,6 @@ export interface BuildSlice {
   annotationMode: AnnotationTool;
   annotationColor: string;
   annotationStrokeWidth: number;
-  stepAnnotations: Record<string, Annotation[]>;
-  loadAnnotations: (stepId: string) => Promise<void>;
   saveAnnotationsDebounced: (stepId: string) => void;
   addAnnotation: (stepId: string, annotation: Annotation) => void;
   removeAnnotation: (stepId: string, annotationId: string) => void;
@@ -274,16 +264,11 @@ const DEFAULT_BUILD_STATE = {
   selectedStepIds: [] as string[],
   selectionAnchorId: null as string | null,
   undoStack: [] as string[],
-  stepTags: {} as Record<string, Tag[]>,
-  stepPaintRefs: {} as Record<string, string[]>,
+  stepContexts: {} as Record<string, StepContext>,
   projectPaletteEntries: [] as PaletteEntry[],
   sprueRefs: [] as SprueRef[],
   activeSprueRefId: null as string | null,
-  stepSprueParts: {} as Record<string, StepSpruePart[]>,
   projectSprueParts: [] as StepSpruePart[],
-  stepRelations: {} as Record<string, StepRelation[]>,
-  stepReferenceImages: {} as Record<string, ReferenceImage[]>,
-  stepAnnotations: {} as Record<string, Annotation[]>,
   annotationMode: null as AnnotationTool,
   annotationColor: "#ef4444",
   annotationStrokeWidth: 0.003,
@@ -531,16 +516,9 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
 
   removeStep: (id) => {
     set((s) => {
-      // Clean up per-step cached data to prevent memory leaks
-      const { [id]: _tags, ...restTags } = s.stepTags;
-      const { [id]: _paintRefs, ...restPaintRefs } = s.stepPaintRefs;
-      const { [id]: _rels, ...restRelations } = s.stepRelations;
-      const { [id]: _refs, ...restReferenceImages } = s.stepReferenceImages;
-      const { [id]: _anns, ...restAnnotations } = s.stepAnnotations;
+      const { [id]: _ctx, ...restContexts } = s.stepContexts;
       const { [id]: _undo, ...restUndoStacks } = s.annotationUndoStacks;
       const { [id]: _redo, ...restRedoStacks } = s.annotationRedoStacks;
-      const { [id]: _sprueParts, ...restSprueParts } = s.stepSprueParts;
-      // Clear polygon draft and exit polygon mode if it references the deleted step
       const polygonCleanup = s.polygonDraftStepId === id
         ? { polygonDraftStepId: null, polygonDraftPoints: [] as { x: number; y: number }[], canvasMode: "view" as const }
         : {};
@@ -549,14 +527,9 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         activeStepId: s.activeStepId === id ? null : s.activeStepId,
         selectedStepIds: s.selectedStepIds.filter((sid) => sid !== id),
         selectionAnchorId: s.selectionAnchorId === id ? null : s.selectionAnchorId,
-        stepTags: restTags,
-        stepPaintRefs: restPaintRefs,
-        stepRelations: restRelations,
-        stepReferenceImages: restReferenceImages,
-        stepAnnotations: restAnnotations,
+        stepContexts: restContexts,
         annotationUndoStacks: restUndoStacks,
         annotationRedoStacks: restRedoStacks,
-        stepSprueParts: restSprueParts,
         ...polygonCleanup,
       };
     });
@@ -592,9 +565,9 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         // Reset viewer so CropCanvas re-centers on the new step
         if (state.buildMode === "building") {
           Object.assign(update, DEFAULT_VIEWER_STATE);
-          // Load annotations for building mode
-          if (step.crop_x != null && !state.stepAnnotations[step.id]) {
-            get().loadAnnotations(step.id);
+          // Load step context for building mode (includes annotations)
+          if (!state.stepContexts[step.id]) {
+            get().loadStepContext(step.id);
           }
           // Toast reminder when annotation tool persists across step change
           if (state.annotationMode && state.activeStepId && state.activeStepId !== id) {
@@ -690,14 +663,34 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     }
   },
 
-  loadStepTags: async (stepId) => {
-    const tags = await api.listStepTags(stepId);
-    set((s) => ({ stepTags: { ...s.stepTags, [stepId]: tags } }));
+  loadStepContext: async (stepId) => {
+    const ctx = await api.getStepContext(stepId);
+    set((s) => ({ stepContexts: { ...s.stepContexts, [stepId]: ctx } }));
+  },
+
+  invalidateStepContext: (stepId) => {
+    set((s) => {
+      const { [stepId]: _, ...rest } = s.stepContexts;
+      return { stepContexts: rest };
+    });
   },
 
   setStepTags: async (stepId, tagNames) => {
     const tags = await api.setStepTags(stepId, tagNames);
-    set((s) => ({ stepTags: { ...s.stepTags, [stepId]: tags } }));
+    set((s) => {
+      const ctx = s.stepContexts[stepId];
+      if (!ctx) return {};
+      return { stepContexts: { ...s.stepContexts, [stepId]: { ...ctx, tags } } };
+    });
+  },
+
+  setStepPaintRefs: async (stepId, entryIds) => {
+    const refs = await api.setStepPaintRefs(stepId, entryIds);
+    set((s) => {
+      const ctx = s.stepContexts[stepId];
+      if (!ctx) return {};
+      return { stepContexts: { ...s.stepContexts, [stepId]: { ...ctx, paint_refs: refs } } };
+    });
   },
 
   refreshProjectPaletteEntries: async () => {
@@ -705,16 +698,6 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     if (!projectId) return;
     const entries = await api.listPaletteEntries(projectId);
     set({ projectPaletteEntries: entries });
-  },
-
-  loadStepPaintRefs: async (stepId) => {
-    const refs = await api.listStepPaintRefs(stepId);
-    set((s) => ({ stepPaintRefs: { ...s.stepPaintRefs, [stepId]: refs } }));
-  },
-
-  setStepPaintRefs: async (stepId, entryIds) => {
-    const refs = await api.setStepPaintRefs(stepId, entryIds);
-    set((s) => ({ stepPaintRefs: { ...s.stepPaintRefs, [stepId]: refs } }));
   },
 
   // ── Sprue Refs ──────────────────────────────────────────────────────────
@@ -744,119 +727,103 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
 
   // ── Step Sprue Parts ──────────────────────────────────────────────────
 
-  loadStepSprueParts: async (stepId) => {
-    const parts = await api.listStepSprueParts(stepId);
-    set((s) => ({ stepSprueParts: { ...s.stepSprueParts, [stepId]: parts } }));
-  },
-
   loadProjectSprueParts: async (projectId) => {
     const parts = await api.listProjectSprueParts(projectId);
     set({ projectSprueParts: parts });
   },
 
   addStepSpruePartStore: (part) => {
-    set((s) => ({
-      stepSprueParts: {
-        ...s.stepSprueParts,
-        [part.step_id]: [...(s.stepSprueParts[part.step_id] ?? []), part],
-      },
-      projectSprueParts: [...s.projectSprueParts, part],
-    }));
-  },
-
-  removeStepSpruePartStore: (stepId, id) => {
-    set((s) => ({
-      stepSprueParts: {
-        ...s.stepSprueParts,
-        [stepId]: (s.stepSprueParts[stepId] ?? []).filter((p) => p.id !== id),
-      },
-      projectSprueParts: s.projectSprueParts.filter((p) => p.id !== id),
-    }));
-  },
-
-  setSpruePartTicked: (stepId, partId, tickedCount) => {
-    const prev = get().stepSprueParts[stepId]?.find((p) => p.id === partId)?.ticked_count ?? 0;
-    if (tickedCount === prev) return;
-    set((s) => ({
-      stepSprueParts: {
-        ...s.stepSprueParts,
-        [stepId]: (s.stepSprueParts[stepId] ?? []).map((p) =>
-          p.id === partId ? { ...p, ticked_count: tickedCount } : p,
-        ),
-      },
-      projectSprueParts: s.projectSprueParts.map((p) =>
-        p.id === partId ? { ...p, ticked_count: tickedCount } : p,
-      ),
-    }));
-    api.setSpruePartTicked(partId, tickedCount).catch(() => {
-      set((s) => ({
-        stepSprueParts: {
-          ...s.stepSprueParts,
-          [stepId]: (s.stepSprueParts[stepId] ?? []).map((p) =>
-            p.id === partId ? { ...p, ticked_count: prev } : p,
-          ),
-        },
-        projectSprueParts: s.projectSprueParts.map((p) =>
-          p.id === partId ? { ...p, ticked_count: prev } : p,
-        ),
-      }));
+    set((s) => {
+      const ctx = s.stepContexts[part.step_id];
+      return {
+        stepContexts: ctx ? {
+          ...s.stepContexts,
+          [part.step_id]: { ...ctx, sprue_parts: [...ctx.sprue_parts, part] },
+        } : s.stepContexts,
+        projectSprueParts: [...s.projectSprueParts, part],
+      };
     });
   },
 
-  loadStepRelations: async (stepId) => {
-    const relations = await api.listStepRelations(stepId);
-    set((s) => ({ stepRelations: { ...s.stepRelations, [stepId]: relations } }));
+  removeStepSpruePartStore: (stepId, id) => {
+    set((s) => {
+      const ctx = s.stepContexts[stepId];
+      return {
+        stepContexts: ctx ? {
+          ...s.stepContexts,
+          [stepId]: { ...ctx, sprue_parts: ctx.sprue_parts.filter((p) => p.id !== id) },
+        } : s.stepContexts,
+        projectSprueParts: s.projectSprueParts.filter((p) => p.id !== id),
+      };
+    });
+  },
+
+  setSpruePartTicked: (stepId, partId, tickedCount) => {
+    const ctx = get().stepContexts[stepId];
+    const prev = ctx?.sprue_parts.find((p) => p.id === partId)?.ticked_count ?? 0;
+    if (tickedCount === prev) return;
+    const mapPart = (p: StepSpruePart) =>
+      p.id === partId ? { ...p, ticked_count: tickedCount } : p;
+    const rollbackPart = (p: StepSpruePart) =>
+      p.id === partId ? { ...p, ticked_count: prev } : p;
+    set((s) => {
+      const c = s.stepContexts[stepId];
+      return {
+        stepContexts: c ? {
+          ...s.stepContexts,
+          [stepId]: { ...c, sprue_parts: c.sprue_parts.map(mapPart) },
+        } : s.stepContexts,
+        projectSprueParts: s.projectSprueParts.map(mapPart),
+      };
+    });
+    api.setSpruePartTicked(partId, tickedCount).catch(() => {
+      set((s) => {
+        const c = s.stepContexts[stepId];
+        return {
+          stepContexts: c ? {
+            ...s.stepContexts,
+            [stepId]: { ...c, sprue_parts: c.sprue_parts.map(rollbackPart) },
+          } : s.stepContexts,
+          projectSprueParts: s.projectSprueParts.map(rollbackPart),
+        };
+      });
+    });
   },
 
   setStepRelations: async (stepId, relations) => {
     const result = await api.setStepRelations(stepId, relations);
-    set((s) => ({ stepRelations: { ...s.stepRelations, [stepId]: result } }));
-  },
-
-  loadStepReferenceImages: async (stepId) => {
-    const images = await api.listReferenceImages(stepId);
-    set((s) => ({ stepReferenceImages: { ...s.stepReferenceImages, [stepId]: images } }));
+    set((s) => {
+      const ctx = s.stepContexts[stepId];
+      if (!ctx) return {};
+      return { stepContexts: { ...s.stepContexts, [stepId]: { ...ctx, relations: result } } };
+    });
   },
 
   addReferenceImageStore: (img) => {
-    set((s) => ({
-      stepReferenceImages: {
-        ...s.stepReferenceImages,
-        [img.step_id]: [...(s.stepReferenceImages[img.step_id] ?? []), img],
-      },
-    }));
+    set((s) => {
+      const ctx = s.stepContexts[img.step_id];
+      if (!ctx) return {};
+      return { stepContexts: { ...s.stepContexts, [img.step_id]: { ...ctx, reference_images: [...ctx.reference_images, img] } } };
+    });
   },
 
   updateReferenceImageStore: (img) => {
-    set((s) => ({
-      stepReferenceImages: {
-        ...s.stepReferenceImages,
-        [img.step_id]: (s.stepReferenceImages[img.step_id] ?? []).map((i) =>
-          i.id === img.id ? img : i,
-        ),
-      },
-    }));
+    set((s) => {
+      const ctx = s.stepContexts[img.step_id];
+      if (!ctx) return {};
+      return { stepContexts: { ...s.stepContexts, [img.step_id]: { ...ctx, reference_images: ctx.reference_images.map((i) => i.id === img.id ? img : i) } } };
+    });
   },
 
   removeReferenceImageStore: (stepId, id) => {
-    set((s) => ({
-      stepReferenceImages: {
-        ...s.stepReferenceImages,
-        [stepId]: (s.stepReferenceImages[stepId] ?? []).filter((i) => i.id !== id),
-      },
-    }));
+    set((s) => {
+      const ctx = s.stepContexts[stepId];
+      if (!ctx) return {};
+      return { stepContexts: { ...s.stepContexts, [stepId]: { ...ctx, reference_images: ctx.reference_images.filter((i) => i.id !== id) } } };
+    });
   },
 
   // ── Annotations ─────────────────────────────────────────────────────────
-
-  loadAnnotations: async (stepId) => {
-    try {
-      const annotations = await api.getAnnotations(stepId);
-      set((s) => ({ stepAnnotations: { ...s.stepAnnotations, [stepId]: annotations ?? [] } }));
-    } catch {
-      set((s) => ({ stepAnnotations: { ...s.stepAnnotations, [stepId]: [] } }));
-    }
-  },
 
   saveAnnotationsDebounced: (() => {
     const timers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -865,7 +832,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       if (existing) clearTimeout(existing);
       timers.set(stepId, setTimeout(() => {
         timers.delete(stepId);
-        const annotations = get().stepAnnotations[stepId];
+        const annotations = get().stepContexts[stepId]?.annotations;
         if (annotations) {
           api.saveAnnotations(stepId, annotations).catch(() => {});
         }
@@ -874,41 +841,51 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   })(),
 
   addAnnotation: (stepId, annotation) => {
-    const current = get().stepAnnotations[stepId] ?? [];
+    const ctx = get().stepContexts[stepId];
+    if (!ctx) return;
+    const current = ctx.annotations;
     set((s) => ({
-      stepAnnotations: { ...s.stepAnnotations, [stepId]: [...current, annotation] },
+      stepContexts: { ...s.stepContexts, [stepId]: { ...ctx, annotations: [...current, annotation] } },
       ...annotationUndoSnapshot(s, stepId, current),
     }));
     get().saveAnnotationsDebounced(stepId);
   },
 
   removeAnnotation: (stepId, annotationId) => {
-    const current = get().stepAnnotations[stepId] ?? [];
+    const ctx = get().stepContexts[stepId];
+    if (!ctx) return;
+    const current = ctx.annotations;
     set((s) => ({
-      stepAnnotations: { ...s.stepAnnotations, [stepId]: current.filter((a) => a.id !== annotationId) },
+      stepContexts: { ...s.stepContexts, [stepId]: { ...ctx, annotations: current.filter((a) => a.id !== annotationId) } },
       ...annotationUndoSnapshot(s, stepId, current),
     }));
     get().saveAnnotationsDebounced(stepId);
   },
 
   clearAnnotations: (stepId) => {
-    const current = get().stepAnnotations[stepId] ?? [];
-    if (current.length === 0) return;
+    const ctx = get().stepContexts[stepId];
+    if (!ctx || ctx.annotations.length === 0) return;
+    const current = ctx.annotations;
     set((s) => ({
-      stepAnnotations: { ...s.stepAnnotations, [stepId]: [] },
+      stepContexts: { ...s.stepContexts, [stepId]: { ...ctx, annotations: [] } },
       ...annotationUndoSnapshot(s, stepId, current),
     }));
     get().saveAnnotationsDebounced(stepId);
   },
 
   updateAnnotation: (stepId, annotationId, updates) => {
-    const current = get().stepAnnotations[stepId] ?? [];
+    const ctx = get().stepContexts[stepId];
+    if (!ctx) return;
+    const current = ctx.annotations;
     set((s) => ({
-      stepAnnotations: {
-        ...s.stepAnnotations,
-        [stepId]: current.map((a) =>
-          a.id === annotationId ? { ...a, ...updates } as Annotation : a,
-        ),
+      stepContexts: {
+        ...s.stepContexts,
+        [stepId]: {
+          ...ctx,
+          annotations: current.map((a) =>
+            a.id === annotationId ? { ...a, ...updates } as Annotation : a,
+          ),
+        },
       },
       ...annotationUndoSnapshot(s, stepId, current),
     }));
@@ -928,10 +905,12 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   undoAnnotation: (stepId) => {
     const undoStack = get().annotationUndoStacks[stepId] ?? [];
     if (undoStack.length === 0) return;
-    const current = get().stepAnnotations[stepId] ?? [];
+    const ctx = get().stepContexts[stepId];
+    if (!ctx) return;
+    const current = ctx.annotations;
     const previous = undoStack[undoStack.length - 1];
     set((s) => ({
-      stepAnnotations: { ...s.stepAnnotations, [stepId]: previous },
+      stepContexts: { ...s.stepContexts, [stepId]: { ...ctx, annotations: previous } },
       annotationUndoStacks: {
         ...s.annotationUndoStacks,
         [stepId]: undoStack.slice(0, -1),
@@ -947,10 +926,12 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   redoAnnotation: (stepId) => {
     const redoStack = get().annotationRedoStacks[stepId] ?? [];
     if (redoStack.length === 0) return;
-    const current = get().stepAnnotations[stepId] ?? [];
+    const ctx = get().stepContexts[stepId];
+    if (!ctx) return;
+    const current = ctx.annotations;
     const next = redoStack[redoStack.length - 1];
     set((s) => ({
-      stepAnnotations: { ...s.stepAnnotations, [stepId]: next },
+      stepContexts: { ...s.stepContexts, [stepId]: { ...ctx, annotations: next } },
       annotationRedoStacks: {
         ...s.annotationRedoStacks,
         [stepId]: redoStack.slice(0, -1),
@@ -1169,13 +1150,13 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     const step = state.steps.find((s) => s.id === stepId);
     if (!step || step.is_completed) return;
 
-    // Ensure relations are loaded
-    if (!state.stepRelations[stepId]) {
-      await get().loadStepRelations(stepId);
+    // Ensure context is loaded (includes relations)
+    if (!state.stepContexts[stepId]) {
+      await get().loadStepContext(stepId);
     }
 
     const freshState = get();
-    const relations = freshState.stepRelations[stepId] ?? [];
+    const relations = freshState.stepContexts[stepId]?.relations ?? [];
     const warnings = getCompletionWarnings(stepId, freshState.steps, relations);
 
     if (!hasCompletionWarnings(warnings)) {
@@ -1229,14 +1210,11 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
 
     set(updates);
 
-    // Load annotations for active step when entering building mode
+    // Load step context for active step when entering building mode
     if (mode === "building") {
       const activeId = (updates as Record<string, unknown>).activeStepId as string ?? state.activeStepId;
-      if (activeId) {
-        const step = state.steps.find((s) => s.id === activeId);
-        if (step?.crop_x != null && !state.stepAnnotations[activeId]) {
-          get().loadAnnotations(activeId);
-        }
+      if (activeId && !state.stepContexts[activeId]) {
+        get().loadStepContext(activeId);
       }
     }
     try {
@@ -1448,13 +1426,14 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     try {
       await api.redetectStepSprues(stepId);
       set((s) => {
-        const stepParts = s.stepSprueParts[stepId] ?? [];
+        const ctx = s.stepContexts[stepId];
+        const stepParts = ctx?.sprue_parts ?? [];
         const aiPartIds = new Set(stepParts.filter((p) => p.ai_detected).map((p) => p.id));
         return {
-          stepSprueParts: {
-            ...s.stepSprueParts,
-            [stepId]: stepParts.filter((p) => !p.ai_detected),
-          },
+          stepContexts: ctx ? {
+            ...s.stepContexts,
+            [stepId]: { ...ctx, sprue_parts: stepParts.filter((p) => !p.ai_detected) },
+          } : s.stepContexts,
           projectSprueParts: s.projectSprueParts.filter((p) => !aiPartIds.has(p.id)),
           steps: s.steps.map((st) => st.id === stepId ? { ...st, sprues_detected: false } : st),
         };

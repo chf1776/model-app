@@ -29,14 +29,9 @@ export function PageInfoPanel() {
   const loadTracks = useAppStore((s) => s.loadTracks);
   const activeProjectId = useAppStore((s) => s.activeProjectId);
 
-  // Lazy-load caches
-  const stepSprueParts = useAppStore((s) => s.stepSprueParts);
-  const loadStepSprueParts = useAppStore((s) => s.loadStepSprueParts);
+  const stepContexts = useAppStore((s) => s.stepContexts);
+  const loadStepContext = useAppStore((s) => s.loadStepContext);
   const setSpruePartTicked = useAppStore((s) => s.setSpruePartTicked);
-  const stepPaintRefs = useAppStore((s) => s.stepPaintRefs);
-  const loadStepPaintRefs = useAppStore((s) => s.loadStepPaintRefs);
-  const stepRelations = useAppStore((s) => s.stepRelations);
-  const loadStepRelations = useAppStore((s) => s.loadStepRelations);
   const projectPaletteEntries = useAppStore((s) => s.projectPaletteEntries);
   const sprueRefs = useAppStore((s) => s.sprueRefs);
 
@@ -87,13 +82,11 @@ export function PageInfoPanel() {
     }
   }, [pageId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Lazy load data for steps on this page
+  // Lazy load context for steps on this page
   useEffect(() => {
     if (!pageId) return;
     for (const step of pageSteps) {
-      if (!stepSprueParts[step.id]) loadStepSprueParts(step.id);
-      if (!stepPaintRefs[step.id]) loadStepPaintRefs(step.id);
-      if (!stepRelations[step.id]) loadStepRelations(step.id);
+      if (!stepContexts[step.id]) loadStepContext(step.id);
     }
   }, [pageId, pageSteps.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -109,12 +102,12 @@ export function PageInfoPanel() {
   const allParts = useMemo((): (StepSpruePart & { _stepId: string })[] => {
     const parts: (StepSpruePart & { _stepId: string })[] = [];
     for (const step of pageSteps) {
-      for (const p of stepSprueParts[step.id] ?? []) {
+      for (const p of stepContexts[step.id]?.sprue_parts ?? []) {
         parts.push({ ...p, _stepId: step.id });
       }
     }
     return parts;
-  }, [stepSprueParts, pageSteps]);
+  }, [stepContexts, pageSteps]);
 
   const partStats = useMemo(() => {
     const total = allParts.reduce((sum, p) => sum + p.quantity, 0);
@@ -131,12 +124,12 @@ export function PageInfoPanel() {
   const pagePaints = useMemo(() => {
     const ids = new Set<string>();
     for (const step of pageSteps) {
-      for (const id of stepPaintRefs[step.id] ?? []) {
+      for (const id of stepContexts[step.id]?.paint_refs ?? []) {
         ids.add(id);
       }
     }
     return projectPaletteEntries.filter((e) => ids.has(e.id));
-  }, [pageSteps, stepPaintRefs, projectPaletteEntries]);
+  }, [pageSteps, stepContexts, projectPaletteEntries]);
 
   const refMap = useMemo(
     () => new Map(sprueRefs.map((r) => [r.label, r])),
@@ -266,8 +259,8 @@ export function PageInfoPanel() {
                             const children = childrenMap.get(step.id) ?? [];
                             const isStepExpanded = expandedStepIds.has(step.id);
                             const isActive = step.id === activeStepId;
-                            const rels = stepRelations[step.id]
-                              ? parseStepRelations(stepRelations[step.id], step.id)
+                            const rels = stepContexts[step.id]?.relations
+                              ? parseStepRelations(stepContexts[step.id].relations, step.id)
                               : null;
 
                             return (

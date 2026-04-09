@@ -51,23 +51,16 @@ export function StepEditorPanel() {
   const addStep = useAppStore((s) => s.addStep);
   const loadTracks = useAppStore((s) => s.loadTracks);
   const loadSteps = useAppStore((s) => s.loadSteps);
-  const stepTags = useAppStore((s) => s.stepTags);
-  const loadStepTags = useAppStore((s) => s.loadStepTags);
+  const stepContexts = useAppStore((s) => s.stepContexts);
+  const loadStepContext = useAppStore((s) => s.loadStepContext);
+  const invalidateStepContext = useAppStore((s) => s.invalidateStepContext);
   const setStepTagsAction = useAppStore((s) => s.setStepTags);
-  const stepRelations = useAppStore((s) => s.stepRelations);
-  const loadStepRelations = useAppStore((s) => s.loadStepRelations);
   const setStepRelationsAction = useAppStore((s) => s.setStepRelations);
   const projectPaletteEntries = useAppStore((s) => s.projectPaletteEntries);
-  const stepPaintRefs = useAppStore((s) => s.stepPaintRefs);
-  const loadStepPaintRefs = useAppStore((s) => s.loadStepPaintRefs);
-  const stepReferenceImages = useAppStore((s) => s.stepReferenceImages);
-  const loadStepReferenceImages = useAppStore((s) => s.loadStepReferenceImages);
   const addReferenceImageStore = useAppStore((s) => s.addReferenceImageStore);
   const updateReferenceImageStore = useAppStore((s) => s.updateReferenceImageStore);
   const removeReferenceImageStore = useAppStore((s) => s.removeReferenceImageStore);
   const sprueRefs = useAppStore((s) => s.sprueRefs);
-  const stepSprueParts = useAppStore((s) => s.stepSprueParts);
-  const loadStepSprueParts = useAppStore((s) => s.loadStepSprueParts);
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
@@ -81,15 +74,13 @@ export function StepEditorPanel() {
 
   const step = steps.find((s) => s.id === activeStepId);
 
-  // Load data and reset UI when step changes
+  const ctx = step ? stepContexts[step.id] : undefined;
+
+  // Load context and reset UI when step changes
   useEffect(() => {
     if (step) {
-      if (!stepTags[step.id]) loadStepTags(step.id);
-      if (!stepPaintRefs[step.id]) loadStepPaintRefs(step.id);
-      // Always reload relations (no cache check) because they can change from either side
-      loadStepRelations(step.id);
-      if (!stepReferenceImages[step.id]) loadStepReferenceImages(step.id);
-      if (!stepSprueParts[step.id]) loadStepSprueParts(step.id);
+      // Always reload context (relations can change from either side)
+      loadStepContext(step.id);
     }
     setExpandedImageId(null);
     setEditingCaptionId(null);
@@ -119,14 +110,14 @@ export function StepEditorPanel() {
 
   if (!step) return null;
 
-  const referenceImages = stepReferenceImages[step.id] ?? [];
+  const referenceImages = ctx?.reference_images ?? [];
   const expandedImage = expandedImageId
     ? referenceImages.find((i) => i.id === expandedImageId) ?? null
     : null;
-  const currentTags = stepTags[step.id] ?? [];
+  const currentTags = ctx?.tags ?? [];
   const currentTagNames = new Set(currentTags.map((t) => t.name));
 
-  const currentRelations = stepRelations[step.id] ?? [];
+  const currentRelations = ctx?.relations ?? [];
   const { blockedByIds, blocksAccessIds, incomingBlockedBy, incomingBlocksAccess } =
     parseStepRelations(currentRelations, step.id);
 
@@ -169,13 +160,13 @@ export function StepEditorPanel() {
       ...otherIds.map((id) => ({ target_step_id: id, relation_type: otherType })),
     ];
     await setStepRelationsAction(step.id, relations);
-    // Invalidate the target step's cached relations so it reflects the change
-    loadStepRelations(targetStepId);
+    // Invalidate the target step's cached context so it reflects the change
+    invalidateStepContext(targetStepId);
   };
 
   /** Toggle a relation on another step that points back to this step. */
   const handleToggleIncomingRelation = async (otherStepId: string, relationType: StepRelationType) => {
-    const ownerRelations = stepRelations[otherStepId] ?? await api.listStepRelations(otherStepId);
+    const ownerRelations = stepContexts[otherStepId]?.relations ?? await api.listStepRelations(otherStepId);
     const outgoing = ownerRelations.filter((r) => r.from_step_id === otherStepId);
     const exists = outgoing.some((r) => r.to_step_id === step.id && r.relation_type === relationType);
 
@@ -190,8 +181,8 @@ export function StepEditorPanel() {
       otherStepId,
       updated.map((r) => ({ target_step_id: r.to_step_id, relation_type: r.relation_type })),
     );
-    loadStepRelations(step.id);
-    loadStepRelations(otherStepId);
+    invalidateStepContext(step.id);
+    invalidateStepContext(otherStepId);
   };
 
   const handleSetReplaces = async (targetStepId: string | null) => {

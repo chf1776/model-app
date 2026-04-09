@@ -35,7 +35,7 @@ interface StepThumbnailProps {
 export function StepThumbnail({ step, page, isActive, isCompleted }: StepThumbnailProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ w: THUMB_H, h: THUMB_H });
-  const annotations = useAppStore((s) => s.stepAnnotations[step.id]);
+  const annotations = useAppStore((s) => s.stepContexts[step.id]?.annotations);
 
   const hasCrop =
     step.crop_x != null &&
