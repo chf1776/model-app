@@ -24,6 +24,7 @@ function polygonBoundingBox(points: { x: number; y: number }[]) {
 /** Fire-and-forget AI part detection for a step. Updates store on completion. */
 function runDetection(
   set: (partial: Partial<AppStore> | ((s: AppStore) => Partial<AppStore>)) => void,
+  get: () => AppStore,
   stepId: string,
 ) {
   api.detectStepSprues(stepId).then((result) => {
@@ -31,16 +32,17 @@ function runDetection(
       const ctx = s.stepContexts[stepId];
       return {
         steps: s.steps.map((st) => st.id === stepId ? { ...st, sprues_detected: true } : st),
-        ...(result.parts.length > 0 ? {
-          stepContexts: ctx ? {
+        ...(result.parts.length > 0 && ctx ? {
+          stepContexts: {
             ...s.stepContexts,
             [stepId]: { ...ctx, sprue_parts: [...ctx.sprue_parts, ...result.parts] },
-          } : s.stepContexts,
-          projectSprueParts: [...s.projectSprueParts, ...result.parts],
+          },
         } : {}),
       };
     });
     if (result.parts.length > 0) {
+      const projectId = get().activeProjectId;
+      if (projectId) get().loadProjectSprueParts(projectId);
       toast.success(`Detected ${result.parts.length} part${result.parts.length === 1 ? "" : "s"}`, { toasterId: "canvas" });
     }
   }).catch((err) => {
@@ -740,9 +742,11 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
           ...s.stepContexts,
           [part.step_id]: { ...ctx, sprue_parts: [...ctx.sprue_parts, part] },
         } : s.stepContexts,
-        projectSprueParts: [...s.projectSprueParts, part],
       };
     });
+    // Refresh project-level cache
+    const projectId = get().activeProjectId;
+    if (projectId) get().loadProjectSprueParts(projectId);
   },
 
   removeStepSpruePartStore: (stepId, id) => {
@@ -753,9 +757,10 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
           ...s.stepContexts,
           [stepId]: { ...ctx, sprue_parts: ctx.sprue_parts.filter((p) => p.id !== id) },
         } : s.stepContexts,
-        projectSprueParts: s.projectSprueParts.filter((p) => p.id !== id),
       };
     });
+    const projectId = get().activeProjectId;
+    if (projectId) get().loadProjectSprueParts(projectId);
   },
 
   setSpruePartTicked: (stepId, partId, tickedCount) => {
@@ -773,10 +778,13 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
           ...s.stepContexts,
           [stepId]: { ...c, sprue_parts: c.sprue_parts.map(mapPart) },
         } : s.stepContexts,
-        projectSprueParts: s.projectSprueParts.map(mapPart),
       };
     });
-    api.setSpruePartTicked(partId, tickedCount).catch(() => {
+    api.setSpruePartTicked(partId, tickedCount).then(() => {
+      // Refresh project-level cache after successful persist
+      const projectId = get().activeProjectId;
+      if (projectId) get().loadProjectSprueParts(projectId);
+    }).catch(() => {
       set((s) => {
         const c = s.stepContexts[stepId];
         return {
@@ -784,7 +792,6 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
             ...s.stepContexts,
             [stepId]: { ...c, sprue_parts: c.sprue_parts.map(rollbackPart) },
           } : s.stepContexts,
-          projectSprueParts: s.projectSprueParts.map(rollbackPart),
         };
       });
     });
@@ -1413,7 +1420,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     const apiKey = settings.ai_api_key ?? "";
     if (!autoDetect || !apiKey) return;
 
-    runDetection(set, stepId);
+    runDetection(set, get, stepId);
   },
 
   redetectStepSprues: async (stepId) => {
@@ -1428,18 +1435,18 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       set((s) => {
         const ctx = s.stepContexts[stepId];
         const stepParts = ctx?.sprue_parts ?? [];
-        const aiPartIds = new Set(stepParts.filter((p) => p.ai_detected).map((p) => p.id));
         return {
           stepContexts: ctx ? {
             ...s.stepContexts,
             [stepId]: { ...ctx, sprue_parts: stepParts.filter((p) => !p.ai_detected) },
           } : s.stepContexts,
-          projectSprueParts: s.projectSprueParts.filter((p) => !aiPartIds.has(p.id)),
           steps: s.steps.map((st) => st.id === stepId ? { ...st, sprues_detected: false } : st),
         };
       });
+      const projectId = get().activeProjectId;
+      if (projectId) get().loadProjectSprueParts(projectId);
       // Force re-run detection (bypass auto-detect setting)
-      runDetection(set, stepId);
+      runDetection(set, get, stepId);
     } catch (err) {
       toast.error(`Re-detect failed: ${err}`);
     }
