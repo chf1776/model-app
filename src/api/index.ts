@@ -50,6 +50,7 @@ import type {
   StepSpruePart,
   SprueDepletionSummary,
   DetectionResponse,
+  StepContext,
 } from "@/shared/types";
 
 // ── Kits ────────────────────────────────────────────────────────────────────
@@ -763,6 +764,25 @@ export async function setSpruePartTicked(id: string, tickedCount: number): Promi
 
 export async function sprueDepletionSummary(projectId: string): Promise<SprueDepletionSummary[]> {
   return invoke<SprueDepletionSummary[]>("sprue_depletion_summary", { projectId });
+}
+
+// ── Step Context ────────────────────────────────────────────────────────────
+
+interface RawStepContext {
+  tags: StepContext["tags"];
+  relations: StepContext["relations"];
+  paint_refs: StepContext["paint_refs"];
+  sprue_parts: StepContext["sprue_parts"];
+  reference_images: StepContext["reference_images"];
+  annotations: StepAnnotations | null;
+}
+
+export async function getStepContext(stepId: string): Promise<StepContext> {
+  const raw = await invoke<RawStepContext>("get_step_context", { stepId });
+  return {
+    ...raw,
+    annotations: raw.annotations ? (JSON.parse(raw.annotations.data) as Annotation[]) : [],
+  };
 }
 
 // ── AI Detection ────────────────────────────────────────────────────────────

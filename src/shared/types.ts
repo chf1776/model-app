@@ -881,6 +881,16 @@ export interface BackupDiff {
   photos: number;
 }
 
+// ── Step Context (bundled per-step data) ────────────────────────────────
+export interface StepContext {
+  tags: Tag[];
+  relations: StepRelation[];
+  paint_refs: string[];
+  sprue_parts: StepSpruePart[];
+  reference_images: ReferenceImage[];
+  annotations: Annotation[];
+}
+
 // ── Settings Defaults ───────────────────────────────────────────────────
 export const SETTINGS_DEFAULTS: Record<string, string> = {
   theme: "default",
