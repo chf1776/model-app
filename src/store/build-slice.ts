@@ -465,10 +465,9 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     } else {
       set({ activeTrackId: null });
     }
-    // Persist to DB (fire-and-forget)
     const projectId = get().activeProjectId;
     if (projectId) {
-      api.saveActiveTrack(projectId, id);
+      api.saveActiveTrack(projectId, id).catch((e) => toast.error(`Failed to save active track: ${e}`));
     }
   },
 
@@ -577,9 +576,8 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
           }
         }
         set(update);
-        // Persist track change to DB
         if (trackChanged && state.activeProjectId) {
-          api.saveActiveTrack(state.activeProjectId, step.track_id);
+          api.saveActiveTrack(state.activeProjectId, step.track_id).catch((e) => toast.error(`Failed to save active track: ${e}`));
         }
       } else {
         set({ activeStepId: id });
@@ -841,7 +839,9 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         timers.delete(stepId);
         const annotations = get().stepContexts[stepId]?.annotations;
         if (annotations) {
-          api.saveAnnotations(stepId, annotations).catch(() => {});
+          api.saveAnnotations(stepId, annotations).catch((e) => {
+            toast.error(`Failed to save annotations: ${e}`);
+          });
         }
       }, 500));
     };
@@ -902,11 +902,11 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   setAnnotationMode: (mode) => set({ annotationMode: mode }),
   setAnnotationColor: (color) => {
     set({ annotationColor: color });
-    api.setSetting("annotation_color", color).catch(() => {});
+    api.setSetting("annotation_color", color).catch((e) => toast.error(`Failed to save setting: ${e}`));
   },
   setAnnotationStrokeWidth: (width) => {
     set({ annotationStrokeWidth: width });
-    api.setSetting("annotation_stroke_width", String(width)).catch(() => {});
+    api.setSetting("annotation_stroke_width", String(width)).catch((e) => toast.error(`Failed to save setting: ${e}`));
   },
 
   undoAnnotation: (stepId) => {
@@ -1080,7 +1080,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
             entryType: "step_complete",
             stepId: step.id,
             trackId: step.track_id,
-          }).catch(() => {});
+          }).catch((e) => toast.error(`Failed to log step completion: ${e}`));
         }
 
         // Auto-start drying timer if step has adhesive/drying time
@@ -1095,7 +1095,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
               },
               duration: 5000,
             });
-          }).catch(() => {});
+          }).catch((e) => toast.error(`Failed to start timer: ${e}`));
         }
 
         // Check for milestone: track fully complete
@@ -1110,7 +1110,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
               trackId: track.id,
               isTrackCompletion: true,
               trackStepCount: track.step_count,
-            }).catch(() => {});
+            }).catch((e) => toast.error(`Failed to log milestone: ${e}`));
           }
           set({
             pendingMilestone: { trackId: track.id, trackName: track.name, trackColor: track.color },
@@ -1252,7 +1252,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     set({ spruePanelOpen: open });
     const projectId = get().activeProjectId;
     if (projectId) {
-      api.saveSpruePanel(projectId, open).catch(() => {});
+      api.saveSpruePanel(projectId, open).catch((e) => toast.error(`Failed to save panel state: ${e}`));
     }
   },
 

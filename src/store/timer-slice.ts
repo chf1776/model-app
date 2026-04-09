@@ -3,6 +3,7 @@ import type { DryingTimer } from "@/shared/types";
 import { getSettingBool } from "@/shared/types";
 import type { AppStore } from "./index";
 import * as api from "@/api";
+import { toast } from "sonner";
 import {
   isPermissionGranted,
   requestPermission,
@@ -49,7 +50,7 @@ function handleTimerExpired(
         entryType: "note",
         body: `Drying timer completed: ${t.label} (${t.duration_min} min)`,
       })
-      .catch(() => {});
+      .catch((e) => toast.error(`Failed to log timer expiry: ${e}`));
   }
   api.deleteDryingTimer(t.id).catch((e) => console.warn("Failed to delete expired timer:", e));
 }
