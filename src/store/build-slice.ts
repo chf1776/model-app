@@ -673,6 +673,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       const { [stepId]: _, ...rest } = s.stepContexts;
       return { stepContexts: rest };
     });
+    get().loadStepContext(stepId);
   },
 
   setStepTags: async (stepId, tagNames) => {
@@ -833,54 +834,58 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   })(),
 
   addAnnotation: (stepId, annotation) => {
-    const ctx = get().stepContexts[stepId];
-    if (!ctx) return;
-    const current = ctx.annotations;
-    set((s) => ({
-      stepContexts: { ...s.stepContexts, [stepId]: { ...ctx, annotations: [...current, annotation] } },
-      ...annotationUndoSnapshot(s, stepId, current),
-    }));
+    set((s) => {
+      const ctx = s.stepContexts[stepId];
+      if (!ctx) return {};
+      return {
+        stepContexts: { ...s.stepContexts, [stepId]: { ...ctx, annotations: [...ctx.annotations, annotation] } },
+        ...annotationUndoSnapshot(s, stepId, ctx.annotations),
+      };
+    });
     get().saveAnnotationsDebounced(stepId);
   },
 
   removeAnnotation: (stepId, annotationId) => {
-    const ctx = get().stepContexts[stepId];
-    if (!ctx) return;
-    const current = ctx.annotations;
-    set((s) => ({
-      stepContexts: { ...s.stepContexts, [stepId]: { ...ctx, annotations: current.filter((a) => a.id !== annotationId) } },
-      ...annotationUndoSnapshot(s, stepId, current),
-    }));
+    set((s) => {
+      const ctx = s.stepContexts[stepId];
+      if (!ctx) return {};
+      return {
+        stepContexts: { ...s.stepContexts, [stepId]: { ...ctx, annotations: ctx.annotations.filter((a) => a.id !== annotationId) } },
+        ...annotationUndoSnapshot(s, stepId, ctx.annotations),
+      };
+    });
     get().saveAnnotationsDebounced(stepId);
   },
 
   clearAnnotations: (stepId) => {
-    const ctx = get().stepContexts[stepId];
-    if (!ctx || ctx.annotations.length === 0) return;
-    const current = ctx.annotations;
-    set((s) => ({
-      stepContexts: { ...s.stepContexts, [stepId]: { ...ctx, annotations: [] } },
-      ...annotationUndoSnapshot(s, stepId, current),
-    }));
+    set((s) => {
+      const ctx = s.stepContexts[stepId];
+      if (!ctx || ctx.annotations.length === 0) return {};
+      return {
+        stepContexts: { ...s.stepContexts, [stepId]: { ...ctx, annotations: [] } },
+        ...annotationUndoSnapshot(s, stepId, ctx.annotations),
+      };
+    });
     get().saveAnnotationsDebounced(stepId);
   },
 
   updateAnnotation: (stepId, annotationId, updates) => {
-    const ctx = get().stepContexts[stepId];
-    if (!ctx) return;
-    const current = ctx.annotations;
-    set((s) => ({
-      stepContexts: {
-        ...s.stepContexts,
-        [stepId]: {
-          ...ctx,
-          annotations: current.map((a) =>
-            a.id === annotationId ? { ...a, ...updates } as Annotation : a,
-          ),
+    set((s) => {
+      const ctx = s.stepContexts[stepId];
+      if (!ctx) return {};
+      return {
+        stepContexts: {
+          ...s.stepContexts,
+          [stepId]: {
+            ...ctx,
+            annotations: ctx.annotations.map((a) =>
+              a.id === annotationId ? { ...a, ...updates } as Annotation : a,
+            ),
+          },
         },
-      },
-      ...annotationUndoSnapshot(s, stepId, current),
-    }));
+        ...annotationUndoSnapshot(s, stepId, ctx.annotations),
+      };
+    });
     get().saveAnnotationsDebounced(stepId);
   },
 
@@ -895,44 +900,34 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   },
 
   undoAnnotation: (stepId) => {
-    const undoStack = get().annotationUndoStacks[stepId] ?? [];
-    if (undoStack.length === 0) return;
-    const ctx = get().stepContexts[stepId];
-    if (!ctx) return;
-    const current = ctx.annotations;
-    const previous = undoStack[undoStack.length - 1];
-    set((s) => ({
-      stepContexts: { ...s.stepContexts, [stepId]: { ...ctx, annotations: previous } },
-      annotationUndoStacks: {
-        ...s.annotationUndoStacks,
-        [stepId]: undoStack.slice(0, -1),
-      },
-      annotationRedoStacks: {
-        ...s.annotationRedoStacks,
-        [stepId]: [...(s.annotationRedoStacks[stepId] ?? []), current],
-      },
-    }));
+    set((s) => {
+      const stack = s.annotationUndoStacks[stepId] ?? [];
+      if (stack.length === 0) return {};
+      const ctx = s.stepContexts[stepId];
+      if (!ctx) return {};
+      const previous = stack[stack.length - 1];
+      return {
+        stepContexts: { ...s.stepContexts, [stepId]: { ...ctx, annotations: previous } },
+        annotationUndoStacks: { ...s.annotationUndoStacks, [stepId]: stack.slice(0, -1) },
+        annotationRedoStacks: { ...s.annotationRedoStacks, [stepId]: [...(s.annotationRedoStacks[stepId] ?? []), ctx.annotations] },
+      };
+    });
     get().saveAnnotationsDebounced(stepId);
   },
 
   redoAnnotation: (stepId) => {
-    const redoStack = get().annotationRedoStacks[stepId] ?? [];
-    if (redoStack.length === 0) return;
-    const ctx = get().stepContexts[stepId];
-    if (!ctx) return;
-    const current = ctx.annotations;
-    const next = redoStack[redoStack.length - 1];
-    set((s) => ({
-      stepContexts: { ...s.stepContexts, [stepId]: { ...ctx, annotations: next } },
-      annotationRedoStacks: {
-        ...s.annotationRedoStacks,
-        [stepId]: redoStack.slice(0, -1),
-      },
-      annotationUndoStacks: {
-        ...s.annotationUndoStacks,
-        [stepId]: [...(s.annotationUndoStacks[stepId] ?? []), current],
-      },
-    }));
+    set((s) => {
+      const stack = s.annotationRedoStacks[stepId] ?? [];
+      if (stack.length === 0) return {};
+      const ctx = s.stepContexts[stepId];
+      if (!ctx) return {};
+      const next = stack[stack.length - 1];
+      return {
+        stepContexts: { ...s.stepContexts, [stepId]: { ...ctx, annotations: next } },
+        annotationRedoStacks: { ...s.annotationRedoStacks, [stepId]: stack.slice(0, -1) },
+        annotationUndoStacks: { ...s.annotationUndoStacks, [stepId]: [...(s.annotationUndoStacks[stepId] ?? []), ctx.annotations] },
+      };
+    });
     get().saveAnnotationsDebounced(stepId);
   },
   loadInstructionSources: async (projectId) => {

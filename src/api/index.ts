@@ -186,10 +186,6 @@ export async function setPaletteComponents(
 
 // ── Step Paint Refs ─────────────────────────────────────────────────────
 
-export async function listStepPaintRefs(stepId: string): Promise<string[]> {
-  return invoke<string[]>("list_step_paint_refs", { stepId });
-}
-
 export async function setStepPaintRefs(
   stepId: string,
   entryIds: string[],
@@ -390,10 +386,6 @@ export async function listTags(): Promise<Tag[]> {
   return invoke<Tag[]>("list_tags");
 }
 
-export async function listStepTags(stepId: string): Promise<Tag[]> {
-  return invoke<Tag[]>("list_step_tags", { stepId });
-}
-
 export async function setStepTags(
   stepId: string,
   tagNames: string[],
@@ -419,10 +411,6 @@ export async function setStepRelations(
 }
 
 // ── Reference Images ─────────────────────────────────────────────────────────
-
-export async function listReferenceImages(stepId: string): Promise<ReferenceImage[]> {
-  return invoke<ReferenceImage[]>("list_reference_images", { stepId });
-}
 
 export async function addReferenceImage(
   stepId: string,
@@ -575,12 +563,6 @@ export async function deleteDryingTimer(id: string): Promise<void> {
 
 // ── Annotations ──────────────────────────────────────────────────────────────
 
-export async function getAnnotations(stepId: string): Promise<Annotation[] | null> {
-  const result = await invoke<StepAnnotations | null>("get_annotations", { stepId });
-  if (!result) return null;
-  return JSON.parse(result.data) as Annotation[];
-}
-
 export async function saveAnnotations(stepId: string, annotations: Annotation[]): Promise<void> {
   await invoke<StepAnnotations>("save_annotations", { stepId, data: JSON.stringify(annotations) });
 }
@@ -728,10 +710,6 @@ export async function getNextSprueColor(projectId: string): Promise<string> {
 
 // ── Step Sprue Parts ────────────────────────────────────────────────────────
 
-export async function listStepSprueParts(stepId: string): Promise<StepSpruePart[]> {
-  return invoke<StepSpruePart[]>("list_step_sprue_parts", { stepId });
-}
-
 export async function listProjectSprueParts(projectId: string): Promise<StepSpruePart[]> {
   return invoke<StepSpruePart[]>("list_project_sprue_parts", { projectId });
 }
@@ -768,14 +746,7 @@ export async function sprueDepletionSummary(projectId: string): Promise<SprueDep
 
 // ── Step Context ────────────────────────────────────────────────────────────
 
-interface RawStepContext {
-  tags: StepContext["tags"];
-  relations: StepContext["relations"];
-  paint_refs: StepContext["paint_refs"];
-  sprue_parts: StepContext["sprue_parts"];
-  reference_images: StepContext["reference_images"];
-  annotations: StepAnnotations | null;
-}
+type RawStepContext = Omit<StepContext, "annotations"> & { annotations: StepAnnotations | null };
 
 export async function getStepContext(stepId: string): Promise<StepContext> {
   const raw = await invoke<RawStepContext>("get_step_context", { stepId });
