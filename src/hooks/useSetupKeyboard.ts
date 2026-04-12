@@ -8,7 +8,7 @@ export function useSetupKeyboard() {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       const s = useAppStore.getState();
-      if (s.buildMode !== "setup") return;
+      if (s.buildView.kind !== "setup-tracks" && s.buildView.kind !== "setup-sprues") return;
 
       // Ctrl/Cmd+Z: undo last crop
       if (e.key === "z" && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
@@ -27,7 +27,7 @@ export function useSetupKeyboard() {
           s.nextPage();
           return;
         case "Enter":
-          if (s.canvasMode === "polygon" && s.polygonDraftPoints.length >= 3) {
+          if ("canvasMode" in s.buildView && s.buildView.canvasMode === "polygon" && s.polygonDraftPoints.length >= 3) {
             e.preventDefault();
             s.savePolygon();
           }
@@ -83,7 +83,7 @@ export function useSetupKeyboard() {
         }
         case "Escape":
           e.preventDefault();
-          if (s.canvasMode === "polygon") {
+          if ("canvasMode" in s.buildView && s.buildView.canvasMode === "polygon") {
             if (s.polygonDraftPoints.length > 0) {
               s.removeLastPolygonPoint();
             } else {
@@ -93,7 +93,7 @@ export function useSetupKeyboard() {
             s.clearSelectedSteps();
           } else if (s.activeStepId) {
             s.setActiveStep(null);
-          } else if (s.canvasMode === "crop") {
+          } else if ("canvasMode" in s.buildView && s.buildView.canvasMode === "crop") {
             s.setCanvasMode("view");
           }
           return;

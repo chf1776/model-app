@@ -81,7 +81,7 @@ export function useCropDrawing(stageRef: React.RefObject<Konva.Stage | null>) {
   const startPoint = useRef<{ x: number; y: number } | null>(null);
   const isCreating = useRef(false);
 
-  const canvasMode = useAppStore((s) => s.canvasMode);
+  const canvasMode = useAppStore((s) => "canvasMode" in s.buildView ? s.buildView.canvasMode : "view");
   const activeTrackId = useAppStore((s) => s.activeTrackId);
   const activeStepId = useAppStore((s) => s.activeStepId);
   const currentSourcePages = useAppStore((s) => s.currentSourcePages);

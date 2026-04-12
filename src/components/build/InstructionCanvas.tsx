@@ -66,7 +66,7 @@ export function InstructionCanvas() {
   const setViewerPan = useAppStore((s) => s.setViewerPan);
   const fitToViewTrigger = useAppStore((s) => s.fitToViewTrigger);
   const focusCropTrigger = useAppStore((s) => s.focusCropTrigger);
-  const canvasMode = useAppStore((s) => s.canvasMode);
+  const canvasMode = useAppStore((s) => "canvasMode" in s.buildView ? s.buildView.canvasMode : "view");
 
   const currentPage = currentSourcePages[currentPageIndex];
   const imageSrc = currentPage ? convertFileSrc(currentPage.file_path) : null;
@@ -88,7 +88,7 @@ export function InstructionCanvas() {
   // Crop drawing (steps)
   const { drawingRect, onMouseDown, onMouseMove, onMouseUp } = useCropDrawing(stageRef);
   // Crop drawing (sprues)
-  const setupRailMode = useAppStore((s) => s.setupRailMode);
+  const setupRailMode = useAppStore((s) => s.buildView.kind === "setup-sprues" ? "sprues" : "steps");
   const sprueDrawing = useSprueDrawing(stageRef);
   const isSprueMode = setupRailMode === "sprues";
 

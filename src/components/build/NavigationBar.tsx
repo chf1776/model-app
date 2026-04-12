@@ -5,7 +5,7 @@ import { ANNOTATION_TOOL_LABELS } from "@/shared/types";
 import { flattenTrackSteps, getStepLabel, getReplacedStepIds } from "./tree-utils";
 
 export function NavigationBar() {
-  const navMode = useAppStore((s) => s.navMode);
+  const navMode = useAppStore((s) => s.buildView.kind === "building-page" ? "page" : "track");
 
   if (navMode === "page") {
     return <PageNavigationBar />;
@@ -20,7 +20,7 @@ function TrackNavigationBar() {
   const activeStepId = useAppStore((s) => s.activeStepId);
   const activeTrackId = useAppStore((s) => s.activeTrackId);
   const setActiveStep = useAppStore((s) => s.setActiveStep);
-  const annotationMode = useAppStore((s) => s.annotationMode);
+  const annotationMode = useAppStore((s) => s.buildView.kind === "building-track" ? s.buildView.annotationMode : null);
 
   const activeTrack = tracks.find((t) => t.id === activeTrackId);
 

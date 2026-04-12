@@ -77,7 +77,7 @@ export function CropCanvas() {
   const setViewerZoom = useAppStore((s) => s.setViewerZoom);
   const setViewerPan = useAppStore((s) => s.setViewerPan);
   const fitToViewTrigger = useAppStore((s) => s.fitToViewTrigger);
-  const annotationMode = useAppStore((s) => s.annotationMode);
+  const annotationMode = useAppStore((s) => s.buildView.kind === "building-track" ? s.buildView.annotationMode : null);
   const annotationColor = useAppStore((s) => s.annotationColor);
   const addAnnotation = useAppStore((s) => s.addAnnotation);
   const annotationStrokeWidth = useAppStore((s) => s.annotationStrokeWidth);

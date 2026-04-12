@@ -22,7 +22,7 @@ export function PolygonLayer({ zoom, stageRef }: PolygonLayerProps) {
   const tracks = useAppStore((s) => s.tracks);
   const currentSourcePages = useAppStore((s) => s.currentSourcePages);
   const currentPageIndex = useAppStore((s) => s.currentPageIndex);
-  const canvasMode = useAppStore((s) => s.canvasMode);
+  const canvasMode = useAppStore((s) => "canvasMode" in s.buildView ? s.buildView.canvasMode : "view");
   const polygonDraftPoints = useAppStore((s) => s.polygonDraftPoints);
   const polygonDraftStepId = useAppStore((s) => s.polygonDraftStepId);
   const activeStepId = useAppStore((s) => s.activeStepId);

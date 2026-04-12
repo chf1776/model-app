@@ -36,7 +36,7 @@ function toLayerY(ny: number, h: number) { return ny * h; }
 
 export function AnnotationLayer({ stepId, effectiveW, effectiveH, zoom, drawPreview, previewColor }: AnnotationLayerProps) {
   const annotations = useAppStore((s) => s.stepContexts[stepId]?.annotations ?? EMPTY_ANNOTATIONS);
-  const annotationMode = useAppStore((s) => s.annotationMode);
+  const annotationMode = useAppStore((s) => s.buildView.kind === "building-track" ? s.buildView.annotationMode : null);
   const removeAnnotation = useAppStore((s) => s.removeAnnotation);
   const { accent: SELECTION_COLOR } = useTheme();
   const updateAnnotation = useAppStore((s) => s.updateAnnotation);

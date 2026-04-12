@@ -9,7 +9,7 @@ export function useBuildingKeyboard() {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       const s = useAppStore.getState();
-      if (s.buildMode !== "building") return;
+      if (s.buildView.kind !== "building-track" && s.buildView.kind !== "building-page") return;
 
       // Ctrl/Cmd+Shift+Z: redo annotation
       if (e.key === "z" && (e.ctrlKey || e.metaKey) && e.shiftKey) {
@@ -31,7 +31,7 @@ export function useBuildingKeyboard() {
       }
       if (e.key === "a" || e.key === "A") {
         e.preventDefault();
-        if (s.annotationMode) s.setAnnotationMode(null);
+        if (s.buildView.kind === "building-track" && s.buildView.annotationMode) s.setAnnotationMode(null);
         return;
       }
       if (e.key >= "1" && e.key <= "7") {
@@ -56,7 +56,7 @@ export function useBuildingKeyboard() {
       }
       if (e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "ArrowRight" || e.key === "ArrowDown") {
         e.preventDefault();
-        if (s.navMode === "page" && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+        if (s.buildView.kind === "building-page" && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
           if (e.key === "ArrowLeft") s.prevPage();
           else s.nextPage();
         } else {

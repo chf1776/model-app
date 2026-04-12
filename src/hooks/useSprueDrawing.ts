@@ -20,8 +20,8 @@ export function useSprueDrawing(stageRef: React.RefObject<Konva.Stage | null>) {
   const startPoint = useRef<{ x: number; y: number } | null>(null);
   const isCreating = useRef(false);
 
-  const canvasMode = useAppStore((s) => s.canvasMode);
-  const setupRailMode = useAppStore((s) => s.setupRailMode);
+  const canvasMode = useAppStore((s) => "canvasMode" in s.buildView ? s.buildView.canvasMode : "view");
+  const setupRailMode = useAppStore((s) => s.buildView.kind === "setup-sprues" ? "sprues" : "steps");
   const activeSprueRefId = useAppStore((s) => s.activeSprueRefId);
   const sprueRefs = useAppStore((s) => s.sprueRefs);
   const activeProjectId = useAppStore((s) => s.activeProjectId);

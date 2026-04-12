@@ -36,7 +36,7 @@ const STROKE_PRESETS: { label: string; value: number; thickness: number }[] = [
 
 export function AnnotationToolbar() {
   const { accent } = useTheme();
-  const annotationMode = useAppStore((s) => s.annotationMode);
+  const annotationMode = useAppStore((s) => s.buildView.kind === "building-track" ? s.buildView.annotationMode : null);
   const setAnnotationMode = useAppStore((s) => s.setAnnotationMode);
   const annotationColor = useAppStore((s) => s.annotationColor);
   const setAnnotationColor = useAppStore((s) => s.setAnnotationColor);
