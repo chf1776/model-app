@@ -5,7 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { SegmentedPill } from "@/components/shared/SegmentedPill";
 import { useAppStore } from "@/store";
-import type { BuildMode, NavMode, SetupRailMode } from "@/store/build-slice";
+
 import * as api from "@/api";
 import { useUploadPdf } from "./useUploadPdf";
 import { zoomIn, zoomOut } from "./zoom-utils";
@@ -17,22 +17,17 @@ interface BuildToolbarProps {
 
 export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildToolbarProps) {
   const project = useAppStore((s) => s.project);
-  const buildMode = useAppStore((s) => s.buildMode);
-  const setBuildMode = useAppStore((s) => s.setBuildMode);
+  const buildView = useAppStore((s) => s.buildView);
+  const setBuildView = useAppStore((s) => s.setBuildView);
   const tracks = useAppStore((s) => s.tracks);
   const activeTrackId = useAppStore((s) => s.activeTrackId);
   const instructionSources = useAppStore((s) => s.instructionSources);
   const viewerZoom = useAppStore((s) => s.viewerZoom);
   const requestFitToView = useAppStore((s) => s.requestFitToView);
   const rotatePage = useAppStore((s) => s.rotatePage);
-  const canvasMode = useAppStore((s) => s.canvasMode);
   const setCanvasMode = useAppStore((s) => s.setCanvasMode);
   const activeStepId = useAppStore((s) => s.activeStepId);
   const clearClipPolygon = useAppStore((s) => s.clearClipPolygon);
-  const navMode = useAppStore((s) => s.navMode);
-  const setNavMode = useAppStore((s) => s.setNavMode);
-  const setupRailMode = useAppStore((s) => s.setupRailMode);
-  const setSetupRailMode = useAppStore((s) => s.setSetupRailMode);
   const sprueRefs = useAppStore((s) => s.sprueRefs);
   const currentSourcePages = useAppStore((s) => s.currentSourcePages);
   const currentPageIndex = useAppStore((s) => s.currentPageIndex);
@@ -43,6 +38,11 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
   const loadTracks = useAppStore((s) => s.loadTracks);
   const pushUndo = useAppStore((s) => s.pushUndo);
   const triggerAutoDetect = useAppStore((s) => s.triggerAutoDetect);
+
+  const isSetup = buildView.kind === "setup-tracks" || buildView.kind === "setup-sprues";
+  const canvasMode = "canvasMode" in buildView ? buildView.canvasMode : "view";
+  const setupRailMode = buildView.kind === "setup-sprues" ? "sprues" : "steps";
+  const navMode = buildView.kind === "building-page" ? "page" : "track";
 
   const activeTrack = activeTrackId
     ? tracks.find((t) => t.id === activeTrackId) ?? null
@@ -103,39 +103,48 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
       <SegmentedPill
         size="sm"
         items={[
-          { value: "setup" as BuildMode, label: "Setup", icon: <Settings2 className="h-3 w-3" /> },
-          { value: "building" as BuildMode, label: "Building", icon: <Hammer className="h-3 w-3" /> },
+          { value: "setup" as const, label: "Setup", icon: <Settings2 className="h-3 w-3" /> },
+          { value: "building" as const, label: "Building", icon: <Hammer className="h-3 w-3" /> },
         ]}
-        value={buildMode}
-        onChange={setBuildMode}
+        value={isSetup ? "setup" : "building"}
+        onChange={(v) => {
+          if (v === "setup") setBuildView({ kind: "setup-tracks", canvasMode: "view" });
+          else setBuildView({ kind: "building-track", annotationMode: null });
+        }}
       />
 
-      {buildMode === "setup" && (
+      {isSetup && (
         <>
           <Separator orientation="vertical" className="h-[14px]" />
           <SegmentedPill
             size="sm"
             items={[
-              { value: "steps" as SetupRailMode, label: "Steps", icon: <List className="h-3 w-3" /> },
-              { value: "sprues" as SetupRailMode, label: "Sprues", icon: <Box className="h-3 w-3" />, count: sprueRefs.length || undefined },
+              { value: "steps" as const, label: "Steps", icon: <List className="h-3 w-3" /> },
+              { value: "sprues" as const, label: "Sprues", icon: <Box className="h-3 w-3" />, count: sprueRefs.length || undefined },
             ]}
             value={setupRailMode}
-            onChange={setSetupRailMode}
+            onChange={(v) => {
+              if (v === "sprues") setBuildView({ kind: "setup-sprues", canvasMode: "view" });
+              else setBuildView({ kind: "setup-tracks", canvasMode: "view" });
+            }}
           />
         </>
       )}
 
-      {buildMode === "building" && instructionSources.length > 0 && (
+      {!isSetup && instructionSources.length > 0 && (
         <>
           <Separator orientation="vertical" className="h-[14px]" />
           <SegmentedPill
             size="sm"
             items={[
-              { value: "track" as NavMode, label: "Steps", icon: <List className="h-3 w-3" /> },
-              { value: "page" as NavMode, label: "Pages", icon: <FileText className="h-3 w-3" /> },
+              { value: "track" as const, label: "Steps", icon: <List className="h-3 w-3" /> },
+              { value: "page" as const, label: "Pages", icon: <FileText className="h-3 w-3" /> },
             ]}
             value={navMode}
-            onChange={setNavMode}
+            onChange={(v) => {
+              if (v === "page") setBuildView({ kind: "building-page" });
+              else setBuildView({ kind: "building-track", annotationMode: null });
+            }}
           />
         </>
       )}
@@ -167,7 +176,7 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
       {instructionSources.length > 0 && (
         <>
           {/* View/Crop toggle — setup only */}
-          {buildMode === "setup" && (
+          {isSetup && (
             <>
               <div className="flex items-center rounded-md border border-border">
                 <Tooltip>
@@ -336,7 +345,7 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
       )}
 
       {/* Upload button — setup only */}
-      {buildMode === "setup" && (
+      {isSetup && (
         <Button
           size="sm"
           onClick={handleUploadPdf}

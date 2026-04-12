@@ -35,15 +35,15 @@ import { useBuildingKeyboard } from "@/hooks/useBuildingKeyboard";
 export default function BuildRoute() {
   // Only subscribe to state needed for rendering layout decisions
   const project = useAppStore((s) => s.project);
-  const buildMode = useAppStore((s) => s.buildMode);
+  const buildView = useAppStore((s) => s.buildView);
   const instructionSources = useAppStore((s) => s.instructionSources);
   const isProcessingPdf = useAppStore((s) => s.isProcessingPdf);
   const activeStepId = useAppStore((s) => s.activeStepId);
-  const navMode = useAppStore((s) => s.navMode);
-  const setupRailMode = useAppStore((s) => s.setupRailMode);
   const loadTimers = useAppStore((s) => s.loadTimers);
   const activeProjectId = useAppStore((s) => s.activeProjectId);
   const refreshPaletteEntries = useAppStore((s) => s.refreshProjectPaletteEntries);
+
+  const isSetup = buildView.kind === "setup-tracks" || buildView.kind === "setup-sprues";
 
   // Load timers and refresh palette entries on mount
   useEffect(() => {
@@ -107,9 +107,9 @@ export default function BuildRoute() {
       />
 
       <div className="flex flex-1 overflow-hidden">
-        {buildMode === "setup" ? (
+        {isSetup ? (
           <>
-            {setupRailMode === "sprues" ? <SprueRail /> : <TrackRail />}
+            {buildView.kind === "setup-sprues" ? <SprueRail /> : <TrackRail />}
 
             <div className="relative flex min-w-0 flex-1 flex-col bg-[#E8E4DF]">
               <div className="relative min-h-0 flex-1">
@@ -141,18 +141,18 @@ export default function BuildRoute() {
           </>
         ) : (
           <>
-            {navMode === "track" ? <BuildingRail /> : <PageRail />}
+            {buildView.kind === "building-track" ? <BuildingRail /> : <PageRail />}
 
             <div className="relative flex min-w-0 flex-1 flex-col bg-[#E8E4DF]">
               <div className="relative min-h-0 flex-1">
-                {navMode === "track" ? <CropCanvas /> : <PageCanvas />}
-                {navMode === "track" && <AnnotationToolbar />}
+                {buildView.kind === "building-track" ? <CropCanvas /> : <PageCanvas />}
+                {buildView.kind === "building-track" && <AnnotationToolbar />}
                 <RelationPill />
               </div>
               <NavigationBar />
             </div>
 
-            {navMode === "page" ? <PageInfoPanel /> : activeStepId && <BuildingStepPanel />}
+            {buildView.kind === "building-page" ? <PageInfoPanel /> : activeStepId && <BuildingStepPanel />}
             <MilestoneDialog />
             <CompletionWarningDialog />
             <PolygonSwitchDialog />
