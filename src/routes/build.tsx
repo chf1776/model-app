@@ -1,9 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Wrench, Plus } from "lucide-react";
-import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { useAppStore } from "@/store";
-import * as api from "@/api";
 import { CreateProjectDialog } from "@/components/shared/CreateProjectDialog";
 import { Button } from "@/components/ui/button";
 import { BuildToolbar } from "@/components/build/BuildToolbar";
@@ -29,10 +27,10 @@ import { CompletionWarningDialog } from "@/components/build/CompletionWarningDia
 import { PolygonSwitchDialog } from "@/components/build/PolygonSwitchDialog";
 import { RelationPill } from "@/components/build/RelationPill";
 import { TimerBubble } from "@/components/build/TimerBubble";
-import { flattenTrackSteps, getReplacedStepIds } from "@/components/build/tree-utils";
 import { useUploadPdf } from "@/components/build/useUploadPdf";
-import { getEffectiveDryingMinutes } from "@/shared/types";
-import { zoomIn, zoomOut } from "@/components/build/zoom-utils";
+import { useSharedKeyboard } from "@/hooks/useSharedKeyboard";
+import { useSetupKeyboard } from "@/hooks/useSetupKeyboard";
+import { useBuildingKeyboard } from "@/hooks/useBuildingKeyboard";
 
 export default function BuildRoute() {
   // Only subscribe to state needed for rendering layout decisions
@@ -65,210 +63,11 @@ export default function BuildRoute() {
     if (isProcessingPdf) setSourceManagerOpen(false);
   }, [isProcessingPdf]);
 
-  // Keyboard navigation — reads store state on-demand via getState()
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      ) {
-        return;
-      }
-
-      const s = useAppStore.getState();
-
-      // Ctrl/Cmd+Shift+Z: redo annotation (building mode only)
-      if (e.key === "z" && (e.ctrlKey || e.metaKey) && e.shiftKey) {
-        e.preventDefault();
-        if (s.buildMode === "building" && s.activeStepId) {
-          s.redoAnnotation(s.activeStepId);
-        }
-        return;
-      }
-      // Ctrl/Cmd+Z: undo annotation (building) or undo last crop (setup)
-      if (e.key === "z" && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
-        e.preventDefault();
-        if (s.buildMode === "building" && s.activeStepId) {
-          s.undoAnnotation(s.activeStepId);
-        } else {
-          s.undoLastCrop();
-        }
-        return;
-      }
-
-      if (e.key === "?") {
-        e.preventDefault();
-        setShortcutsOpen(true);
-        return;
-      }
-
-      // Building mode navigation + completion
-      if (s.buildMode === "building") {
-        if ((e.key === " " || e.key === "Enter") && s.activeStepId) {
-          e.preventDefault();
-          s.requestStepCompletion(s.activeStepId);
-          return;
-        }
-        if (e.key === "a" || e.key === "A") {
-          e.preventDefault();
-          if (s.annotationMode) s.setAnnotationMode(null);
-          return;
-        }
-        if (e.key >= "1" && e.key <= "7") {
-          e.preventDefault();
-          const toolMap = ["checkmark", "circle", "arrow", "cross", "highlight", "freehand", "text"] as const;
-          const idx = parseInt(e.key) - 1;
-          s.setAnnotationMode(toolMap[idx]);
-          return;
-        }
-        if ((e.key === "t" || e.key === "T") && s.activeStepId) {
-          e.preventDefault();
-          const step = s.steps.find((st) => st.id === s.activeStepId);
-          if (step && !s.activeTimers.some((t) => t.step_id === step.id)) {
-            const mins = getEffectiveDryingMinutes(step);
-            if (mins) {
-              s.addTimer(step.id, step.title, mins);
-            } else {
-              toast.info("Use the Start Timer button to enter a duration");
-            }
-          }
-          return;
-        }
-        if (e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "ArrowRight" || e.key === "ArrowDown") {
-          e.preventDefault();
-          if (s.navMode === "page" && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
-            if (e.key === "ArrowLeft") s.prevPage();
-            else s.nextPage();
-          } else {
-            const replacedIds = getReplacedStepIds(s.steps);
-            const ordered = flattenTrackSteps(s.steps, s.activeTrackId, { excludeReplacedIds: replacedIds });
-            const idx = ordered.findIndex((st) => st.id === s.activeStepId);
-            if ((e.key === "ArrowLeft" || e.key === "ArrowUp") && idx > 0) {
-              s.setActiveStep(ordered[idx - 1].id);
-            } else if ((e.key === "ArrowRight" || e.key === "ArrowDown") && idx >= 0 && idx < ordered.length - 1) {
-              s.setActiveStep(ordered[idx + 1].id);
-            }
-          }
-          return;
-        }
-      }
-
-      // Setup mode: arrow keys navigate pages
-      if (s.buildMode === "setup" && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
-        e.preventDefault();
-        if (e.key === "ArrowLeft") {
-          s.prevPage();
-        } else {
-          s.nextPage();
-        }
-        return;
-      }
-
-      switch (e.key) {
-        case "Enter":
-          if (s.canvasMode === "polygon" && s.polygonDraftPoints.length >= 3) {
-            e.preventDefault();
-            s.savePolygon();
-          }
-          break;
-        case "Tab":
-          e.preventDefault();
-          if (e.shiftKey) {
-            s.prevPage();
-          } else {
-            s.nextPage();
-          }
-          break;
-        case "+":
-        case "=":
-          e.preventDefault();
-          zoomIn();
-          break;
-        case "-":
-          e.preventDefault();
-          zoomOut();
-          break;
-        case "0":
-          e.preventDefault();
-          s.requestFitToView();
-          break;
-        case "r":
-        case "R":
-          e.preventDefault();
-          s.rotatePage();
-          break;
-        case "c":
-        case "C":
-          e.preventDefault();
-          if (s.buildMode === "setup") s.setCanvasMode("crop");
-          break;
-        case "p":
-        case "P":
-          e.preventDefault();
-          if (s.buildMode === "setup") s.setCanvasMode("polygon");
-          break;
-        case "v":
-          e.preventDefault();
-          s.setCanvasMode("view");
-          break;
-        case "f":
-        case "F": {
-          e.preventDefault();
-          if (s.buildMode === "building") break;
-          const page = s.currentSourcePages[s.currentPageIndex];
-          if (!s.activeTrackId) {
-            toast.info("Select a track first");
-            break;
-          }
-          if (!page) break;
-          const trackSteps = s.steps.filter((st) => st.track_id === s.activeTrackId);
-          const rootCount = trackSteps.filter((st) => !st.parent_step_id).length;
-          const title = `Step ${rootCount + 1}`;
-          api
-            .createStep({
-              track_id: s.activeTrackId,
-              title,
-              source_page_id: page.id,
-              is_full_page: true,
-              crop_x: 0,
-              crop_y: 0,
-              crop_w: page.width,
-              crop_h: page.height,
-            })
-            .then((step) => {
-              const fresh = useAppStore.getState();
-              fresh.addStep(step);
-              fresh.pushUndo(step.id);
-              fresh.setActiveStep(step.id);
-              fresh.triggerAutoDetect(step.id);
-              if (fresh.activeProjectId) fresh.loadTracks(fresh.activeProjectId);
-              toast.success("Step created", { toasterId: "canvas" });
-            })
-            .catch((err) => toast.error(`Failed to create step: ${err}`, { toasterId: "canvas" }));
-          break;
-        }
-        case "Escape":
-          e.preventDefault();
-          if (s.canvasMode === "polygon") {
-            if (s.polygonDraftPoints.length > 0) {
-              s.removeLastPolygonPoint();
-            } else {
-              s.setCanvasMode("view");
-            }
-          } else if (s.selectedStepIds.length > 0) {
-            s.clearSelectedSteps();
-          } else if (s.activeStepId) {
-            s.setActiveStep(null);
-          } else if (s.canvasMode === "crop") {
-            s.setCanvasMode("view");
-          }
-          break;
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- reads state on-demand via getState()
+  // Keyboard hooks (each registers its own window listener, reads state on-demand)
+  const openShortcuts = useCallback(() => setShortcutsOpen(true), []);
+  useSharedKeyboard(openShortcuts);
+  useSetupKeyboard();
+  useBuildingKeyboard();
 
   if (!project) {
     return (
