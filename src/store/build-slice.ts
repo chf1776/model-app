@@ -1,6 +1,6 @@
 import type { StateCreator } from "zustand";
-import type { Project, UpdateProjectInput, UpdateStepInput, InstructionSource, InstructionPage, Track, Step, ReferenceImage, Annotation, AnnotationTool, PaletteEntry, SprueRef, StepSpruePart, StepContext } from "@/shared/types";
-import { getEffectiveDryingMinutes, ANNOTATION_TOOL_LABELS, getSettingBool } from "@/shared/types";
+import type { Project, UpdateProjectInput, UpdateStepInput, InstructionSource, InstructionPage, Track, Step, ReferenceImage, Annotation, AnnotationTool, PaletteEntry, SprueRef, StepSpruePart, StepContext, BuildView } from "@/shared/types";
+import { getEffectiveDryingMinutes, ANNOTATION_TOOL_LABELS, getSettingBool, parseBuildView, buildViewFromLegacy } from "@/shared/types";
 import type { AppStore } from "./index";
 import * as api from "@/api";
 import { toast } from "sonner";
@@ -197,7 +197,11 @@ export interface BuildSlice {
   resetViewerState: () => void;
   requestFitToView: () => void;
 
-  // Build mode
+  // Build view (discriminated union — new primary state)
+  buildView: BuildView;
+  setBuildView: (view: BuildView) => void;
+
+  // Build mode (legacy — dual-written from buildView)
   buildMode: BuildMode;
   setBuildMode: (mode: BuildMode) => void;
   completeActiveStep: () => Promise<void>;
@@ -276,6 +280,7 @@ const DEFAULT_BUILD_STATE = {
   annotationStrokeWidth: 0.003,
   annotationUndoStacks: {} as Record<string, Annotation[][]>,
   annotationRedoStacks: {} as Record<string, Annotation[][]>,
+  buildView: { kind: "setup-tracks", canvasMode: "view" } as BuildView,
   buildMode: "setup" as BuildMode,
   setupRailMode: "steps" as SetupRailMode,
   navMode: "track" as NavMode,
@@ -372,10 +377,13 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       api.getProject(id),
       api.getProjectUiState(id),
     ]);
+    const buildView = parseBuildView(uiState.build_view)
+      ?? buildViewFromLegacy(uiState.build_mode as "setup" | "building", uiState.nav_mode as "track" | "page");
     set({
       activeProjectId: id,
       project,
       ...DEFAULT_BUILD_STATE,
+      buildView,
       buildMode: uiState.build_mode === "building" ? "building" : "setup",
       navMode: uiState.nav_mode === "page" ? "page" : "track",
       activeTrackId: uiState.active_track_id ?? null,
@@ -410,9 +418,12 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     const project = await api.getActiveProject();
     if (project) {
       const uiState = await api.getProjectUiState(project.id);
+      const buildView = parseBuildView(uiState.build_view)
+        ?? buildViewFromLegacy(uiState.build_mode as "setup" | "building", uiState.nav_mode as "track" | "page");
       set({
         activeProjectId: project.id,
         project,
+        buildView,
         buildMode: uiState.build_mode === "building" ? "building" : "setup",
         navMode: uiState.nav_mode === "page" ? "page" : "track",
         activeTrackId: uiState.active_track_id ?? null,
@@ -889,7 +900,12 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     get().saveAnnotationsDebounced(stepId);
   },
 
-  setAnnotationMode: (mode) => set({ annotationMode: mode }),
+  setAnnotationMode: (mode) => {
+    set({
+      annotationMode: mode,
+      buildView: { kind: "building-track", annotationMode: mode },
+    });
+  },
   setAnnotationColor: (color) => {
     set({ annotationColor: color });
     api.setSetting("annotation_color", color).catch((e) => toast.error(`Failed to save setting: ${e}`));
@@ -1166,6 +1182,28 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     set({ pendingCompletion: null });
   },
 
+  setBuildView: (view) => {
+    const projectId = get().activeProjectId;
+    // Dual-write to legacy fields
+    const isSetup = view.kind === "setup-tracks" || view.kind === "setup-sprues";
+    const legacyBuildMode: BuildMode = isSetup ? "setup" : "building";
+    const legacyNavMode: NavMode = view.kind === "building-page" ? "page" : "track";
+    const legacyCanvasMode: CanvasMode = ("canvasMode" in view ? view.canvasMode : "view") as CanvasMode;
+    const legacyAnnotationMode: AnnotationTool = view.kind === "building-track" ? view.annotationMode : null;
+    const legacySetupRailMode: SetupRailMode = view.kind === "setup-sprues" ? "sprues" : "steps";
+    set({
+      buildView: view,
+      buildMode: legacyBuildMode,
+      navMode: legacyNavMode,
+      canvasMode: legacyCanvasMode,
+      annotationMode: legacyAnnotationMode,
+      setupRailMode: legacySetupRailMode,
+    });
+    if (projectId) {
+      api.saveBuildView(projectId, view).catch((e) => toast.error(`Failed to save view state: ${e}`));
+    }
+  },
+
   setBuildMode: async (mode) => {
     const state = get();
     const projectId = state.activeProjectId;
@@ -1195,6 +1233,15 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       updates.annotationMode = null as AnnotationTool;
     }
 
+    // Dual-write buildView
+    if (mode === "building") {
+      updates.buildView = state.navMode === "page"
+        ? { kind: "building-page" }
+        : { kind: "building-track", annotationMode: null };
+    } else {
+      updates.buildView = { kind: "setup-tracks", canvasMode: "view" };
+    }
+
     set(updates);
 
     // Load step context for active step when entering building mode
@@ -1206,21 +1253,31 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     }
     try {
       await api.saveBuildMode(projectId, mode);
+      if (updates.buildView) api.saveBuildView(projectId, updates.buildView).catch(() => {});
     } catch (e) {
       toast.error(`Failed to save build mode: ${e}`);
     }
   },
 
   setSetupRailMode: (mode) => {
-    set({ setupRailMode: mode });
+    const bv: BuildView = mode === "sprues"
+      ? { kind: "setup-sprues", canvasMode: "view" }
+      : { kind: "setup-tracks", canvasMode: get().canvasMode === "polygon" || get().canvasMode === "crop" ? get().canvasMode : "view" };
+    set({ setupRailMode: mode, buildView: bv });
+    const projectId = get().activeProjectId;
+    if (projectId) api.saveBuildView(projectId, bv).catch(() => {});
   },
 
   setNavMode: async (mode) => {
     const projectId = get().activeProjectId;
-    set({ navMode: mode });
+    const bv: BuildView = mode === "page"
+      ? { kind: "building-page" }
+      : { kind: "building-track", annotationMode: get().annotationMode };
+    set({ navMode: mode, buildView: bv });
     if (projectId) {
       try {
         await api.saveNavMode(projectId, mode);
+        api.saveBuildView(projectId, bv).catch(() => {});
       } catch (e) {
         toast.error(`Failed to save nav mode: ${e}`);
       }
@@ -1244,6 +1301,13 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       toast.info("Select a track first");
       return;
     }
+    // Compute buildView for dual-write
+    const bvCanvasMode = get().setupRailMode === "sprues"
+      ? (mode === "crop" || mode === "view" ? mode : "view") as "view" | "crop"
+      : mode;
+    const bv: BuildView = get().setupRailMode === "sprues"
+      ? { kind: "setup-sprues", canvasMode: bvCanvasMode as "view" | "crop" }
+      : { kind: "setup-tracks", canvasMode: bvCanvasMode };
     if (mode === "polygon") {
       if (!get().activeTrackId) {
         toast.info("Select a track first");
@@ -1256,6 +1320,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         const existing: { x: number; y: number }[] = JSON.parse(step.clip_polygon);
         set({
           canvasMode: mode,
+          buildView: bv,
           polygonDraftPoints: existing,
           polygonDraftStepId: step.id,
         });
@@ -1263,6 +1328,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         // No existing polygon — create new step on save
         set({
           canvasMode: mode,
+          buildView: bv,
           polygonDraftPoints: [],
           polygonDraftStepId: null,
         });
@@ -1271,9 +1337,9 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     }
     // If leaving polygon mode, clear draft
     if (get().canvasMode === "polygon") {
-      set({ canvasMode: mode, polygonDraftPoints: [], polygonDraftStepId: null });
+      set({ canvasMode: mode, buildView: bv, polygonDraftPoints: [], polygonDraftStepId: null });
     } else {
-      set({ canvasMode: mode });
+      set({ canvasMode: mode, buildView: bv });
     }
   },
 
