@@ -619,13 +619,6 @@ export async function getProjectUiState(
   return invoke<ProjectUiState>("get_project_ui_state", { projectId });
 }
 
-export async function saveBuildMode(
-  projectId: string,
-  buildMode: string,
-): Promise<void> {
-  return invoke<void>("save_build_mode", { projectId, buildMode });
-}
-
 export async function saveActiveTrack(
   projectId: string,
   activeTrackId: string | null,
@@ -638,13 +631,6 @@ export async function saveSpruePanel(
   open: boolean,
 ): Promise<void> {
   return invoke<void>("save_sprue_panel_open", { projectId, open });
-}
-
-export async function saveNavMode(
-  projectId: string,
-  navMode: string,
-): Promise<void> {
-  return invoke<void>("save_nav_mode", { projectId, navMode });
 }
 
 export async function saveBuildView(

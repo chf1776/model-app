@@ -197,22 +197,15 @@ export interface BuildSlice {
   resetViewerState: () => void;
   requestFitToView: () => void;
 
-  // Build view (discriminated union — new primary state)
+  // Build view (discriminated union — primary mode state)
   buildView: BuildView;
   setBuildView: (view: BuildView) => void;
-
-  // Build mode (legacy — dual-written from buildView)
-  buildMode: BuildMode;
-  setBuildMode: (mode: BuildMode) => void;
   completeActiveStep: () => Promise<void>;
 
-  // Setup rail mode
+  // Legacy mode fields (internal — kept in sync by setBuildView, used by setCanvasMode validation)
+  buildMode: BuildMode;
   setupRailMode: SetupRailMode;
-  setSetupRailMode: (mode: SetupRailMode) => void;
-
-  // Nav mode
   navMode: NavMode;
-  setNavMode: (mode: NavMode) => void;
 
   // Sprue panel
   spruePanelOpen: boolean;
@@ -1183,36 +1176,31 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   },
 
   setBuildView: (view) => {
-    const projectId = get().activeProjectId;
-    // Dual-write to legacy fields
+    const state = get();
+    const projectId = state.activeProjectId;
+    const prevView = state.buildView;
+    const wasSetup = prevView.kind === "setup-tracks" || prevView.kind === "setup-sprues";
     const isSetup = view.kind === "setup-tracks" || view.kind === "setup-sprues";
+    const isBuilding = !isSetup;
+
+    // Dual-write to legacy fields
     const legacyBuildMode: BuildMode = isSetup ? "setup" : "building";
     const legacyNavMode: NavMode = view.kind === "building-page" ? "page" : "track";
     const legacyCanvasMode: CanvasMode = ("canvasMode" in view ? view.canvasMode : "view") as CanvasMode;
     const legacyAnnotationMode: AnnotationTool = view.kind === "building-track" ? view.annotationMode : null;
     const legacySetupRailMode: SetupRailMode = view.kind === "setup-sprues" ? "sprues" : "steps";
-    set({
+
+    const updates: Partial<BuildSlice> = {
       buildView: view,
       buildMode: legacyBuildMode,
       navMode: legacyNavMode,
       canvasMode: legacyCanvasMode,
       annotationMode: legacyAnnotationMode,
       setupRailMode: legacySetupRailMode,
-    });
-    if (projectId) {
-      api.saveBuildView(projectId, view).catch((e) => toast.error(`Failed to save view state: ${e}`));
-    }
-  },
+    };
 
-  setBuildMode: async (mode) => {
-    const state = get();
-    const projectId = state.activeProjectId;
-    if (!projectId) return;
-
-    const updates: Partial<BuildSlice> = { buildMode: mode };
-
-    // Force canvas back to view mode and reset viewer when entering building
-    if (mode === "building") {
+    // Side effects when transitioning from setup → building
+    if (wasSetup && isBuilding) {
       updates.canvasMode = "view" as CanvasMode;
       updates.polygonDraftPoints = [];
       updates.polygonDraftStepId = null;
@@ -1228,59 +1216,18 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       }
     }
 
-    // Clear annotation toolbar when switching modes
-    if (mode === "setup") {
-      updates.annotationMode = null as AnnotationTool;
-    }
-
-    // Dual-write buildView
-    if (mode === "building") {
-      updates.buildView = state.navMode === "page"
-        ? { kind: "building-page" }
-        : { kind: "building-track", annotationMode: null };
-    } else {
-      updates.buildView = { kind: "setup-tracks", canvasMode: "view" };
-    }
-
     set(updates);
 
     // Load step context for active step when entering building mode
-    if (mode === "building") {
-      const activeId = (updates as Record<string, unknown>).activeStepId as string ?? state.activeStepId;
+    if (wasSetup && isBuilding) {
+      const activeId = updates.activeStepId ?? state.activeStepId;
       if (activeId && !state.stepContexts[activeId]) {
         get().loadStepContext(activeId);
       }
     }
-    try {
-      await api.saveBuildMode(projectId, mode);
-      if (updates.buildView) api.saveBuildView(projectId, updates.buildView).catch(() => {});
-    } catch (e) {
-      toast.error(`Failed to save build mode: ${e}`);
-    }
-  },
 
-  setSetupRailMode: (mode) => {
-    const bv: BuildView = mode === "sprues"
-      ? { kind: "setup-sprues", canvasMode: "view" }
-      : { kind: "setup-tracks", canvasMode: get().canvasMode === "polygon" || get().canvasMode === "crop" ? get().canvasMode : "view" };
-    set({ setupRailMode: mode, buildView: bv });
-    const projectId = get().activeProjectId;
-    if (projectId) api.saveBuildView(projectId, bv).catch(() => {});
-  },
-
-  setNavMode: async (mode) => {
-    const projectId = get().activeProjectId;
-    const bv: BuildView = mode === "page"
-      ? { kind: "building-page" }
-      : { kind: "building-track", annotationMode: get().annotationMode };
-    set({ navMode: mode, buildView: bv });
     if (projectId) {
-      try {
-        await api.saveNavMode(projectId, mode);
-        api.saveBuildView(projectId, bv).catch(() => {});
-      } catch (e) {
-        toast.error(`Failed to save nav mode: ${e}`);
-      }
+      api.saveBuildView(projectId, view).catch((e) => toast.error(`Failed to save view state: ${e}`));
     }
   },
 
