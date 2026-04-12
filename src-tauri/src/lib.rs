@@ -106,6 +106,7 @@ pub fn run() {
             commands::instructions::save_view_state,
             commands::instructions::save_build_mode,
             commands::instructions::save_nav_mode,
+            commands::instructions::save_build_view,
             commands::instructions::save_active_track,
             commands::instructions::save_sprue_panel_open,
             commands::tracks::list_tracks,

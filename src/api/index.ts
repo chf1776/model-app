@@ -51,6 +51,7 @@ import type {
   SprueDepletionSummary,
   DetectionResponse,
   StepContext,
+  BuildView,
 } from "@/shared/types";
 
 // ── Kits ────────────────────────────────────────────────────────────────────
@@ -644,6 +645,13 @@ export async function saveNavMode(
   navMode: string,
 ): Promise<void> {
   return invoke<void>("save_nav_mode", { projectId, navMode });
+}
+
+export async function saveBuildView(
+  projectId: string,
+  buildView: BuildView,
+): Promise<void> {
+  return invoke<void>("save_build_view", { projectId, buildView: JSON.stringify(buildView) });
 }
 
 export async function saveViewState(

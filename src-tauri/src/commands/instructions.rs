@@ -175,6 +175,16 @@ pub fn save_nav_mode(
 }
 
 #[tauri::command]
+pub fn save_build_view(
+    db: State<'_, AppDb>,
+    project_id: String,
+    build_view: String,
+) -> Result<(), String> {
+    let conn = db.conn()?;
+    crate::db::queries::project_ui_state::save_build_view(&conn, &project_id, &build_view)
+}
+
+#[tauri::command]
 pub fn save_sprue_panel_open(
     db: State<'_, AppDb>,
     project_id: String,
