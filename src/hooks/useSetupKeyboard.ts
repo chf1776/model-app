@@ -1,7 +1,5 @@
 import { useEffect } from "react";
-import { toast } from "sonner";
 import { useAppStore } from "@/store";
-import * as api from "@/api";
 
 export function useSetupKeyboard() {
   useEffect(() => {
@@ -47,40 +45,10 @@ export function useSetupKeyboard() {
           s.setCanvasMode("view");
           return;
         case "f":
-        case "F": {
+        case "F":
           e.preventDefault();
-          const page = s.currentSourcePages[s.currentPageIndex];
-          if (!s.activeTrackId) {
-            toast.info("Select a track first");
-            return;
-          }
-          if (!page) return;
-          const trackSteps = s.steps.filter((st) => st.track_id === s.activeTrackId);
-          const rootCount = trackSteps.filter((st) => !st.parent_step_id).length;
-          const title = `Step ${rootCount + 1}`;
-          api
-            .createStep({
-              track_id: s.activeTrackId,
-              title,
-              source_page_id: page.id,
-              is_full_page: true,
-              crop_x: 0,
-              crop_y: 0,
-              crop_w: page.width,
-              crop_h: page.height,
-            })
-            .then((step) => {
-              const fresh = useAppStore.getState();
-              fresh.addStep(step);
-              fresh.pushUndo(step.id);
-              fresh.setActiveStep(step.id);
-              fresh.triggerAutoDetect(step.id);
-              if (fresh.activeProjectId) fresh.loadTracks(fresh.activeProjectId);
-              toast.success("Step created", { toasterId: "canvas" });
-            })
-            .catch((err) => toast.error(`Failed to create step: ${err}`, { toasterId: "canvas" }));
+          s.createFullPageStep();
           return;
-        }
         case "Escape":
           e.preventDefault();
           if ("canvasMode" in s.buildView && s.buildView.canvasMode === "polygon") {

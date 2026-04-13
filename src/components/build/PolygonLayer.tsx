@@ -4,6 +4,7 @@ import { useAppStore } from "@/store";
 import { imagePointToEffective, effectivePointToImage } from "./CropLayer";
 import { useTheme } from "@/hooks/useTheme";
 import type { Step } from "@/shared/types";
+import { getCanvasMode } from "@/shared/types";
 import type Konva from "konva";
 
 interface PolygonLayerProps {
@@ -22,7 +23,7 @@ export function PolygonLayer({ zoom, stageRef }: PolygonLayerProps) {
   const tracks = useAppStore((s) => s.tracks);
   const currentSourcePages = useAppStore((s) => s.currentSourcePages);
   const currentPageIndex = useAppStore((s) => s.currentPageIndex);
-  const canvasMode = useAppStore((s) => "canvasMode" in s.buildView ? s.buildView.canvasMode : "view");
+  const canvasMode = useAppStore((s) => getCanvasMode(s.buildView));
   const polygonDraftPoints = useAppStore((s) => s.polygonDraftPoints);
   const polygonDraftStepId = useAppStore((s) => s.polygonDraftStepId);
   const activeStepId = useAppStore((s) => s.activeStepId);

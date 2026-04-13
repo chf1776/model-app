@@ -1,6 +1,7 @@
 import { useRef, useCallback, useState } from "react";
 import { toast } from "sonner";
 import { useAppStore } from "@/store";
+import { getCanvasMode } from "@/shared/types";
 import * as api from "@/api";
 import type Konva from "konva";
 
@@ -81,7 +82,7 @@ export function useCropDrawing(stageRef: React.RefObject<Konva.Stage | null>) {
   const startPoint = useRef<{ x: number; y: number } | null>(null);
   const isCreating = useRef(false);
 
-  const canvasMode = useAppStore((s) => "canvasMode" in s.buildView ? s.buildView.canvasMode : "view");
+  const canvasMode = useAppStore((s) => getCanvasMode(s.buildView));
   const activeTrackId = useAppStore((s) => s.activeTrackId);
   const activeStepId = useAppStore((s) => s.activeStepId);
   const currentSourcePages = useAppStore((s) => s.currentSourcePages);

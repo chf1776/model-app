@@ -3,6 +3,7 @@ import { Stage, Layer, Rect, Image as KonvaImage } from "react-konva";
 import useImage from "use-image";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useAppStore } from "@/store";
+import { getCanvasMode } from "@/shared/types";
 import * as api from "@/api";
 import { useCropDrawing } from "@/hooks/useCropDrawing";
 import { useSprueDrawing } from "@/hooks/useSprueDrawing";
@@ -66,7 +67,7 @@ export function InstructionCanvas() {
   const setViewerPan = useAppStore((s) => s.setViewerPan);
   const fitToViewTrigger = useAppStore((s) => s.fitToViewTrigger);
   const focusCropTrigger = useAppStore((s) => s.focusCropTrigger);
-  const canvasMode = useAppStore((s) => "canvasMode" in s.buildView ? s.buildView.canvasMode : "view");
+  const canvasMode = useAppStore((s) => getCanvasMode(s.buildView));
 
   const currentPage = currentSourcePages[currentPageIndex];
   const imageSrc = currentPage ? convertFileSrc(currentPage.file_path) : null;

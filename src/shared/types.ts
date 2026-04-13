@@ -724,6 +724,21 @@ export type BuildView =
   | { kind: "building-track"; annotationMode: AnnotationTool }
   | { kind: "building-page" };
 
+export function getCanvasMode(view: BuildView): "view" | "crop" | "polygon" {
+  return "canvasMode" in view ? view.canvasMode : "view";
+}
+
+export function getAnnotationMode(view: BuildView): AnnotationTool {
+  return view.kind === "building-track" ? view.annotationMode : null;
+}
+
+export function buildViewsEqual(a: BuildView, b: BuildView): boolean {
+  if (a.kind !== b.kind) return false;
+  if (a.kind === "building-track" && b.kind === "building-track") return a.annotationMode === b.annotationMode;
+  if ("canvasMode" in a && "canvasMode" in b) return a.canvasMode === b.canvasMode;
+  return true;
+}
+
 export function parseBuildView(json: string | null): BuildView | null {
   if (!json) return null;
   try {

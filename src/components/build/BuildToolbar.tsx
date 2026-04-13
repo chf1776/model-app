@@ -1,12 +1,10 @@
 import { Upload, ZoomIn, ZoomOut, Maximize2, FileStack, RotateCw, MousePointer, Crop, Pentagon, RectangleHorizontal, Keyboard, Settings2, Hammer, List, FileText, Eraser, Box } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { SegmentedPill } from "@/components/shared/SegmentedPill";
 import { useAppStore } from "@/store";
-
-import * as api from "@/api";
+import { getCanvasMode } from "@/shared/types";
 import { useUploadPdf } from "./useUploadPdf";
 import { zoomIn, zoomOut } from "./zoom-utils";
 
@@ -29,18 +27,11 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
   const activeStepId = useAppStore((s) => s.activeStepId);
   const clearClipPolygon = useAppStore((s) => s.clearClipPolygon);
   const sprueRefs = useAppStore((s) => s.sprueRefs);
-  const currentSourcePages = useAppStore((s) => s.currentSourcePages);
-  const currentPageIndex = useAppStore((s) => s.currentPageIndex);
   const steps = useAppStore((s) => s.steps);
-  const addStep = useAppStore((s) => s.addStep);
-  const setActiveStep = useAppStore((s) => s.setActiveStep);
-  const activeProjectId = useAppStore((s) => s.activeProjectId);
-  const loadTracks = useAppStore((s) => s.loadTracks);
-  const pushUndo = useAppStore((s) => s.pushUndo);
-  const triggerAutoDetect = useAppStore((s) => s.triggerAutoDetect);
+  const createFullPageStep = useAppStore((s) => s.createFullPageStep);
 
   const isSetup = buildView.kind === "setup-tracks" || buildView.kind === "setup-sprues";
-  const canvasMode = "canvasMode" in buildView ? buildView.canvasMode : "view";
+  const canvasMode = getCanvasMode(buildView);
   const setupRailMode = buildView.kind === "setup-sprues" ? "sprues" : "steps";
   const navMode = buildView.kind === "building-page" ? "page" : "track";
 
@@ -56,46 +47,10 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
 
   const zoomPercent = Math.round(viewerZoom * 100);
 
-  const currentPage = currentSourcePages[currentPageIndex];
-
   // Polygon mode requires a track (same as crop mode)
   const activeStep = activeStepId ? steps.find((s) => s.id === activeStepId) : null;
   const canPolygon = activeTrackId != null;
   const hasPolygon = activeStep != null && activeStep.clip_polygon != null;
-
-  const handleFullPage = async () => {
-    if (!activeTrackId) {
-      toast.info("Select a track first");
-      return;
-    }
-    if (!currentPage) {
-      toast.info("No page selected");
-      return;
-    }
-    const trackSteps = steps.filter((s) => s.track_id === activeTrackId);
-    const rootCount = trackSteps.filter((s) => !s.parent_step_id).length;
-    const title = `Step ${rootCount + 1}`;
-    try {
-      const step = await api.createStep({
-        track_id: activeTrackId,
-        title,
-        source_page_id: currentPage.id,
-        is_full_page: true,
-        crop_x: 0,
-        crop_y: 0,
-        crop_w: currentPage.width,
-        crop_h: currentPage.height,
-      });
-      addStep(step);
-      pushUndo(step.id);
-      setActiveStep(step.id);
-      triggerAutoDetect(step.id);
-      if (activeProjectId) loadTracks(activeProjectId);
-      toast.success("Step created", { toasterId: "canvas" });
-    } catch (e) {
-      toast.error(`Failed to create step: ${e}`, { toasterId: "canvas" });
-    }
-  };
 
   return (
     <div className="flex items-center gap-2 border-b border-border bg-background px-3 py-1">
@@ -248,7 +203,7 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={handleFullPage}
+                    onClick={createFullPageStep}
                     className="rounded p-1 text-text-tertiary hover:bg-muted hover:text-text-secondary"
                   >
                     <RectangleHorizontal className="h-3.5 w-3.5" />

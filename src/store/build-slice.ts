@@ -1,6 +1,6 @@
 import type { StateCreator } from "zustand";
 import type { Project, UpdateProjectInput, UpdateStepInput, InstructionSource, InstructionPage, Track, Step, ReferenceImage, Annotation, AnnotationTool, PaletteEntry, SprueRef, StepSpruePart, StepContext, BuildView } from "@/shared/types";
-import { getEffectiveDryingMinutes, ANNOTATION_TOOL_LABELS, getSettingBool, parseBuildView, buildViewFromLegacy } from "@/shared/types";
+import { getEffectiveDryingMinutes, buildViewsEqual, ANNOTATION_TOOL_LABELS, getSettingBool, parseBuildView, buildViewFromLegacy } from "@/shared/types";
 import type { AppStore } from "./index";
 import * as api from "@/api";
 import { toast } from "sonner";
@@ -238,6 +238,9 @@ export interface BuildSlice {
   confirmPolygonSave: () => Promise<void>;
   dismissPolygonSwitch: () => void;
   clearClipPolygon: (stepId: string) => Promise<void>;
+
+  // Full-page step (shared by toolbar + keyboard shortcut)
+  createFullPageStep: () => Promise<void>;
 
   // AI detection
   triggerAutoDetect: (stepId: string) => void;
@@ -894,6 +897,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
   },
 
   setAnnotationMode: (mode) => {
+    if (mode === get().annotationMode) return;
     set({
       annotationMode: mode,
       buildView: { kind: "building-track", annotationMode: mode },
@@ -1226,8 +1230,41 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       }
     }
 
-    if (projectId) {
+    if (projectId && !buildViewsEqual(prevView, view)) {
       api.saveBuildView(projectId, view).catch((e) => toast.error(`Failed to save view state: ${e}`));
+    }
+  },
+
+  createFullPageStep: async () => {
+    const s = get();
+    if (!s.activeTrackId) {
+      toast.info("Select a track first");
+      return;
+    }
+    const page = s.currentSourcePages[s.currentPageIndex];
+    if (!page) return;
+    const trackSteps = s.steps.filter((st) => st.track_id === s.activeTrackId);
+    const rootCount = trackSteps.filter((st) => !st.parent_step_id).length;
+    try {
+      const step = await api.createStep({
+        track_id: s.activeTrackId!,
+        title: `Step ${rootCount + 1}`,
+        source_page_id: page.id,
+        is_full_page: true,
+        crop_x: 0,
+        crop_y: 0,
+        crop_w: page.width,
+        crop_h: page.height,
+      });
+      const fresh = get();
+      fresh.addStep(step);
+      fresh.pushUndo(step.id);
+      fresh.setActiveStep(step.id);
+      fresh.triggerAutoDetect(step.id);
+      if (fresh.activeProjectId) fresh.loadTracks(fresh.activeProjectId);
+      toast.success("Step created", { toasterId: "canvas" });
+    } catch (e) {
+      toast.error(`Failed to create step: ${e}`, { toasterId: "canvas" });
     }
   },
 

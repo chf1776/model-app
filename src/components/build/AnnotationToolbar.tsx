@@ -4,7 +4,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { useAppStore } from "@/store";
 import { useTheme } from "@/hooks/useTheme";
 import type { Annotation, AnnotationTool } from "@/shared/types";
-import { ANNOTATION_TOOL_LABELS } from "@/shared/types";
+import { ANNOTATION_TOOL_LABELS, getAnnotationMode } from "@/shared/types";
 
 const EMPTY_ANNOTATIONS: Annotation[] = [];
 const EMPTY_STACK: Annotation[][] = [];
@@ -36,7 +36,7 @@ const STROKE_PRESETS: { label: string; value: number; thickness: number }[] = [
 
 export function AnnotationToolbar() {
   const { accent } = useTheme();
-  const annotationMode = useAppStore((s) => s.buildView.kind === "building-track" ? s.buildView.annotationMode : null);
+  const annotationMode = useAppStore((s) => getAnnotationMode(s.buildView));
   const setAnnotationMode = useAppStore((s) => s.setAnnotationMode);
   const annotationColor = useAppStore((s) => s.annotationColor);
   const setAnnotationColor = useAppStore((s) => s.setAnnotationColor);
