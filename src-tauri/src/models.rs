@@ -669,6 +669,7 @@ pub struct ProjectUiState {
     pub active_track_id: Option<String>,
     pub build_mode: String,
     pub nav_mode: String,
+    pub build_view: Option<String>,
     pub image_zoom: f64,
     pub image_pan_x: f64,
     pub image_pan_y: f64,

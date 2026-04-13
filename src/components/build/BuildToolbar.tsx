@@ -1,12 +1,10 @@
 import { Upload, ZoomIn, ZoomOut, Maximize2, FileStack, RotateCw, MousePointer, Crop, Pentagon, RectangleHorizontal, Keyboard, Settings2, Hammer, List, FileText, Eraser, Box } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { SegmentedPill } from "@/components/shared/SegmentedPill";
 import { useAppStore } from "@/store";
-import type { BuildMode, NavMode, SetupRailMode } from "@/store/build-slice";
-import * as api from "@/api";
+import { getCanvasMode } from "@/shared/types";
 import { useUploadPdf } from "./useUploadPdf";
 import { zoomIn, zoomOut } from "./zoom-utils";
 
@@ -17,32 +15,25 @@ interface BuildToolbarProps {
 
 export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildToolbarProps) {
   const project = useAppStore((s) => s.project);
-  const buildMode = useAppStore((s) => s.buildMode);
-  const setBuildMode = useAppStore((s) => s.setBuildMode);
+  const buildView = useAppStore((s) => s.buildView);
+  const setBuildView = useAppStore((s) => s.setBuildView);
   const tracks = useAppStore((s) => s.tracks);
   const activeTrackId = useAppStore((s) => s.activeTrackId);
   const instructionSources = useAppStore((s) => s.instructionSources);
   const viewerZoom = useAppStore((s) => s.viewerZoom);
   const requestFitToView = useAppStore((s) => s.requestFitToView);
   const rotatePage = useAppStore((s) => s.rotatePage);
-  const canvasMode = useAppStore((s) => s.canvasMode);
   const setCanvasMode = useAppStore((s) => s.setCanvasMode);
   const activeStepId = useAppStore((s) => s.activeStepId);
   const clearClipPolygon = useAppStore((s) => s.clearClipPolygon);
-  const navMode = useAppStore((s) => s.navMode);
-  const setNavMode = useAppStore((s) => s.setNavMode);
-  const setupRailMode = useAppStore((s) => s.setupRailMode);
-  const setSetupRailMode = useAppStore((s) => s.setSetupRailMode);
   const sprueRefs = useAppStore((s) => s.sprueRefs);
-  const currentSourcePages = useAppStore((s) => s.currentSourcePages);
-  const currentPageIndex = useAppStore((s) => s.currentPageIndex);
   const steps = useAppStore((s) => s.steps);
-  const addStep = useAppStore((s) => s.addStep);
-  const setActiveStep = useAppStore((s) => s.setActiveStep);
-  const activeProjectId = useAppStore((s) => s.activeProjectId);
-  const loadTracks = useAppStore((s) => s.loadTracks);
-  const pushUndo = useAppStore((s) => s.pushUndo);
-  const triggerAutoDetect = useAppStore((s) => s.triggerAutoDetect);
+  const createFullPageStep = useAppStore((s) => s.createFullPageStep);
+
+  const isSetup = buildView.kind === "setup-tracks" || buildView.kind === "setup-sprues";
+  const canvasMode = getCanvasMode(buildView);
+  const setupRailMode = buildView.kind === "setup-sprues" ? "sprues" : "steps";
+  const navMode = buildView.kind === "building-page" ? "page" : "track";
 
   const activeTrack = activeTrackId
     ? tracks.find((t) => t.id === activeTrackId) ?? null
@@ -56,46 +47,10 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
 
   const zoomPercent = Math.round(viewerZoom * 100);
 
-  const currentPage = currentSourcePages[currentPageIndex];
-
   // Polygon mode requires a track (same as crop mode)
   const activeStep = activeStepId ? steps.find((s) => s.id === activeStepId) : null;
   const canPolygon = activeTrackId != null;
   const hasPolygon = activeStep != null && activeStep.clip_polygon != null;
-
-  const handleFullPage = async () => {
-    if (!activeTrackId) {
-      toast.info("Select a track first");
-      return;
-    }
-    if (!currentPage) {
-      toast.info("No page selected");
-      return;
-    }
-    const trackSteps = steps.filter((s) => s.track_id === activeTrackId);
-    const rootCount = trackSteps.filter((s) => !s.parent_step_id).length;
-    const title = `Step ${rootCount + 1}`;
-    try {
-      const step = await api.createStep({
-        track_id: activeTrackId,
-        title,
-        source_page_id: currentPage.id,
-        is_full_page: true,
-        crop_x: 0,
-        crop_y: 0,
-        crop_w: currentPage.width,
-        crop_h: currentPage.height,
-      });
-      addStep(step);
-      pushUndo(step.id);
-      setActiveStep(step.id);
-      triggerAutoDetect(step.id);
-      if (activeProjectId) loadTracks(activeProjectId);
-      toast.success("Step created", { toasterId: "canvas" });
-    } catch (e) {
-      toast.error(`Failed to create step: ${e}`, { toasterId: "canvas" });
-    }
-  };
 
   return (
     <div className="flex items-center gap-2 border-b border-border bg-background px-3 py-1">
@@ -103,39 +58,48 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
       <SegmentedPill
         size="sm"
         items={[
-          { value: "setup" as BuildMode, label: "Setup", icon: <Settings2 className="h-3 w-3" /> },
-          { value: "building" as BuildMode, label: "Building", icon: <Hammer className="h-3 w-3" /> },
+          { value: "setup" as const, label: "Setup", icon: <Settings2 className="h-3 w-3" /> },
+          { value: "building" as const, label: "Building", icon: <Hammer className="h-3 w-3" /> },
         ]}
-        value={buildMode}
-        onChange={setBuildMode}
+        value={isSetup ? "setup" : "building"}
+        onChange={(v) => {
+          if (v === "setup") setBuildView({ kind: "setup-tracks", canvasMode: "view" });
+          else setBuildView({ kind: "building-track", annotationMode: null });
+        }}
       />
 
-      {buildMode === "setup" && (
+      {isSetup && (
         <>
           <Separator orientation="vertical" className="h-[14px]" />
           <SegmentedPill
             size="sm"
             items={[
-              { value: "steps" as SetupRailMode, label: "Steps", icon: <List className="h-3 w-3" /> },
-              { value: "sprues" as SetupRailMode, label: "Sprues", icon: <Box className="h-3 w-3" />, count: sprueRefs.length || undefined },
+              { value: "steps" as const, label: "Steps", icon: <List className="h-3 w-3" /> },
+              { value: "sprues" as const, label: "Sprues", icon: <Box className="h-3 w-3" />, count: sprueRefs.length || undefined },
             ]}
             value={setupRailMode}
-            onChange={setSetupRailMode}
+            onChange={(v) => {
+              if (v === "sprues") setBuildView({ kind: "setup-sprues", canvasMode: "view" });
+              else setBuildView({ kind: "setup-tracks", canvasMode: "view" });
+            }}
           />
         </>
       )}
 
-      {buildMode === "building" && instructionSources.length > 0 && (
+      {!isSetup && instructionSources.length > 0 && (
         <>
           <Separator orientation="vertical" className="h-[14px]" />
           <SegmentedPill
             size="sm"
             items={[
-              { value: "track" as NavMode, label: "Steps", icon: <List className="h-3 w-3" /> },
-              { value: "page" as NavMode, label: "Pages", icon: <FileText className="h-3 w-3" /> },
+              { value: "track" as const, label: "Steps", icon: <List className="h-3 w-3" /> },
+              { value: "page" as const, label: "Pages", icon: <FileText className="h-3 w-3" /> },
             ]}
             value={navMode}
-            onChange={setNavMode}
+            onChange={(v) => {
+              if (v === "page") setBuildView({ kind: "building-page" });
+              else setBuildView({ kind: "building-track", annotationMode: null });
+            }}
           />
         </>
       )}
@@ -167,7 +131,7 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
       {instructionSources.length > 0 && (
         <>
           {/* View/Crop toggle — setup only */}
-          {buildMode === "setup" && (
+          {isSetup && (
             <>
               <div className="flex items-center rounded-md border border-border">
                 <Tooltip>
@@ -239,7 +203,7 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={handleFullPage}
+                    onClick={createFullPageStep}
                     className="rounded p-1 text-text-tertiary hover:bg-muted hover:text-text-secondary"
                   >
                     <RectangleHorizontal className="h-3.5 w-3.5" />
@@ -336,7 +300,7 @@ export function BuildToolbar({ onOpenSourceManager, onOpenShortcuts }: BuildTool
       )}
 
       {/* Upload button — setup only */}
-      {buildMode === "setup" && (
+      {isSetup && (
         <Button
           size="sm"
           onClick={handleUploadPdf}

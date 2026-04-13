@@ -1,6 +1,7 @@
 import { useRef, useCallback, useState } from "react";
 import { toast } from "sonner";
 import { useAppStore } from "@/store";
+import { getCanvasMode } from "@/shared/types";
 import { stageToImage } from "./useCropDrawing";
 import type { DrawingRect } from "./useCropDrawing";
 import * as api from "@/api";
@@ -20,8 +21,8 @@ export function useSprueDrawing(stageRef: React.RefObject<Konva.Stage | null>) {
   const startPoint = useRef<{ x: number; y: number } | null>(null);
   const isCreating = useRef(false);
 
-  const canvasMode = useAppStore((s) => s.canvasMode);
-  const setupRailMode = useAppStore((s) => s.setupRailMode);
+  const canvasMode = useAppStore((s) => getCanvasMode(s.buildView));
+  const setupRailMode = useAppStore((s) => s.buildView.kind === "setup-sprues" ? "sprues" : "steps");
   const activeSprueRefId = useAppStore((s) => s.activeSprueRefId);
   const sprueRefs = useAppStore((s) => s.sprueRefs);
   const activeProjectId = useAppStore((s) => s.activeProjectId);

@@ -141,16 +141,6 @@ pub fn delete_instruction_source(
 }
 
 #[tauri::command]
-pub fn save_build_mode(
-    db: State<'_, AppDb>,
-    project_id: String,
-    build_mode: String,
-) -> Result<(), String> {
-    let conn = db.conn()?;
-    crate::db::queries::project_ui_state::save_build_mode(&conn, &project_id, &build_mode)
-}
-
-#[tauri::command]
 pub fn save_active_track(
     db: State<'_, AppDb>,
     project_id: String,
@@ -165,13 +155,13 @@ pub fn save_active_track(
 }
 
 #[tauri::command]
-pub fn save_nav_mode(
+pub fn save_build_view(
     db: State<'_, AppDb>,
     project_id: String,
-    nav_mode: String,
+    build_view: String,
 ) -> Result<(), String> {
     let conn = db.conn()?;
-    crate::db::queries::project_ui_state::save_nav_mode(&conn, &project_id, &nav_mode)
+    crate::db::queries::project_ui_state::save_build_view(&conn, &project_id, &build_view)
 }
 
 #[tauri::command]

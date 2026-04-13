@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useAppStore } from "@/store";
-import { ANNOTATION_TOOL_LABELS } from "@/shared/types";
+import { ANNOTATION_TOOL_LABELS, getAnnotationMode } from "@/shared/types";
 import { flattenTrackSteps, getStepLabel, getReplacedStepIds } from "./tree-utils";
 
 export function NavigationBar() {
-  const navMode = useAppStore((s) => s.navMode);
+  const navMode = useAppStore((s) => s.buildView.kind === "building-page" ? "page" : "track");
 
   if (navMode === "page") {
     return <PageNavigationBar />;
@@ -20,7 +20,7 @@ function TrackNavigationBar() {
   const activeStepId = useAppStore((s) => s.activeStepId);
   const activeTrackId = useAppStore((s) => s.activeTrackId);
   const setActiveStep = useAppStore((s) => s.setActiveStep);
-  const annotationMode = useAppStore((s) => s.annotationMode);
+  const annotationMode = useAppStore((s) => getAnnotationMode(s.buildView));
 
   const activeTrack = tracks.find((t) => t.id === activeTrackId);
 

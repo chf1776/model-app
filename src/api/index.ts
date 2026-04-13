@@ -51,6 +51,7 @@ import type {
   SprueDepletionSummary,
   DetectionResponse,
   StepContext,
+  BuildView,
 } from "@/shared/types";
 
 // ── Kits ────────────────────────────────────────────────────────────────────
@@ -618,13 +619,6 @@ export async function getProjectUiState(
   return invoke<ProjectUiState>("get_project_ui_state", { projectId });
 }
 
-export async function saveBuildMode(
-  projectId: string,
-  buildMode: string,
-): Promise<void> {
-  return invoke<void>("save_build_mode", { projectId, buildMode });
-}
-
 export async function saveActiveTrack(
   projectId: string,
   activeTrackId: string | null,
@@ -639,11 +633,11 @@ export async function saveSpruePanel(
   return invoke<void>("save_sprue_panel_open", { projectId, open });
 }
 
-export async function saveNavMode(
+export async function saveBuildView(
   projectId: string,
-  navMode: string,
+  buildView: BuildView,
 ): Promise<void> {
-  return invoke<void>("save_nav_mode", { projectId, navMode });
+  return invoke<void>("save_build_view", { projectId, buildView: JSON.stringify(buildView) });
 }
 
 export async function saveViewState(

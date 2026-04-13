@@ -708,11 +708,58 @@ export interface ProjectUiState {
   active_track_id: string | null;
   build_mode: "setup" | "building";
   nav_mode: "track" | "page";
+  build_view: string | null;
   image_zoom: number;
   image_pan_x: number;
   image_pan_y: number;
   sprue_panel_open: boolean;
   updated_at: number;
+}
+
+// ── Build View (discriminated union for mode state) ─────────────────────────
+
+export type BuildView =
+  | { kind: "setup-tracks"; canvasMode: "view" | "crop" | "polygon" }
+  | { kind: "setup-sprues"; canvasMode: "view" | "crop" }
+  | { kind: "building-track"; annotationMode: AnnotationTool }
+  | { kind: "building-page" };
+
+export function getCanvasMode(view: BuildView): "view" | "crop" | "polygon" {
+  return "canvasMode" in view ? view.canvasMode : "view";
+}
+
+export function getAnnotationMode(view: BuildView): AnnotationTool {
+  return view.kind === "building-track" ? view.annotationMode : null;
+}
+
+export function buildViewsEqual(a: BuildView, b: BuildView): boolean {
+  if (a.kind !== b.kind) return false;
+  if (a.kind === "building-track" && b.kind === "building-track") return a.annotationMode === b.annotationMode;
+  if ("canvasMode" in a && "canvasMode" in b) return a.canvasMode === b.canvasMode;
+  return true;
+}
+
+export function parseBuildView(json: string | null): BuildView | null {
+  if (!json) return null;
+  try {
+    const parsed = JSON.parse(json) as BuildView;
+    if (parsed && typeof parsed.kind === "string") return parsed;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function buildViewFromLegacy(
+  buildMode: "setup" | "building",
+  navMode: "track" | "page",
+): BuildView {
+  if (buildMode === "building") {
+    return navMode === "page"
+      ? { kind: "building-page" }
+      : { kind: "building-track", annotationMode: null };
+  }
+  return { kind: "setup-tracks", canvasMode: "view" };
 }
 
 export type Zone = "collection" | "build" | "overview";

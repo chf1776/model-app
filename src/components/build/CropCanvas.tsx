@@ -6,6 +6,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useAppStore } from "@/store";
 import type { Step, InstructionPage } from "@/shared/types";
+import { getAnnotationMode } from "@/shared/types";
 import { getEffectiveDimensions } from "./tree-utils";
 import { imagePointToEffective } from "./CropLayer";
 import { AnnotationLayer, DEFAULT_CHECKMARK_SIZE, DEFAULT_CROSS_SIZE, DEFAULT_OPACITY, HIGHLIGHT_COLOR } from "./AnnotationLayer";
@@ -77,7 +78,7 @@ export function CropCanvas() {
   const setViewerZoom = useAppStore((s) => s.setViewerZoom);
   const setViewerPan = useAppStore((s) => s.setViewerPan);
   const fitToViewTrigger = useAppStore((s) => s.fitToViewTrigger);
-  const annotationMode = useAppStore((s) => s.annotationMode);
+  const annotationMode = useAppStore((s) => getAnnotationMode(s.buildView));
   const annotationColor = useAppStore((s) => s.annotationColor);
   const addAnnotation = useAppStore((s) => s.addAnnotation);
   const annotationStrokeWidth = useAppStore((s) => s.annotationStrokeWidth);

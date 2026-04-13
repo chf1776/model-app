@@ -1,6 +1,6 @@
 import type { StateCreator } from "zustand";
-import type { Project, UpdateProjectInput, UpdateStepInput, InstructionSource, InstructionPage, Track, Step, ReferenceImage, Annotation, AnnotationTool, PaletteEntry, SprueRef, StepSpruePart, StepContext } from "@/shared/types";
-import { getEffectiveDryingMinutes, ANNOTATION_TOOL_LABELS, getSettingBool } from "@/shared/types";
+import type { Project, UpdateProjectInput, UpdateStepInput, InstructionSource, InstructionPage, Track, Step, ReferenceImage, Annotation, AnnotationTool, PaletteEntry, SprueRef, StepSpruePart, StepContext, BuildView } from "@/shared/types";
+import { getEffectiveDryingMinutes, buildViewsEqual, ANNOTATION_TOOL_LABELS, getSettingBool, parseBuildView, buildViewFromLegacy } from "@/shared/types";
 import type { AppStore } from "./index";
 import * as api from "@/api";
 import { toast } from "sonner";
@@ -197,18 +197,15 @@ export interface BuildSlice {
   resetViewerState: () => void;
   requestFitToView: () => void;
 
-  // Build mode
-  buildMode: BuildMode;
-  setBuildMode: (mode: BuildMode) => void;
+  // Build view (discriminated union — primary mode state)
+  buildView: BuildView;
+  setBuildView: (view: BuildView) => void;
   completeActiveStep: () => Promise<void>;
 
-  // Setup rail mode
+  // Legacy mode fields (internal — kept in sync by setBuildView, used by setCanvasMode validation)
+  buildMode: BuildMode;
   setupRailMode: SetupRailMode;
-  setSetupRailMode: (mode: SetupRailMode) => void;
-
-  // Nav mode
   navMode: NavMode;
-  setNavMode: (mode: NavMode) => void;
 
   // Sprue panel
   spruePanelOpen: boolean;
@@ -241,6 +238,9 @@ export interface BuildSlice {
   confirmPolygonSave: () => Promise<void>;
   dismissPolygonSwitch: () => void;
   clearClipPolygon: (stepId: string) => Promise<void>;
+
+  // Full-page step (shared by toolbar + keyboard shortcut)
+  createFullPageStep: () => Promise<void>;
 
   // AI detection
   triggerAutoDetect: (stepId: string) => void;
@@ -276,6 +276,7 @@ const DEFAULT_BUILD_STATE = {
   annotationStrokeWidth: 0.003,
   annotationUndoStacks: {} as Record<string, Annotation[][]>,
   annotationRedoStacks: {} as Record<string, Annotation[][]>,
+  buildView: { kind: "setup-tracks", canvasMode: "view" } as BuildView,
   buildMode: "setup" as BuildMode,
   setupRailMode: "steps" as SetupRailMode,
   navMode: "track" as NavMode,
@@ -372,10 +373,13 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       api.getProject(id),
       api.getProjectUiState(id),
     ]);
+    const buildView = parseBuildView(uiState.build_view)
+      ?? buildViewFromLegacy(uiState.build_mode as "setup" | "building", uiState.nav_mode as "track" | "page");
     set({
       activeProjectId: id,
       project,
       ...DEFAULT_BUILD_STATE,
+      buildView,
       buildMode: uiState.build_mode === "building" ? "building" : "setup",
       navMode: uiState.nav_mode === "page" ? "page" : "track",
       activeTrackId: uiState.active_track_id ?? null,
@@ -410,9 +414,12 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     const project = await api.getActiveProject();
     if (project) {
       const uiState = await api.getProjectUiState(project.id);
+      const buildView = parseBuildView(uiState.build_view)
+        ?? buildViewFromLegacy(uiState.build_mode as "setup" | "building", uiState.nav_mode as "track" | "page");
       set({
         activeProjectId: project.id,
         project,
+        buildView,
         buildMode: uiState.build_mode === "building" ? "building" : "setup",
         navMode: uiState.nav_mode === "page" ? "page" : "track",
         activeTrackId: uiState.active_track_id ?? null,
@@ -889,7 +896,13 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     get().saveAnnotationsDebounced(stepId);
   },
 
-  setAnnotationMode: (mode) => set({ annotationMode: mode }),
+  setAnnotationMode: (mode) => {
+    if (mode === get().annotationMode) return;
+    set({
+      annotationMode: mode,
+      buildView: { kind: "building-track", annotationMode: mode },
+    });
+  },
   setAnnotationColor: (color) => {
     set({ annotationColor: color });
     api.setSetting("annotation_color", color).catch((e) => toast.error(`Failed to save setting: ${e}`));
@@ -1166,15 +1179,32 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     set({ pendingCompletion: null });
   },
 
-  setBuildMode: async (mode) => {
+  setBuildView: (view) => {
     const state = get();
     const projectId = state.activeProjectId;
-    if (!projectId) return;
+    const prevView = state.buildView;
+    const wasSetup = prevView.kind === "setup-tracks" || prevView.kind === "setup-sprues";
+    const isSetup = view.kind === "setup-tracks" || view.kind === "setup-sprues";
+    const isBuilding = !isSetup;
 
-    const updates: Partial<BuildSlice> = { buildMode: mode };
+    // Dual-write to legacy fields
+    const legacyBuildMode: BuildMode = isSetup ? "setup" : "building";
+    const legacyNavMode: NavMode = view.kind === "building-page" ? "page" : "track";
+    const legacyCanvasMode: CanvasMode = ("canvasMode" in view ? view.canvasMode : "view") as CanvasMode;
+    const legacyAnnotationMode: AnnotationTool = view.kind === "building-track" ? view.annotationMode : null;
+    const legacySetupRailMode: SetupRailMode = view.kind === "setup-sprues" ? "sprues" : "steps";
 
-    // Force canvas back to view mode and reset viewer when entering building
-    if (mode === "building") {
+    const updates: Partial<BuildSlice> = {
+      buildView: view,
+      buildMode: legacyBuildMode,
+      navMode: legacyNavMode,
+      canvasMode: legacyCanvasMode,
+      annotationMode: legacyAnnotationMode,
+      setupRailMode: legacySetupRailMode,
+    };
+
+    // Side effects when transitioning from setup → building
+    if (wasSetup && isBuilding) {
       updates.canvasMode = "view" as CanvasMode;
       updates.polygonDraftPoints = [];
       updates.polygonDraftStepId = null;
@@ -1190,40 +1220,51 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       }
     }
 
-    // Clear annotation toolbar when switching modes
-    if (mode === "setup") {
-      updates.annotationMode = null as AnnotationTool;
-    }
-
     set(updates);
 
     // Load step context for active step when entering building mode
-    if (mode === "building") {
-      const activeId = (updates as Record<string, unknown>).activeStepId as string ?? state.activeStepId;
+    if (wasSetup && isBuilding) {
+      const activeId = updates.activeStepId ?? state.activeStepId;
       if (activeId && !state.stepContexts[activeId]) {
         get().loadStepContext(activeId);
       }
     }
-    try {
-      await api.saveBuildMode(projectId, mode);
-    } catch (e) {
-      toast.error(`Failed to save build mode: ${e}`);
+
+    if (projectId && !buildViewsEqual(prevView, view)) {
+      api.saveBuildView(projectId, view).catch((e) => toast.error(`Failed to save view state: ${e}`));
     }
   },
 
-  setSetupRailMode: (mode) => {
-    set({ setupRailMode: mode });
-  },
-
-  setNavMode: async (mode) => {
-    const projectId = get().activeProjectId;
-    set({ navMode: mode });
-    if (projectId) {
-      try {
-        await api.saveNavMode(projectId, mode);
-      } catch (e) {
-        toast.error(`Failed to save nav mode: ${e}`);
-      }
+  createFullPageStep: async () => {
+    const s = get();
+    if (!s.activeTrackId) {
+      toast.info("Select a track first");
+      return;
+    }
+    const page = s.currentSourcePages[s.currentPageIndex];
+    if (!page) return;
+    const trackSteps = s.steps.filter((st) => st.track_id === s.activeTrackId);
+    const rootCount = trackSteps.filter((st) => !st.parent_step_id).length;
+    try {
+      const step = await api.createStep({
+        track_id: s.activeTrackId!,
+        title: `Step ${rootCount + 1}`,
+        source_page_id: page.id,
+        is_full_page: true,
+        crop_x: 0,
+        crop_y: 0,
+        crop_w: page.width,
+        crop_h: page.height,
+      });
+      const fresh = get();
+      fresh.addStep(step);
+      fresh.pushUndo(step.id);
+      fresh.setActiveStep(step.id);
+      fresh.triggerAutoDetect(step.id);
+      if (fresh.activeProjectId) fresh.loadTracks(fresh.activeProjectId);
+      toast.success("Step created", { toasterId: "canvas" });
+    } catch (e) {
+      toast.error(`Failed to create step: ${e}`, { toasterId: "canvas" });
     }
   },
 
@@ -1244,6 +1285,13 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
       toast.info("Select a track first");
       return;
     }
+    // Compute buildView for dual-write
+    const bvCanvasMode = get().setupRailMode === "sprues"
+      ? (mode === "crop" || mode === "view" ? mode : "view") as "view" | "crop"
+      : mode;
+    const bv: BuildView = get().setupRailMode === "sprues"
+      ? { kind: "setup-sprues", canvasMode: bvCanvasMode as "view" | "crop" }
+      : { kind: "setup-tracks", canvasMode: bvCanvasMode };
     if (mode === "polygon") {
       if (!get().activeTrackId) {
         toast.info("Select a track first");
@@ -1256,6 +1304,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         const existing: { x: number; y: number }[] = JSON.parse(step.clip_polygon);
         set({
           canvasMode: mode,
+          buildView: bv,
           polygonDraftPoints: existing,
           polygonDraftStepId: step.id,
         });
@@ -1263,6 +1312,7 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
         // No existing polygon — create new step on save
         set({
           canvasMode: mode,
+          buildView: bv,
           polygonDraftPoints: [],
           polygonDraftStepId: null,
         });
@@ -1271,9 +1321,9 @@ export const createBuildSlice: StateCreator<AppStore, [], [], BuildSlice> = (
     }
     // If leaving polygon mode, clear draft
     if (get().canvasMode === "polygon") {
-      set({ canvasMode: mode, polygonDraftPoints: [], polygonDraftStepId: null });
+      set({ canvasMode: mode, buildView: bv, polygonDraftPoints: [], polygonDraftStepId: null });
     } else {
-      set({ canvasMode: mode });
+      set({ canvasMode: mode, buildView: bv });
     }
   },
 

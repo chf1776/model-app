@@ -3,6 +3,7 @@ import { Layer, Line, Ellipse, Arrow, Rect, Text, Group } from "react-konva";
 import { useAppStore } from "@/store";
 import { useTheme } from "@/hooks/useTheme";
 import type { Annotation } from "@/shared/types";
+import { getAnnotationMode } from "@/shared/types";
 
 const EMPTY_ANNOTATIONS: Annotation[] = [];
 
@@ -36,7 +37,7 @@ function toLayerY(ny: number, h: number) { return ny * h; }
 
 export function AnnotationLayer({ stepId, effectiveW, effectiveH, zoom, drawPreview, previewColor }: AnnotationLayerProps) {
   const annotations = useAppStore((s) => s.stepContexts[stepId]?.annotations ?? EMPTY_ANNOTATIONS);
-  const annotationMode = useAppStore((s) => s.annotationMode);
+  const annotationMode = useAppStore((s) => getAnnotationMode(s.buildView));
   const removeAnnotation = useAppStore((s) => s.removeAnnotation);
   const { accent: SELECTION_COLOR } = useTheme();
   const updateAnnotation = useAppStore((s) => s.updateAnnotation);
